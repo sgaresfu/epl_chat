@@ -89,14 +89,41 @@ async def empty_cache() -> MemoryCache:
     return MemoryCache()
 
 
-def _build_app(settings: Settings, store: MemoryCache) -> Any:
+def _build_app(settings: Settings, store: MemoryCache, sessions: Any = None) -> Any:
     from services.api.main import create_app
 
     app = create_app()
     # Replace the lifespan's state so tests need neither Redis nor network.
     app.router.lifespan_context = _noop_lifespan  # type: ignore[assignment]
-    app.state.app_state = AppState(settings=settings, cache=store)
+    app.state.app_state = AppState(settings=settings, cache=store, sessions=sessions)
     return app
+
+
+@pytest.fixture
+async def sessions() -> AsyncIterator[Any]:
+    """A real SQLite schema per test, so persistence is genuinely exercised.
+
+    In-memory would be simpler but would not catch a migration-shaped bug; this
+    creates the actual tables from the same metadata Alembic generates from.
+    """
+    from shared.db import Base
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    engine = create_async_engine("sqlite+aiosqlite://", future=True)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    # Seed exactly as the api's lifespan does.
+    from services.api.repository import seed_predictions
+
+    async with factory() as db:
+        await seed_predictions(db)
+        await db.commit()
+
+    yield factory
+    await engine.dispose()
 
 
 @asynccontextmanager
@@ -106,17 +133,19 @@ async def _noop_lifespan(app: Any) -> AsyncIterator[None]:
 
 
 @pytest.fixture
-async def client(settings: Settings, cache: MemoryCache) -> AsyncIterator[AsyncClient]:
-    app = _build_app(settings, cache)
+async def client(settings: Settings, cache: MemoryCache, sessions: Any) -> AsyncIterator[AsyncClient]:
+    app = _build_app(settings, cache, sessions)
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://api.test") as http:
         yield http
 
 
 @pytest.fixture
-async def cold_client(settings: Settings, empty_cache: MemoryCache) -> AsyncIterator[AsyncClient]:
+async def cold_client(
+    settings: Settings, empty_cache: MemoryCache, sessions: Any
+) -> AsyncIterator[AsyncClient]:
     """A client whose cache the poller has never filled."""
-    app = _build_app(settings, empty_cache)
+    app = _build_app(settings, empty_cache, sessions)
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://api.test") as http:
         yield http

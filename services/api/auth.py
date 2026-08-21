@@ -58,19 +58,36 @@ def serializer(settings: Settings) -> URLSafeTimedSerializer:
     return URLSafeTimedSerializer(settings.session_secret, salt="pl-session")
 
 
+def cookie_policy(settings: Settings) -> tuple[str, bool, str | None]:
+    """Decide SameSite, Secure and Domain for the session cookie.
+
+    Three cases, and the difference between them is the whole cross-origin
+    problem from BRIEF section 3:
+
+    * **local** -- same-origin through the Vite proxy, so ``Lax`` over plain
+      HTTP. ``Secure`` would stop the cookie being stored at all on ``http://``.
+    * **shared parent domain** (``COOKIE_DOMAIN`` set) -- the clean path. The
+      cookie is first-party for both hosts, so ``Lax`` works and no third-party
+      cookie policy applies.
+    * **no shared parent** -- the cookie is third-party, so it needs
+      ``SameSite=None``, which browsers only honour together with ``Secure``.
+
+    Returned rather than applied inline so it can be asserted in tests, since
+    getting it wrong fails only in a deployed browser.
+    """
+    if settings.environment == "local":
+        return "lax", False, None
+    if settings.cookie_domain:
+        return "lax", True, settings.cookie_domain
+    return "none", True, None
+
+
 def issue_session(response: Response, person: str, settings: Settings) -> str:
     """Sign a session and set it as an httpOnly cookie."""
     token = serializer(settings).dumps({"person": person, "t": time.time()})
     assert isinstance(token, str)
-    secure = settings.environment != "local"
-    same_site: Any = "lax"
-    domain: str | None = None
-
-    origin = settings.cors_origins[0] if settings.cors_origins else ""
-    if settings.environment != "local" and not _shares_parent_domain(origin):
-        # No shared parent domain, so the cookie must be third-party.
-        same_site = "none"
-        secure = True
+    same_site_str, secure, domain = cookie_policy(settings)
+    same_site: Any = same_site_str
 
     response.set_cookie(
         SESSION_COOKIE,
@@ -99,14 +116,12 @@ def issue_session(response: Response, person: str, settings: Settings) -> str:
     return token
 
 
-def _shares_parent_domain(origin: str) -> bool:
-    """Whether the frontend origin looks like a sibling of the api host."""
-    return bool(origin) and origin.count(".") >= 2
-
-
-def clear_session(response: Response) -> None:
-    response.delete_cookie(SESSION_COOKIE, path="/")
-    response.delete_cookie(CSRF_COOKIE, path="/")
+def clear_session(response: Response, settings: Settings | None = None) -> None:
+    # The domain must match the one the cookie was set with, or the browser
+    # keeps the original and sign-out silently does nothing.
+    domain = cookie_policy(settings)[2] if settings else None
+    response.delete_cookie(SESSION_COOKIE, path="/", domain=domain)
+    response.delete_cookie(CSRF_COOKIE, path="/", domain=domain)
 
 
 def read_session(request: Request, settings: Settings) -> Session | None:

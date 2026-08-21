@@ -55,6 +55,10 @@ class Settings(BaseSettings):
 
     sentry_dsn: str = ""
     frontend_origin: str = "http://localhost:5173"
+    # Set to ".example.com" when the web and api services share a parent domain:
+    # the session cookie is then first-party and SameSite=Lax works. Leave empty
+    # when they do not, and the cookie falls back to SameSite=None; Secure.
+    cookie_domain: str = ""
 
     # --- quota budgets (see BRIEF section 4, "Quota discipline") -----------
     # The brief's stated intervals overrun both free tiers, so the ceilings are

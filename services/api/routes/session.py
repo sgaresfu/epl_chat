@@ -54,8 +54,8 @@ async def sign_in(body: LoginIn, request: Request, response: Response, state: St
 
 
 @router.delete("/api/session", status_code=status.HTTP_204_NO_CONTENT)
-async def sign_out(response: Response) -> Response:
-    clear_session(response)
+async def sign_out(response: Response, settings: Config) -> Response:
+    clear_session(response, settings)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

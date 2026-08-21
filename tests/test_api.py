@@ -375,7 +375,9 @@ class TestPredictions:
 class TestPredictionLock:
     """After the deadline the picker is read-only, whatever the client thinks."""
 
-    async def test_writes_are_refused_once_the_lock_has_passed(self, settings: object, cache: object) -> None:
+    async def test_writes_are_refused_once_the_lock_has_passed(
+        self, settings: object, cache: object, sessions: object
+    ) -> None:
         from httpx import ASGITransport
         from httpx import AsyncClient as Client
         from shared.config import Settings
@@ -391,7 +393,7 @@ class TestPredictionLock:
             code_bulba=CODES["bulba"],
             prediction_lock="2020-01-01T00:00:00Z",  # long past
         )
-        app = _build_app(past_lock, cache)  # type: ignore[arg-type]
+        app = _build_app(past_lock, cache, sessions)  # type: ignore[arg-type]
         async with Client(transport=ASGITransport(app=app), base_url="http://api.test") as http:
             await http.post("/api/session", json={"code": CODES["twzt"]})
             from shared.clubs import CLUBS
@@ -405,7 +407,7 @@ class TestPredictionLock:
             assert response.status_code == 403
             assert "locked" in response.json()["detail"].lower()
 
-    async def test_after_the_lock_everyone_can_see_everything(self, cache: object) -> None:
+    async def test_after_the_lock_everyone_can_see_everything(self, cache: object, sessions: object) -> None:
         from httpx import ASGITransport
         from httpx import AsyncClient as Client
         from shared.config import Settings
@@ -421,7 +423,7 @@ class TestPredictionLock:
             code_bulba=CODES["bulba"],
             prediction_lock="2020-01-01T00:00:00Z",
         )
-        app = _build_app(past_lock, cache)  # type: ignore[arg-type]
+        app = _build_app(past_lock, cache, sessions)  # type: ignore[arg-type]
         async with Client(transport=ASGITransport(app=app), base_url="http://api.test") as http:
             await http.post("/api/session", json={"code": CODES["coyg"]})
             body = (await http.get("/api/predictions")).json()
@@ -430,7 +432,9 @@ class TestPredictionLock:
             assert theirs["redacted"] is False
             assert theirs["table"][0] == "ARS"
 
-    async def test_an_unfiled_slot_reads_did_not_file_after_the_lock(self, cache: object) -> None:
+    async def test_an_unfiled_slot_reads_did_not_file_after_the_lock(
+        self, cache: object, sessions: object
+    ) -> None:
         from httpx import ASGITransport
         from httpx import AsyncClient as Client
         from shared.config import Settings
@@ -443,7 +447,7 @@ class TestPredictionLock:
             code_coyg=CODES["coyg"],
             prediction_lock="2020-01-01T00:00:00Z",
         )
-        app = _build_app(past_lock, cache)  # type: ignore[arg-type]
+        app = _build_app(past_lock, cache, sessions)  # type: ignore[arg-type]
         async with Client(transport=ASGITransport(app=app), base_url="http://api.test") as http:
             await http.post("/api/session", json={"code": CODES["coyg"]})
             body = (await http.get("/api/predictions")).json()
@@ -542,7 +546,9 @@ class TestFplStandings:
         assert body["league_id"] == 412955
         assert body["league_name"] == "EPL 50$"
 
-    async def test_an_unmapped_entry_is_reported_not_dropped(self, settings: object, cache: object) -> None:
+    async def test_an_unmapped_entry_is_reported_not_dropped(
+        self, settings: object, cache: object, sessions: object
+    ) -> None:
         # A fifth manager joining must be visible as something to fix.
         from httpx import ASGITransport
         from httpx import AsyncClient as Client
@@ -562,7 +568,7 @@ class TestFplStandings:
         )
         await cache.set(keys.FPL_LEAGUE, payload, source="fpl")  # type: ignore[attr-defined]
 
-        app = _build_app(settings, cache)  # type: ignore[arg-type]
+        app = _build_app(settings, cache, sessions)  # type: ignore[arg-type]
         async with Client(transport=ASGITransport(app=app), base_url="http://api.test") as http:
             await http.post("/api/session", json={"code": CODES["coyg"]})
             body = (await http.get("/api/fpl/standings")).json()

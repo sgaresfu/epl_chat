@@ -32,7 +32,8 @@ from shared.scoring import Award, InvalidTableError, score_prediction, validate_
 from shared.timezones import PLACES
 
 from services.api.auth import require_csrf
-from services.api.deps import Config, CurrentSession, State
+from services.api.deps import Config, CurrentSession, Db
+from services.api.repository import load_predictions, save_prediction
 
 log = structlog.get_logger(__name__)
 router = APIRouter(tags=["predictions"])
@@ -118,10 +119,10 @@ def _to_out(person: str, raw: dict[str, Any] | None, locked: bool, viewer: str) 
 
 
 @router.get("/api/predictions", response_model=PredictionsOut)
-async def list_predictions(session: CurrentSession, settings: Config, state: State) -> PredictionsOut:
+async def list_predictions(session: CurrentSession, settings: Config, db: Db) -> PredictionsOut:
     now = datetime.now(UTC)
     locked = is_locked(settings, now)
-    data = state.predictions
+    data = await load_predictions(db)
     return PredictionsOut(
         predictions=[_to_out(place.key, data.get(place.key), locked, session.person) for place in PLACES],
         locked=locked,
@@ -137,7 +138,7 @@ async def list_predictions(session: CurrentSession, settings: Config, state: Sta
     responses={403: {"model": ErrorOut}, 422: {"model": ErrorOut}},
 )
 async def put_prediction(
-    body: PredictionIn, session: CurrentSession, settings: Config, state: State
+    body: PredictionIn, session: CurrentSession, settings: Config, db: Db
 ) -> PredictionOut:
     """Owner only, and only before the lock."""
     if is_locked(settings):
@@ -155,15 +156,15 @@ async def put_prediction(
 
     # The person always comes from the session, never from the body.
     person = session.person
-    state.predictions[person] = {
-        "person": person,
-        "table": list(body.table),
-        "awards": body.awards.model_dump(),
-        "champions_league": body.champions_league.model_dump(),
-        "submitted_at": datetime.now(UTC).isoformat(),
-    }
+    saved = await save_prediction(
+        db,
+        person,
+        list(body.table),
+        body.awards.model_dump(),
+        body.champions_league.model_dump(),
+    )
     log.info("predictions.filed", person=person)
-    return _to_out(person, state.predictions[person], False, person)
+    return _to_out(person, saved, False, person)
 
 
 @router.post("/api/predictions/preview", response_model=PreviewOut)

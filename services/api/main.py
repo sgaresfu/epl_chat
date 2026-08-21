@@ -43,8 +43,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     configure_logging(settings.log_level)
     cache = await build_cache(settings.redis_url)
-    app.state.app_state = AppState(settings=settings, cache=cache)
+
+    from shared.session import session_factory
+
+    from services.api.repository import seed_predictions
+
+    sessions = session_factory()
+    app.state.app_state = AppState(settings=settings, cache=cache, sessions=sessions)
     log = structlog.get_logger(__name__)
+
+    # The four people and the two seeded predictions are written once. Existing
+    # rows are never overwritten, so a prediction filed since the last deploy
+    # survives a restart.
+    try:
+        async with sessions() as db:
+            written = await seed_predictions(db)
+            await db.commit()
+        if written:
+            log.info("api.seeded_predictions", count=written)
+    except Exception as exc:
+        log.warning("api.seed_predictions_failed", error=str(exc))
 
     if settings.seed_on_start and settings.environment == "local":
         # Dev affordance: one pass of the poller so a clean clone shows real
@@ -65,7 +83,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        from shared.session import dispose
+
         await cache.close()
+        await dispose()
 
 
 def create_app() -> FastAPI:

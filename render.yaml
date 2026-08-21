@@ -39,6 +39,10 @@ services:
     dockerContext: .
     plan: starter
     healthCheckPath: /healthz
+    # Runs after the build and before the new instance takes traffic, so the
+    # schema is always ahead of the code that depends on it. Without this the
+    # first deploy comes up against an empty database.
+    preDeployCommand: alembic upgrade head
     envVars:
       - fromGroup: league-secrets
       - key: DATABASE_URL
@@ -148,4 +152,10 @@ envVarGroups:
       - key: SENTRY_DSN
         sync: false
       - key: FRONTEND_ORIGIN
+        sync: false
+      # Set to ".yourdomain.com" when the web and api services share a parent
+      # domain: the cookie is then first-party and SameSite=Lax just works.
+      # Leave empty if they do not, and the api falls back to
+      # SameSite=None; Secure with the CORS allow-list above.
+      - key: COOKIE_DOMAIN
         sync: false

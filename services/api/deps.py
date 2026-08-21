@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Annotated, Any
 
@@ -9,22 +10,11 @@ import structlog
 from fastapi import Depends, HTTPException, Request, status
 from shared.cache import Cache, Entry
 from shared.config import Settings
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from services.api.auth import Session, read_session
 
 log = structlog.get_logger(__name__)
-
-
-def _seed_predictions() -> dict[str, dict[str, Any]]:
-    """Load the seeded predictions from BRIEF section 6."""
-    import json
-    from pathlib import Path
-
-    seed = Path(__file__).parents[2] / "shared" / "data" / "seed_predictions.json"
-    if not seed.exists():  # pragma: no cover
-        return {}
-    data = json.loads(seed.read_text())
-    return {p["person"]: p for p in data.get("predictions", [])}
 
 
 @dataclass
@@ -33,10 +23,10 @@ class AppState:
 
     settings: Settings
     cache: Cache
-    # Predictions live here rather than in a module global so each app instance
-    # owns its own state. Backed by the predictions table once the database
-    # session is wired in; the shape is identical, so the routes do not change.
-    predictions: dict[str, dict[str, Any]] = field(default_factory=_seed_predictions)
+    # Set in the lifespan. Predictions and the watch log persist here rather
+    # than in memory, because Render restarts a service on every deploy and an
+    # in-memory prediction is one that disappears.
+    sessions: async_sessionmaker[AsyncSession] | None = None
     # Presence heartbeats: person -> (fixture_id, last_seen_epoch)
     presence: dict[str, tuple[int, float]] = field(default_factory=dict)
     # Live SSE connections per person, for the concurrency cap.
@@ -81,6 +71,27 @@ def optional_session(request: Request, state: State) -> Session | None:
 
 
 OptionalSession = Annotated[Session | None, Depends(optional_session)]
+
+
+async def get_db(state: State) -> AsyncIterator[AsyncSession]:
+    """A transactional database session for one request.
+
+    Commits when the handler returns, rolls back if it raises, so a failed
+    mutation never leaves a half-written prediction behind.
+    """
+    factory = state.sessions
+    if factory is None:  # pragma: no cover - set in the lifespan
+        raise RuntimeError("database not initialised")
+    async with factory() as db:
+        try:
+            yield db
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            raise
+
+
+Db = Annotated[AsyncSession, Depends(get_db)]
 
 
 async def cached(state: AppState, name: str) -> Entry | None:
