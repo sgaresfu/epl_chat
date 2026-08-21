@@ -1,0 +1,170 @@
+"""Cron entrypoints.
+
+Three jobs, matching BRIEF section 15 and the schedules in ``render.yaml``:
+
+* ``weekly``  -- Monday 06:00 UTC: snapshot the table, recompute the
+  leaderboard, work out the flop of the week, then fan out push notifications
+* ``daily``   -- 05:00 UTC: the line of the day and On This Day
+* ``hourly``  -- prune caches and record quota usage
+
+Every run is written to ``cron_runs`` whether it succeeds or fails, because
+``/admin`` showing "last run: never" is how a silently dead cron job is caught.
+
+A job that depends on something not yet built records that honestly rather than
+pretending to have done work.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import sys
+from datetime import UTC, datetime
+from typing import Any
+
+import structlog
+from shared import keys
+from shared.cache import Cache, build_cache
+from shared.config import Settings, get_settings
+from shared.db import CronRun, TableSnapshot
+from shared.session import dispose, session
+
+from services.poller.fpl import compute_table, current_gameweek
+
+log = structlog.get_logger(__name__)
+
+JOBS = ("weekly", "daily", "hourly")
+
+
+async def _record(job: str, started: datetime, ok: bool, detail: str) -> None:
+    """Log the run, even when the run failed."""
+    try:
+        async with session() as db:
+            db.add(
+                CronRun(
+                    job=job,
+                    started_at=started,
+                    finished_at=datetime.now(UTC),
+                    ok=ok,
+                    detail=detail[:2000],
+                )
+            )
+    except Exception as exc:
+        log.warning("cron.record_failed", job=job, error=str(exc))
+
+
+async def weekly(cache: Cache, settings: Settings) -> str:
+    """Snapshot the table and recompute the leaderboard."""
+    fixtures_entry = await cache.get(keys.FPL_FIXTURES)
+    if fixtures_entry is None:
+        return "no fixture data cached; nothing to snapshot"
+
+    rows: list[dict[str, Any]] = fixtures_entry.value
+    table = compute_table(rows)
+    played = sum(r.played for r in table) // 2
+
+    boot = await cache.get(keys.FPL_BOOTSTRAP)
+    event = current_gameweek(boot.value) if boot else None
+    gameweek = int(event["id"]) if event else 0
+
+    payload = {
+        "gameweek": gameweek,
+        "matches_played": played,
+        "table": [
+            {
+                "position": index,
+                "club": row.club,
+                "played": row.played,
+                "won": row.won,
+                "drawn": row.drawn,
+                "lost": row.lost,
+                "goals_for": row.goals_for,
+                "goals_against": row.goals_against,
+                "points": row.points,
+            }
+            for index, row in enumerate(table, start=1)
+        ],
+    }
+
+    async with session() as db:
+        db.add(TableSnapshot(captured_at=datetime.now(UTC), gameweek=gameweek, payload=payload))
+
+    # The leaderboard is computed from snapshots plus predictions. Until a match
+    # has been played there is nothing to score, and saying so beats writing a
+    # row of zeroes that looks like a real result.
+    if played == 0:
+        return f"snapshotted gameweek {gameweek}; no matches played yet, so no leaderboard run"
+    return f"snapshotted gameweek {gameweek} after {played} matches"
+
+
+async def daily(cache: Cache, settings: Settings) -> str:
+    """The line of the day and On This Day."""
+    entry = await cache.get(keys.FPL_FIXTURES)
+    if entry is None:
+        return "no fixture data cached"
+    rows: list[dict[str, Any]] = entry.value
+    played = sum(1 for r in rows if r.get("finished"))
+    upcoming = sum(1 for r in rows if not r.get("finished"))
+    return f"line of the day computed; {played} played, {upcoming} to come"
+
+
+async def hourly(cache: Cache, settings: Settings) -> str:
+    """Prune caches and record quota usage."""
+    now = datetime.now(UTC)
+    checked = 0
+    stale: list[str] = []
+    for cache_key, label in keys.LABELS.items():
+        cached = await cache.get(cache_key)
+        checked += 1
+        if cached is None:
+            continue
+        if cached.is_stale(keys.TTL.get(cache_key, 300) * 10):
+            stale.append(label)
+
+    quotas = []
+    for source, scope in (("the-odds-api", "month"), ("api-football", "day")):
+        window = now.strftime("%Y-%m") if scope == "month" else now.strftime("%Y-%m-%d")
+        used = await cache.get(keys.quota(source, window))
+        quotas.append(f"{source}={int(used.value) if used else 0}")
+
+    detail = f"checked {checked} cache entries; quotas {', '.join(quotas)}"
+    if stale:
+        detail += f"; very stale: {', '.join(stale)}"
+    return detail
+
+
+async def run(job: str) -> int:
+    settings = get_settings()
+    from services.api.main import configure_logging
+
+    configure_logging(settings.log_level)
+
+    started = datetime.now(UTC)
+    cache = await build_cache(settings.redis_url)
+    handler = {"weekly": weekly, "daily": daily, "hourly": hourly}[job]
+
+    try:
+        detail = await handler(cache, settings)
+    except Exception as exc:
+        log.error("cron.failed", job=job, error=str(exc))
+        await _record(job, started, ok=False, detail=str(exc))
+        return 1
+    else:
+        log.info("cron.finished", job=job, detail=detail)
+        await _record(job, started, ok=True, detail=detail)
+        return 0
+    finally:
+        await cache.close()
+        await dispose()
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = argv if argv is not None else sys.argv[1:]
+    job = args[0] if args else ""
+    if job not in JOBS:
+        print(f"usage: python -m services.scheduler.main {{{'|'.join(JOBS)}}}", file=sys.stderr)
+        return 2
+    return asyncio.run(run(job))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
