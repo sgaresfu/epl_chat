@@ -1,0 +1,58 @@
+# `docker compose up` runs api, poller, Postgres and Redis from a clean clone.
+# The frontend runs separately with `npm run dev` in apps/web -- it is a static
+# site and is never served from the Python process.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: league
+      POSTGRES_PASSWORD: league
+      POSTGRES_DB: league
+    ports: ['5432:5432']
+    volumes: ['pgdata:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U league']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ['6379:6379']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    ports: ['8000:8000']
+    environment:
+      DATABASE_URL: postgresql+asyncpg://league:league@postgres:5432/league
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: local
+      FRONTEND_ORIGIN: http://localhost:5173
+    env_file: [.env]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  poller:
+    build:
+      context: .
+      dockerfile: services/poller/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://league:league@postgres:5432/league
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: local
+    env_file: [.env]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+volumes:
+  pgdata:

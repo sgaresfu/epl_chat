@@ -1,0 +1,102 @@
+[
+  {
+    "id": 1,
+    "short_name": "ARS",
+    "name": "Arsenal"
+  },
+  {
+    "id": 2,
+    "short_name": "AVL",
+    "name": "Aston Villa"
+  },
+  {
+    "id": 3,
+    "short_name": "BOU",
+    "name": "Bournemouth"
+  },
+  {
+    "id": 4,
+    "short_name": "BRE",
+    "name": "Brentford"
+  },
+  {
+    "id": 5,
+    "short_name": "BHA",
+    "name": "Brighton"
+  },
+  {
+    "id": 6,
+    "short_name": "CHE",
+    "name": "Chelsea"
+  },
+  {
+    "id": 7,
+    "short_name": "COV",
+    "name": "Coventry City"
+  },
+  {
+    "id": 8,
+    "short_name": "CRY",
+    "name": "Crystal Palace"
+  },
+  {
+    "id": 9,
+    "short_name": "EVE",
+    "name": "Everton"
+  },
+  {
+    "id": 10,
+    "short_name": "FUL",
+    "name": "Fulham"
+  },
+  {
+    "id": 11,
+    "short_name": "HUL",
+    "name": "Hull City"
+  },
+  {
+    "id": 12,
+    "short_name": "IPS",
+    "name": "Ipswich Town"
+  },
+  {
+    "id": 13,
+    "short_name": "LEE",
+    "name": "Leeds"
+  },
+  {
+    "id": 14,
+    "short_name": "LIV",
+    "name": "Liverpool"
+  },
+  {
+    "id": 15,
+    "short_name": "MCI",
+    "name": "Man City"
+  },
+  {
+    "id": 16,
+    "short_name": "MUN",
+    "name": "Man Utd"
+  },
+  {
+    "id": 17,
+    "short_name": "NEW",
+    "name": "Newcastle"
+  },
+  {
+    "id": 18,
+    "short_name": "NFO",
+    "name": "Nott'm Forest"
+  },
+  {
+    "id": 19,
+    "short_name": "TOT",
+    "name": "Spurs"
+  },
+  {
+    "id": 20,
+    "short_name": "SUN",
+    "name": "Sunderland"
+  }
+]

@@ -1,0 +1,2138 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Prediction League 26/27",
+    "description": "Premier League predictions, FPL and a watch log for four friends. Every response is served from cache; the poller is the only process that talks to an upstream.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/session": {
+      "post": {
+        "tags": [
+          "session"
+        ],
+        "summary": "Sign In",
+        "description": "One field, one code word, compared constant-time.",
+        "operationId": "sign_in_api_session_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "session"
+        ],
+        "summary": "Sign Out",
+        "operationId": "sign_out_api_session_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "tags": [
+          "session"
+        ],
+        "summary": "Me",
+        "operationId": "me_api_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clubs": {
+      "get": {
+        "tags": [
+          "football"
+        ],
+        "summary": "Clubs",
+        "description": "The canonical club table, so the frontend never guesses a crest colour.",
+        "operationId": "clubs_api_clubs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClubOut"
+                  },
+                  "type": "array",
+                  "title": "Response Clubs Api Clubs Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/table": {
+      "get": {
+        "tags": [
+          "football"
+        ],
+        "summary": "Table",
+        "operationId": "table_api_table_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fixtures": {
+      "get": {
+        "tags": [
+          "football"
+        ],
+        "summary": "Fixtures",
+        "operationId": "fixtures_api_fixtures_get",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "name": "gameweek",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Gameweek"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureListOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fixtures/{fixture_id}": {
+      "get": {
+        "tags": [
+          "football"
+        ],
+        "summary": "Fixture",
+        "operationId": "fixture_api_fixtures__fixture_id__get",
+        "parameters": [
+          {
+            "name": "fixture_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Fixture Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FixtureOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/season": {
+      "get": {
+        "tags": [
+          "football"
+        ],
+        "summary": "Season",
+        "operationId": "season_api_season_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeasonOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/home": {
+      "get": {
+        "tags": [
+          "football"
+        ],
+        "summary": "Home",
+        "description": "Everything the front page needs, in one request.",
+        "operationId": "home_api_home_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/table/projected": {
+      "get": {
+        "tags": [
+          "table"
+        ],
+        "summary": "Projected",
+        "description": "Current points plus every remaining fixture resolved to last season.",
+        "operationId": "projected_api_table_projected_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectedTableOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/predictions": {
+      "get": {
+        "tags": [
+          "predictions"
+        ],
+        "summary": "List Predictions",
+        "operationId": "list_predictions_api_predictions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionsOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "predictions"
+        ],
+        "summary": "Put Prediction",
+        "description": "Owner only, and only before the lock.",
+        "operationId": "put_prediction_api_predictions_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PredictionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionOut"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/predictions/preview": {
+      "post": {
+        "tags": [
+          "predictions"
+        ],
+        "summary": "Preview",
+        "description": "Score a draft table against a finished season.\n\nThe picker calls this rather than reimplementing the rules in TypeScript --\ntwo implementations of the scoring rules is a bug waiting to happen.",
+        "operationId": "preview_api_predictions_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stream": {
+      "get": {
+        "tags": [
+          "stream"
+        ],
+        "summary": "Stream",
+        "description": "Subscribe to live score, FPL and odds changes for as long as the tab is open.",
+        "operationId": "stream_api_stream_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/status": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Status",
+        "operationId": "status_api_admin_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStatusOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/broadcasters": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Listings",
+        "operationId": "listings_api_admin_broadcasters_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BroadcasterOut"
+                  },
+                  "type": "array",
+                  "title": "Response Listings Api Admin Broadcasters Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Healthz",
+        "description": "Liveness: the process is up. Never touches a dependency.",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Healthz Healthz Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "tags": [
+          "ops"
+        ],
+        "summary": "Readyz",
+        "description": "Readiness: the cache answers and the fixture list has been filled.",
+        "operationId": "readyz_readyz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminStatusOut": {
+        "properties": {
+          "caches": {
+            "items": {
+              "$ref": "#/components/schemas/CacheAge"
+            },
+            "type": "array",
+            "title": "Caches"
+          },
+          "quotas": {
+            "items": {
+              "$ref": "#/components/schemas/QuotaOut"
+            },
+            "type": "array",
+            "title": "Quotas"
+          },
+          "cron": {
+            "items": {
+              "$ref": "#/components/schemas/CronRunOut"
+            },
+            "type": "array",
+            "title": "Cron"
+          },
+          "missing_keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Keys"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "caches",
+          "quotas",
+          "cron",
+          "missing_keys",
+          "environment"
+        ],
+        "title": "AdminStatusOut"
+      },
+      "AwardPicks-Input": {
+        "properties": {
+          "golden_boot": {
+            "type": "string",
+            "title": "Golden Boot",
+            "default": ""
+          },
+          "golden_glove": {
+            "type": "string",
+            "title": "Golden Glove",
+            "default": ""
+          },
+          "defender": {
+            "type": "string",
+            "title": "Defender",
+            "default": ""
+          },
+          "playmaker": {
+            "type": "string",
+            "title": "Playmaker",
+            "default": ""
+          },
+          "player_of_the_season": {
+            "type": "string",
+            "title": "Player Of The Season",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "AwardPicks"
+      },
+      "AwardPicks-Output": {
+        "properties": {
+          "golden_boot": {
+            "type": "string",
+            "title": "Golden Boot",
+            "default": ""
+          },
+          "golden_glove": {
+            "type": "string",
+            "title": "Golden Glove",
+            "default": ""
+          },
+          "defender": {
+            "type": "string",
+            "title": "Defender",
+            "default": ""
+          },
+          "playmaker": {
+            "type": "string",
+            "title": "Playmaker",
+            "default": ""
+          },
+          "player_of_the_season": {
+            "type": "string",
+            "title": "Player Of The Season",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "golden_boot",
+          "golden_glove",
+          "defender",
+          "playmaker",
+          "player_of_the_season"
+        ],
+        "title": "AwardPicks"
+      },
+      "BroadcasterOut": {
+        "properties": {
+          "country": {
+            "type": "string",
+            "title": "Country"
+          },
+          "competition": {
+            "type": "string",
+            "title": "Competition"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "default": ""
+          },
+          "verified_on": {
+            "type": "string",
+            "title": "Verified On",
+            "default": ""
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "country",
+          "competition",
+          "provider",
+          "url",
+          "verified_on",
+          "note"
+        ],
+        "title": "BroadcasterOut"
+      },
+      "CacheAge": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "age_seconds": {
+            "type": "number",
+            "title": "Age Seconds"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "source",
+          "age_seconds",
+          "stale"
+        ],
+        "title": "CacheAge"
+      },
+      "ChampionsLeaguePicks-Input": {
+        "properties": {
+          "winner": {
+            "type": "string",
+            "title": "Winner",
+            "default": ""
+          },
+          "finalist_a": {
+            "type": "string",
+            "title": "Finalist A",
+            "default": ""
+          },
+          "finalist_b": {
+            "type": "string",
+            "title": "Finalist B",
+            "default": ""
+          },
+          "top_scorer": {
+            "type": "string",
+            "title": "Top Scorer",
+            "default": ""
+          },
+          "draft": {
+            "type": "boolean",
+            "title": "Draft",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "ChampionsLeaguePicks"
+      },
+      "ChampionsLeaguePicks-Output": {
+        "properties": {
+          "winner": {
+            "type": "string",
+            "title": "Winner",
+            "default": ""
+          },
+          "finalist_a": {
+            "type": "string",
+            "title": "Finalist A",
+            "default": ""
+          },
+          "finalist_b": {
+            "type": "string",
+            "title": "Finalist B",
+            "default": ""
+          },
+          "top_scorer": {
+            "type": "string",
+            "title": "Top Scorer",
+            "default": ""
+          },
+          "draft": {
+            "type": "boolean",
+            "title": "Draft",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "winner",
+          "finalist_a",
+          "finalist_b",
+          "top_scorer",
+          "draft"
+        ],
+        "title": "ChampionsLeaguePicks"
+      },
+      "ClubOut": {
+        "properties": {
+          "short_name": {
+            "type": "string",
+            "title": "Short Name"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "primary": {
+            "type": "string",
+            "title": "Primary"
+          },
+          "on_primary": {
+            "type": "string",
+            "title": "On Primary"
+          },
+          "fpl_id": {
+            "type": "integer",
+            "title": "Fpl Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "short_name",
+          "name",
+          "full_name",
+          "primary",
+          "on_primary",
+          "fpl_id"
+        ],
+        "title": "ClubOut",
+        "description": "A club, with everything a crest needs and nothing it does not."
+      },
+      "CronRunOut": {
+        "properties": {
+          "job": {
+            "type": "string",
+            "title": "Job"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "ok": {
+            "type": "boolean",
+            "title": "Ok",
+            "default": true
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "job",
+          "started_at",
+          "finished_at",
+          "ok",
+          "detail"
+        ],
+        "title": "CronRunOut",
+        "description": "One scheduler run, as shown in the admin cron log."
+      },
+      "ErrorOut": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorOut"
+      },
+      "FixtureListOut": {
+        "properties": {
+          "fixtures": {
+            "items": {
+              "$ref": "#/components/schemas/FixtureOut"
+            },
+            "type": "array",
+            "title": "Fixtures"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fixtures",
+          "freshness",
+          "empty_message"
+        ],
+        "title": "FixtureListOut"
+      },
+      "FixtureOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "gameweek": {
+            "type": "integer",
+            "title": "Gameweek"
+          },
+          "kickoff": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kickoff"
+          },
+          "home": {
+            "$ref": "#/components/schemas/ClubOut"
+          },
+          "away": {
+            "$ref": "#/components/schemas/ClubOut"
+          },
+          "home_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Score"
+          },
+          "away_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Away Score"
+          },
+          "started": {
+            "type": "boolean",
+            "title": "Started",
+            "default": false
+          },
+          "finished": {
+            "type": "boolean",
+            "title": "Finished",
+            "default": false
+          },
+          "postponed": {
+            "type": "boolean",
+            "title": "Postponed",
+            "default": false
+          },
+          "minutes": {
+            "type": "integer",
+            "title": "Minutes",
+            "default": 0
+          },
+          "local_times": {
+            "items": {
+              "$ref": "#/components/schemas/LocalTimeOut"
+            },
+            "type": "array",
+            "title": "Local Times"
+          },
+          "odds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OddsPrice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "derby": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Derby"
+          },
+          "watched_by": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Watched By"
+          },
+          "watch_open": {
+            "type": "boolean",
+            "title": "Watch Open",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "gameweek",
+          "kickoff",
+          "home",
+          "away",
+          "home_score",
+          "away_score",
+          "started",
+          "finished",
+          "postponed",
+          "minutes",
+          "local_times",
+          "odds",
+          "derby",
+          "watched_by",
+          "watch_open"
+        ],
+        "title": "FixtureOut"
+      },
+      "Freshness": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "age_seconds": {
+            "type": "number",
+            "title": "Age Seconds"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": true
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "age_seconds",
+          "stale",
+          "available",
+          "reason"
+        ],
+        "title": "Freshness",
+        "description": "How old a cached payload is, so a panel can say so rather than lie."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HomeOut": {
+        "properties": {
+          "next_match": {
+            "$ref": "#/components/schemas/NextMatchOut"
+          },
+          "season": {
+            "$ref": "#/components/schemas/SeasonOut"
+          },
+          "line_of_the_day": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Of The Day"
+          }
+        },
+        "type": "object",
+        "required": [
+          "next_match",
+          "season",
+          "line_of_the_day"
+        ],
+        "title": "HomeOut"
+      },
+      "LocalTimeOut": {
+        "properties": {
+          "place": {
+            "type": "string",
+            "title": "Place"
+          },
+          "person": {
+            "type": "string",
+            "title": "Person"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "iso": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Iso"
+          },
+          "time": {
+            "type": "string",
+            "title": "Time"
+          },
+          "weekday": {
+            "type": "string",
+            "title": "Weekday"
+          },
+          "day": {
+            "type": "string",
+            "title": "Day"
+          },
+          "offset": {
+            "type": "string",
+            "title": "Offset"
+          },
+          "abbreviation": {
+            "type": "string",
+            "title": "Abbreviation"
+          },
+          "is_night": {
+            "type": "boolean",
+            "title": "Is Night"
+          },
+          "day_shift": {
+            "type": "integer",
+            "title": "Day Shift"
+          },
+          "broadcaster": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Broadcaster"
+          },
+          "broadcaster_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Broadcaster Url"
+          },
+          "verified_on": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified On"
+          }
+        },
+        "type": "object",
+        "required": [
+          "place",
+          "person",
+          "city",
+          "timezone",
+          "iso",
+          "time",
+          "weekday",
+          "day",
+          "offset",
+          "abbreviation",
+          "is_night",
+          "day_shift",
+          "broadcaster",
+          "broadcaster_url",
+          "verified_on"
+        ],
+        "title": "LocalTimeOut",
+        "description": "One kickoff rendered for one city."
+      },
+      "LoginIn": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "LoginIn"
+      },
+      "MeOut": {
+        "properties": {
+          "person": {
+            "$ref": "#/components/schemas/PersonOut"
+          },
+          "people": {
+            "items": {
+              "$ref": "#/components/schemas/PersonOut"
+            },
+            "type": "array",
+            "title": "People"
+          },
+          "season": {
+            "type": "string",
+            "title": "Season"
+          },
+          "prediction_lock": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Prediction Lock"
+          },
+          "locked": {
+            "type": "boolean",
+            "title": "Locked"
+          },
+          "server_time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Server Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "people",
+          "season",
+          "prediction_lock",
+          "locked",
+          "server_time"
+        ],
+        "title": "MeOut"
+      },
+      "NextMatchOut": {
+        "properties": {
+          "fixture": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FixtureOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "countdown_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Countdown Seconds"
+          },
+          "in_play": {
+            "type": "boolean",
+            "title": "In Play",
+            "default": false
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fixture",
+          "countdown_seconds",
+          "in_play",
+          "message"
+        ],
+        "title": "NextMatchOut"
+      },
+      "OddsPrice": {
+        "properties": {
+          "home": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home"
+          },
+          "draw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draw"
+          },
+          "away": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Away"
+          },
+          "bookmaker": {
+            "type": "string",
+            "title": "Bookmaker",
+            "default": "bet365"
+          },
+          "captured_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At"
+          },
+          "drift": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drift"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": true
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "home",
+          "draw",
+          "away",
+          "bookmaker",
+          "captured_at",
+          "drift",
+          "available",
+          "reason"
+        ],
+        "title": "OddsPrice"
+      },
+      "PersonOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "country": {
+            "type": "string",
+            "title": "Country"
+          },
+          "fpl_entry_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fpl Entry Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "city",
+          "timezone",
+          "country",
+          "fpl_entry_id"
+        ],
+        "title": "PersonOut"
+      },
+      "PredictionIn": {
+        "properties": {
+          "table": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Table"
+          },
+          "awards": {
+            "$ref": "#/components/schemas/AwardPicks-Input"
+          },
+          "champions_league": {
+            "$ref": "#/components/schemas/ChampionsLeaguePicks-Input"
+          }
+        },
+        "type": "object",
+        "title": "PredictionIn"
+      },
+      "PredictionOut": {
+        "properties": {
+          "person": {
+            "type": "string",
+            "title": "Person"
+          },
+          "filed": {
+            "type": "boolean",
+            "title": "Filed"
+          },
+          "redacted": {
+            "type": "boolean",
+            "title": "Redacted",
+            "default": false
+          },
+          "table": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Table"
+          },
+          "awards": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AwardPicks-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "champions_league": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChampionsLeaguePicks-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "locked": {
+            "type": "boolean",
+            "title": "Locked",
+            "default": false
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "filed",
+              "open",
+              "did-not-file"
+            ],
+            "title": "Status",
+            "default": "open"
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "filed",
+          "redacted",
+          "table",
+          "awards",
+          "champions_league",
+          "submitted_at",
+          "locked",
+          "status"
+        ],
+        "title": "PredictionOut"
+      },
+      "PredictionsOut": {
+        "properties": {
+          "predictions": {
+            "items": {
+              "$ref": "#/components/schemas/PredictionOut"
+            },
+            "type": "array",
+            "title": "Predictions"
+          },
+          "locked": {
+            "type": "boolean",
+            "title": "Locked"
+          },
+          "lock_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Lock At"
+          },
+          "seconds_remaining": {
+            "type": "number",
+            "title": "Seconds Remaining"
+          }
+        },
+        "type": "object",
+        "required": [
+          "predictions",
+          "locked",
+          "lock_at",
+          "seconds_remaining"
+        ],
+        "title": "PredictionsOut"
+      },
+      "PreviewIn": {
+        "properties": {
+          "table": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Table"
+          },
+          "awards": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AwardPicks-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "against_season": {
+            "type": "string",
+            "title": "Against Season",
+            "default": "2025-26"
+          }
+        },
+        "type": "object",
+        "required": [
+          "table"
+        ],
+        "title": "PreviewIn"
+      },
+      "PreviewOut": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "table_points": {
+            "type": "integer",
+            "title": "Table Points"
+          },
+          "award_points": {
+            "type": "integer",
+            "title": "Award Points"
+          },
+          "exact_hits": {
+            "type": "integer",
+            "title": "Exact Hits"
+          },
+          "near_hits": {
+            "type": "integer",
+            "title": "Near Hits"
+          },
+          "top_four_bonus": {
+            "type": "integer",
+            "title": "Top Four Bonus"
+          },
+          "champion_bonus": {
+            "type": "integer",
+            "title": "Champion Bonus"
+          },
+          "against_season": {
+            "type": "string",
+            "title": "Against Season"
+          },
+          "per_club": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Per Club"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "table_points",
+          "award_points",
+          "exact_hits",
+          "near_hits",
+          "top_four_bonus",
+          "champion_bonus",
+          "against_season",
+          "per_club"
+        ],
+        "title": "PreviewOut"
+      },
+      "ProjectedTableOut": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/TableRowOut"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "gameweek": {
+            "type": "integer",
+            "title": "Gameweek"
+          },
+          "matches_played": {
+            "type": "integer",
+            "title": "Matches Played"
+          },
+          "season_started": {
+            "type": "boolean",
+            "title": "Season Started"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          },
+          "modelled_rows": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Modelled Rows"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows",
+          "gameweek",
+          "matches_played",
+          "season_started",
+          "freshness",
+          "empty_message",
+          "modelled_rows",
+          "method"
+        ],
+        "title": "ProjectedTableOut"
+      },
+      "QuotaOut": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "used": {
+            "type": "integer",
+            "title": "Used"
+          },
+          "budget": {
+            "type": "integer",
+            "title": "Budget"
+          },
+          "remaining": {
+            "type": "integer",
+            "title": "Remaining"
+          },
+          "window": {
+            "type": "string",
+            "title": "Window"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "used",
+          "budget",
+          "remaining",
+          "window",
+          "note"
+        ],
+        "title": "QuotaOut"
+      },
+      "SeasonOut": {
+        "properties": {
+          "starts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Starts"
+          },
+          "ends": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ends"
+          },
+          "today": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Today"
+          },
+          "percent": {
+            "type": "number",
+            "title": "Percent"
+          },
+          "day": {
+            "type": "integer",
+            "title": "Day"
+          },
+          "total_days": {
+            "type": "integer",
+            "title": "Total Days"
+          },
+          "days_remaining": {
+            "type": "integer",
+            "title": "Days Remaining"
+          },
+          "gameweeks_played": {
+            "type": "integer",
+            "title": "Gameweeks Played"
+          },
+          "gameweeks_total": {
+            "type": "integer",
+            "title": "Gameweeks Total"
+          },
+          "matches_played": {
+            "type": "integer",
+            "title": "Matches Played"
+          },
+          "matches_total": {
+            "type": "integer",
+            "title": "Matches Total"
+          },
+          "matches_remaining": {
+            "type": "integer",
+            "title": "Matches Remaining"
+          },
+          "watched": {
+            "type": "integer",
+            "title": "Watched"
+          },
+          "markers": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineMarker"
+            },
+            "type": "array",
+            "title": "Markers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "starts",
+          "ends",
+          "today",
+          "percent",
+          "day",
+          "total_days",
+          "days_remaining",
+          "gameweeks_played",
+          "gameweeks_total",
+          "matches_played",
+          "matches_total",
+          "matches_remaining",
+          "watched",
+          "markers"
+        ],
+        "title": "SeasonOut",
+        "description": "Computed from fixture data and the current date, never hardcoded."
+      },
+      "TableOut": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/TableRowOut"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "gameweek": {
+            "type": "integer",
+            "title": "Gameweek"
+          },
+          "matches_played": {
+            "type": "integer",
+            "title": "Matches Played"
+          },
+          "season_started": {
+            "type": "boolean",
+            "title": "Season Started"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows",
+          "gameweek",
+          "matches_played",
+          "season_started",
+          "freshness",
+          "empty_message"
+        ],
+        "title": "TableOut"
+      },
+      "TableRowOut": {
+        "properties": {
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "club": {
+            "$ref": "#/components/schemas/ClubOut"
+          },
+          "played": {
+            "type": "integer",
+            "title": "Played"
+          },
+          "won": {
+            "type": "integer",
+            "title": "Won"
+          },
+          "drawn": {
+            "type": "integer",
+            "title": "Drawn"
+          },
+          "lost": {
+            "type": "integer",
+            "title": "Lost"
+          },
+          "goals_for": {
+            "type": "integer",
+            "title": "Goals For"
+          },
+          "goals_against": {
+            "type": "integer",
+            "title": "Goals Against"
+          },
+          "goal_difference": {
+            "type": "integer",
+            "title": "Goal Difference"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          },
+          "form": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Form"
+          },
+          "modelled": {
+            "type": "boolean",
+            "title": "Modelled",
+            "default": false
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "position",
+          "club",
+          "played",
+          "won",
+          "drawn",
+          "lost",
+          "goals_for",
+          "goals_against",
+          "goal_difference",
+          "points",
+          "form",
+          "modelled",
+          "note"
+        ],
+        "title": "TableRowOut"
+      },
+      "TimelineMarker": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Date"
+          },
+          "percent": {
+            "type": "number",
+            "title": "Percent"
+          },
+          "is_now": {
+            "type": "boolean",
+            "title": "Is Now",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "date",
+          "percent",
+          "is_now"
+        ],
+        "title": "TimelineMarker"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

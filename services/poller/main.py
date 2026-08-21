@@ -1,0 +1,163 @@
+"""The poller: the only process that talks to an upstream.
+
+Each source runs its own loop at its own cadence, writes the normalised payload
+to the cache, and publishes a diff **only when the payload actually changed** --
+so an idle afternoon produces no SSE traffic at all.
+
+The cadences adapt to whether football is being played, because polling live
+endpoints on a schedule when nothing is live is how a free tier gets spent on
+nothing.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import contextlib
+import hashlib
+import json
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+import structlog
+from shared import keys
+from shared.cache import CHANNEL_SCORES, Cache, build_cache
+from shared.config import Settings, get_settings
+
+from services.poller import fpl
+from services.poller.http import UpstreamError
+
+log = structlog.get_logger(__name__)
+
+# Cadences, in seconds.
+LIVE_INTERVAL = 30  # while a match is in play
+MATCHDAY_INTERVAL = 300  # on a matchday, nothing in play
+IDLE_INTERVAL = 3600  # no football today
+BOOTSTRAP_INTERVAL = 600
+
+# How close to kickoff counts as "a matchday" for the faster cadence.
+MATCHDAY_WINDOW = timedelta(hours=6)
+
+
+def digest(payload: Any) -> str:
+    """A stable fingerprint, so we publish on change rather than on schedule."""
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+
+
+class Poller:
+    def __init__(self, settings: Settings, cache: Cache) -> None:
+        self.settings = settings
+        self.cache = cache
+        self.fpl = fpl.client()
+        self._digests: dict[str, str] = {}
+
+    async def close(self) -> None:
+        await self.fpl.close()
+
+    async def write(self, name: str, payload: Any, source: str, channel: str | None = None) -> bool:
+        """Cache a payload and publish only if it differs from the last one."""
+        fingerprint = digest(payload)
+        changed = self._digests.get(name) != fingerprint
+        await self.cache.set(name, payload, source=source)
+        self._digests[name] = fingerprint
+        if changed and channel:
+            await self.cache.publish(channel, {"key": name, "at": datetime.now(UTC).isoformat()})
+            log.info("poller.published", key=name, channel=channel)
+        return changed
+
+    # -- state ------------------------------------------------------------
+
+    async def fixtures_now(self) -> list[dict[str, Any]]:
+        entry = await self.cache.get(keys.FPL_FIXTURES)
+        rows = entry.value if entry else []
+        return rows if isinstance(rows, list) else []
+
+    async def anything_in_play(self) -> bool:
+        rows = await self.fixtures_now()
+        return any(r.get("started") and not r.get("finished") for r in rows)
+
+    async def is_matchday(self) -> bool:
+        rows = await self.fixtures_now()
+        now = datetime.now(UTC)
+        for row in rows:
+            kickoff = fpl.parse_kickoff(row.get("kickoff_time"))
+            if kickoff and abs(kickoff - now) <= MATCHDAY_WINDOW:
+                return True
+        return False
+
+    async def interval(self) -> float:
+        if await self.anything_in_play():
+            return LIVE_INTERVAL
+        if await self.is_matchday():
+            return MATCHDAY_INTERVAL
+        return IDLE_INTERVAL
+
+    # -- loops ------------------------------------------------------------
+
+    async def once(self) -> None:
+        """One full pass: bootstrap, fixtures, table, league. Used by tests and seeding."""
+        await self.poll_bootstrap()
+        await self.poll_fixtures()
+        await self.poll_league()
+
+    async def poll_bootstrap(self) -> None:
+        try:
+            payload = await fpl.bootstrap(self.fpl)
+        except UpstreamError as exc:
+            log.warning("poller.bootstrap_failed", error=str(exc))
+            return
+        await self.write(keys.FPL_BOOTSTRAP, payload, source="fpl")
+
+    async def poll_fixtures(self) -> None:
+        try:
+            payload = await fpl.fixtures(self.fpl)
+        except UpstreamError as exc:
+            # FPL returns 503 around deadlines and at season rollover. The last
+            # good payload stays in the cache and the UI shows its age.
+            log.warning("poller.fixtures_failed", error=str(exc))
+            return
+        await self.write(keys.FPL_FIXTURES, payload, source="fpl", channel=CHANNEL_SCORES)
+
+    async def poll_league(self) -> None:
+        try:
+            payload = await fpl.league_standings(self.fpl, self.settings.fpl_league_id)
+        except UpstreamError as exc:
+            log.warning("poller.league_failed", error=str(exc))
+            return
+        await self.write(keys.FPL_LEAGUE, payload, source="fpl")
+
+    async def run_forever(self) -> None:
+        log.info("poller.starting", league=self.settings.fpl_league_id)
+        last_bootstrap = 0.0
+        while True:
+            started = asyncio.get_running_loop().time()
+            try:
+                if started - last_bootstrap > BOOTSTRAP_INTERVAL:
+                    await self.poll_bootstrap()
+                    last_bootstrap = started
+                await self.poll_fixtures()
+                await self.poll_league()
+            except Exception as exc:
+                log.error("poller.iteration_failed", error=str(exc))
+
+            delay = await self.interval()
+            log.info("poller.sleeping", seconds=delay)
+            await asyncio.sleep(delay)
+
+
+async def main() -> None:
+    settings = get_settings()
+    from services.api.main import configure_logging
+
+    configure_logging(settings.log_level)
+    cache = await build_cache(settings.redis_url)
+    poller = Poller(settings, cache)
+    try:
+        await poller.run_forever()
+    finally:
+        await poller.close()
+        await cache.close()
+
+
+if __name__ == "__main__":
+    with contextlib.suppress(KeyboardInterrupt):
+        asyncio.run(main())

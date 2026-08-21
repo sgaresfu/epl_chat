@@ -1,0 +1,124 @@
+"""The api service: REST and SSE, served entirely from cache.
+
+No route here calls an upstream. The poller fills Redis and this process reads
+it, which is what keeps a user request off the critical path of somebody else's
+slow API and keeps four browsers on match day from becoming four times the
+upstream traffic.
+"""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+import structlog
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from shared.cache import build_cache
+from shared.config import get_settings
+
+from services.api.deps import AppState
+from services.api.routes import admin, football, predictions, session, stream, tables
+
+
+def configure_logging(level: str) -> None:
+    """JSON logs, so Render's log search is useful rather than decorative."""
+    logging.basicConfig(format="%(message)s", level=getattr(logging, level.upper(), logging.INFO))
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            structlog.processors.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso", utc=True),
+            structlog.processors.JSONRenderer(),
+        ],
+        wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, level.upper(), logging.INFO)),
+        cache_logger_on_first_use=True,
+    )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    settings = get_settings()
+    configure_logging(settings.log_level)
+    cache = await build_cache(settings.redis_url)
+    app.state.app_state = AppState(settings=settings, cache=cache)
+    log = structlog.get_logger(__name__)
+
+    if settings.seed_on_start and settings.environment == "local":
+        # Dev affordance: one pass of the poller so a clean clone shows real
+        # data without a second process. Deliberately gated on `local` -- the
+        # architecture depends on the api never calling an upstream.
+        from services.poller.main import Poller
+
+        poller = Poller(settings, cache)
+        try:
+            await poller.once()
+            log.info("api.seeded_cache_for_local_dev")
+        except Exception as exc:
+            log.warning("api.seed_failed", error=str(exc))
+        finally:
+            await poller.close()
+
+    log.info("api.started", environment=settings.environment, season=settings.season)
+    try:
+        yield
+    finally:
+        await cache.close()
+
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+    app = FastAPI(
+        title="Prediction League 26/27",
+        version="0.1.0",
+        description=(
+            "Premier League predictions, FPL and a watch log for four friends. "
+            "Every response is served from cache; the poller is the only process "
+            "that talks to an upstream."
+        ),
+        lifespan=lifespan,
+    )
+
+    # Explicit allow-list, never "*" -- browsers reject a wildcard when the
+    # request carries credentials, and EventSource needs credentials.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "X-CSRF-Token"],
+        expose_headers=["X-CSRF-Token"],
+        max_age=600,
+    )
+
+    for module in (session, football, tables, predictions, stream, admin):
+        app.include_router(module.router)
+
+    @app.get("/healthz", tags=["ops"])
+    async def healthz() -> dict[str, str]:
+        """Liveness: the process is up. Never touches a dependency."""
+        return {"status": "ok"}
+
+    @app.get("/readyz", tags=["ops"])
+    async def readyz(request: Request) -> JSONResponse:
+        """Readiness: the cache answers and the fixture list has been filled."""
+        from shared import keys
+
+        state: AppState = request.app.state.app_state
+        entry = await state.cache.get(keys.FPL_FIXTURES)
+        ready = entry is not None
+        return JSONResponse(
+            {
+                "status": "ready" if ready else "waiting",
+                "fixtures_cached": ready,
+                "cache_age_seconds": round(entry.age_seconds, 1) if entry else None,
+            },
+            status_code=200 if ready else 503,
+        )
+
+    return app
+
+
+app = create_app()

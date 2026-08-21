@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prediction League</title>
+<style>
+  :root{
+    --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#86868B;
+    --bg:#FFFFFF; --bg-2:#F5F5F7; --line:#D2D2D7; --line-2:#E8E8ED;
+    --blue:#0071E3; --blue-h:#0077ED;
+    --green:#30D158; --red:#FF3B30; --amber:#FF9F0A;
+    --sys:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --shadow:0 4px 24px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.47 var(--sys);
+       letter-spacing:-.01em;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:0 22px}
+  a{color:inherit;text-decoration:none}
+  h1,h2,h3,p{margin:0}
+  :focus-visible{outline:3px solid var(--blue);outline-offset:3px;border-radius:6px}
+
+  /* ---------- nav ---------- */
+  nav{position:sticky;top:0;z-index:30;height:48px;
+      background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);
+      -webkit-backdrop-filter:saturate(180%) blur(20px);
+      border-bottom:1px solid rgba(0,0,0,.08)}
+  nav .wrap{display:flex;align-items:center;gap:2px;height:48px;overflow-x:auto;
+            scrollbar-width:none}
+  nav .wrap::-webkit-scrollbar{display:none}
+  nav .mark{font-size:15px;font-weight:600;letter-spacing:-.02em;margin-right:16px;
+            white-space:nowrap}
+  nav a{flex:0 0 auto;font-size:12px;color:var(--ink-2);padding:0 11px;line-height:48px;
+        white-space:nowrap}
+  nav a:hover{color:var(--ink)}
+  nav a.on{color:var(--ink);font-weight:600}
+  nav .me{margin-left:auto;font-size:12px;color:var(--ink-2);white-space:nowrap;padding-left:14px}
+
+  /* ---------- hero ---------- */
+  .hero{padding:76px 0 60px;text-align:center}
+  .eyebrow{font-size:19px;font-weight:600;color:var(--blue);letter-spacing:-.01em}
+  .hero h1{margin-top:6px;font-size:clamp(40px,6.4vw,64px);line-height:1.05;font-weight:600;
+           letter-spacing:-.028em}
+  .hero p{margin:18px auto 0;max-width:660px;font-size:21px;line-height:1.38;color:var(--ink-2);
+          letter-spacing:-.012em}
+  .cta{margin-top:30px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .btn{height:44px;padding:0 23px;border-radius:980px;border:0;cursor:pointer;
+       font:600 15px/44px var(--sys);letter-spacing:-.01em;background:var(--blue);color:#fff}
+  .btn:hover{background:var(--blue-h)}
+  .btn.plain{background:transparent;color:var(--blue);padding:0}
+  .btn.plain::after{content:" ›"}
+
+  /* ---------- countdown board ---------- */
+  .board{background:var(--bg-2);border-radius:28px;padding:44px 32px;text-align:center;
+         margin-top:8px}
+  .board .lbl{font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--ink-3);
+              text-transform:uppercase}
+  .tie{display:flex;align-items:center;justify-content:center;gap:22px;margin:26px 0 30px;
+       flex-wrap:wrap}
+  .side{display:flex;align-items:center;gap:13px;font-size:28px;font-weight:600;
+        letter-spacing:-.022em}
+  .badge{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;
+         font-size:12px;font-weight:700;letter-spacing:0;color:#fff}
+  .tie .v{font-size:15px;color:var(--ink-3);font-weight:500}
+  .cd{font-size:clamp(46px,9vw,76px);line-height:1;font-weight:600;letter-spacing:-.035em}
+  .cd small{display:block;margin-top:12px;font-size:15px;font-weight:400;color:var(--ink-2);
+            letter-spacing:-.01em}
+  .tv{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:36px;
+      background:var(--line-2);border-radius:16px;overflow:hidden}
+  @media (max-width:640px){.tv{grid-template-columns:repeat(2,1fr)}}
+  .tv div{background:#fff;padding:18px 12px}
+  .tv b{display:block;font-size:26px;font-weight:600;letter-spacing:-.025em}
+  .tv span{display:block;margin-top:5px;font-size:12px;color:var(--ink-3)}
+  .tv em{display:block;margin-top:9px;font-size:13px;font-style:normal;color:var(--ink-2)}
+  .tv .mine b,.tv .mine em{color:var(--blue)}
+
+  /* ---------- sections ---------- */
+  section{padding:64px 0}
+  .shead{display:flex;align-items:baseline;gap:16px;margin-bottom:26px}
+  .shead h2{font-size:32px;font-weight:600;letter-spacing:-.024em}
+  .shead a{margin-left:auto;font-size:15px;color:var(--blue)}
+  .shead a::after{content:" ›"}
+  .seg{display:inline-flex;background:var(--bg-2);border-radius:9px;padding:2px;margin-left:14px}
+  .seg button{border:0;background:transparent;cursor:pointer;font:500 13px/1 var(--sys);
+              color:var(--ink-2);padding:7px 14px;border-radius:7px;letter-spacing:-.01em}
+  .seg button.on{background:#fff;color:var(--ink);font-weight:500;
+                 box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+  /* ---------- table ---------- */
+  table{width:100%;border-collapse:collapse}
+  thead th{font-size:12px;font-weight:500;color:var(--ink-3);text-align:right;
+           padding:0 10px 12px;letter-spacing:0}
+  thead th:nth-child(-n+2){text-align:left}
+  tbody td{padding:0 10px;height:58px;border-top:1px solid var(--line-2);text-align:right;
+           font-size:16px}
+  tbody td:nth-child(-n+2){text-align:left}
+  tbody tr:last-child td{border-bottom:1px solid var(--line-2)}
+  .pos{display:inline-block;width:24px;font-size:15px;color:var(--ink-3);font-weight:500}
+  .club{display:flex;align-items:center;gap:14px}
+  .club .badge{width:32px;height:32px;font-size:10px}
+  .club b{font-size:17px;font-weight:500;letter-spacing:-.015em}
+  .club .tag{margin-left:8px;font-size:11px;color:var(--ink-3);border:1px solid var(--line);
+             border-radius:5px;padding:2px 6px}
+  .sec{color:var(--ink-2);font-size:15px}
+  .pts{font-weight:600;font-size:17px}
+  .form{white-space:nowrap;font-size:0}
+  .form i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:5px}
+  .W{background:var(--green)}.D{background:var(--line)}.L{background:var(--red)}
+  .tnote{margin-top:16px;font-size:13px;color:var(--ink-3)}
+
+  /* ---------- tiles ---------- */
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media (max-width:760px){.tiles{grid-template-columns:1fr}}
+  .tile{background:var(--bg-2);border-radius:22px;padding:30px}
+  .tile h3{font-size:13px;font-weight:600;color:var(--ink-3);letter-spacing:.01em;
+           text-transform:uppercase}
+  .tile .big{margin-top:16px;font-size:44px;font-weight:600;letter-spacing:-.03em;line-height:1}
+  .tile .big span{font-size:17px;font-weight:400;color:var(--ink-2);letter-spacing:-.01em}
+  .tile p{margin-top:12px;font-size:15px;color:var(--ink-2);line-height:1.42}
+  .lb{margin-top:22px}
+  .lb div{display:flex;align-items:center;gap:14px;padding:13px 0;
+          border-top:1px solid rgba(0,0,0,.07)}
+  .lb div:first-child{border-top:0}
+  .lb .i{width:20px;font-size:14px;color:var(--ink-3)}
+  .lb .who{font-size:16px;font-weight:500;letter-spacing:-.01em}
+  .lb .d{font-size:13px;color:var(--green)}
+  .lb .d.dn{color:var(--red)}
+  .lb .v{margin-left:auto;font-size:20px;font-weight:600;letter-spacing:-.02em}
+  .lb .lead .who{font-weight:600}
+
+  /* ---------- fixtures ---------- */
+  .fx{border-top:1px solid var(--line-2)}
+  .fxr{padding:22px 0;border-bottom:1px solid var(--line-2)}
+  .fxr .head{display:flex;align-items:center;gap:16px}
+  .fxr .side{font-size:19px}
+  .fxr .side .badge{width:34px;height:34px;font-size:10px}
+  .fxr .ko{margin-left:auto;font-size:14px;color:var(--ink-2);white-space:nowrap}
+  .odds{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .odds b{flex:1;min-width:96px;background:var(--bg-2);border-radius:14px;padding:14px 10px;
+          text-align:center;font-size:20px;font-weight:600;letter-spacing:-.02em}
+  .odds b span{display:block;margin-top:5px;font-size:12px;font-weight:400;color:var(--ink-3);
+               letter-spacing:-.005em}
+  .odds b i{font-style:normal;font-size:12px;margin-left:4px;vertical-align:3px}
+  .odds .dn i{color:var(--green)}.odds .up i{color:var(--red)}
+  .acts{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:980px;padding:9px 17px;
+        font:400 14px/1 var(--sys);letter-spacing:-.01em;cursor:pointer;color:var(--ink)}
+  .chip:hover{background:var(--bg-2)}
+  .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .chip.tick{background:#EAF9EE;border-color:#B8ECC5;color:#146B2C}
+
+  /* ---------- cards row ---------- */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  @media (max-width:860px){.cards{grid-template-columns:1fr}}
+  .card{border-radius:22px;overflow:hidden;background:var(--bg-2);display:flex;
+        flex-direction:column;min-height:300px}
+  .card .art{aspect-ratio:16/10;position:relative}
+  .a1{background:linear-gradient(150deg,#1D1D1F,#4A4A50)}
+  .a2{background:linear-gradient(150deg,#0071E3,#0A3C7D)}
+  .a3{background:linear-gradient(150deg,#30D158,#0E5F2A)}
+  .card .body{padding:24px}
+  .card .k{font-size:12px;font-weight:600;color:var(--ink-3);text-transform:uppercase}
+  .card h3{margin-top:9px;font-size:21px;font-weight:600;letter-spacing:-.02em;line-height:1.24}
+  .card p{margin-top:9px;font-size:14px;color:var(--ink-2)}
+
+
+  /* ---------- season progress ---------- */
+  .season{background:var(--bg-2);border-radius:28px;padding:40px 36px}
+  @media (max-width:640px){.season{padding:30px 22px}}
+  .season .top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .season h2{font-size:32px;font-weight:600;letter-spacing:-.024em}
+  .season .top span{margin-left:auto;font-size:15px;color:var(--ink-2)}
+  .track{margin:30px 0 0;height:8px;border-radius:99px;background:#E3E3E8;position:relative;
+         overflow:hidden}
+  .track i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--blue)}
+  .ticks{position:relative;height:34px;margin-top:11px}
+  .ticks b{position:absolute;top:0;transform:translateX(-50%);text-align:center;
+           font-size:11px;font-weight:400;color:var(--ink-3);white-space:nowrap}
+  .ticks b::before{content:"";display:block;width:1px;height:7px;background:var(--line);
+                   margin:0 auto 6px}
+  .ticks b.now{color:var(--blue);font-weight:600}
+  .ticks b.now::before{background:var(--blue);height:11px;margin-top:-4px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:30px;
+         background:var(--line-2);border-radius:16px;overflow:hidden}
+  @media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stats div{background:#fff;padding:22px 16px}
+  .stats b{display:block;font-size:34px;font-weight:600;letter-spacing:-.03em;line-height:1}
+  .stats span{display:block;margin-top:7px;font-size:13px;color:var(--ink-2)}
+  .stats .soft b{color:var(--ink-3)}
+
+  footer{background:var(--bg-2);padding:34px 0;font-size:12px;color:var(--ink-3);
+         line-height:1.6}
+  hr.rule{border:0;border-top:1px solid var(--line-2);margin:0}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <span class="mark">Prediction League</span>
+  <a class="on" href="#">Home</a><a href="#">Matches</a><a href="#">Table</a>
+  <a href="#">Predictions</a><a href="#">Leaderboard</a><a href="#">Fantasy</a>
+  <a href="#">Watch log</a><a href="#">News</a>
+  <span class="me">COYG · Lviv</span>
+</div></nav>
+
+<div class="wrap">
+  <div class="hero">
+    <p class="eyebrow">Matchweek 1</p>
+    <h1>The season starts tonight.</h1>
+    <p>Four predictions. Two still unfiled. Everything locks the moment Arsenal kick off.</p>
+    <div class="cta">
+      <button class="btn">File your prediction</button>
+      <button class="btn plain">See the table</button>
+    </div>
+  </div>
+
+  <div class="board">
+    <p class="lbl">Next match</p>
+    <div class="tie">
+      <span class="side"><span class="badge" style="background:#EF0107">ARS</span>Arsenal</span>
+      <span class="v">vs</span>
+      <span class="side">Coventry<span class="badge" style="background:#7BC5EC;color:#003087">COV</span></span>
+    </div>
+    <p class="cd">4:12:08<small>until kick-off · Emirates Stadium</small></p>
+    <div class="tv">
+      <div class="mine"><b>22:00</b><span>Lviv</span><em>Setanta Sports</em></div>
+      <div><b>15:00</b><span>Michigan</span><em>Peacock</em></div>
+      <div><b>13:00</b><span>Alberta</span><em>Fubo Sports</em></div>
+      <div><b>11:00</b><span>Alaska</span><em>Peacock</em></div>
+    </div>
+  </div>
+</div>
+
+<section><div class="wrap">
+  <div class="shead"><h2>Table</h2>
+    <span class="seg"><button class="on">Actual</button><button>Projected</button></span>
+    <a href="#">Full table</a></div>
+  <table>
+    <thead><tr><th>Pos</th><th>Club</th><th>Pl</th><th>GD</th><th>Pts</th><th>Form</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pos">1</span></td>
+        <td><span class="club"><span class="badge" style="background:#EF0107">ARS</span><b>Arsenal</b><span class="tag">All four have them 1st</span></span></td>
+        <td class="sec">3</td><td class="sec">+6</td><td class="pts">9</td>
+        <td class="form"><i class="W"></i><i class="W"></i><i class="W"></i></td></tr>
+      <tr><td><span class="pos">2</span></td>
+        <td><span class="club"><span class="badge" style="background:#6CABDD;color:#0B2A5B">MCI</span><b>Manchester City</b></span></td>
+        <td class="sec">3</td><td class="sec">+5</td><td class="pts">7</td>
+        <td class="form"><i class="W"></i><i class="D"></i><i class="W"></i></td></tr>
+      <tr><td><span class="pos">3</span></td>
+        <td><span class="club"><span class="badge" style="background:#C8102E">LIV</span><b>Liverpool</b></span></td>
+        <td class="sec">3</td><td class="sec">+3</td><td class="pts">7</td>
+        <td class="form"><i class="D"></i><i class="W"></i><i class="W"></i></td></tr>
+      <tr><td><span class="pos">4</span></td>
+        <td><span class="club"><span class="badge" style="background:#034694">CHE</span><b>Chelsea</b></span></td>
+        <td class="sec">3</td><td class="sec">+2</td><td class="pts">6</td>
+        <td class="form"><i class="W"></i><i class="L"></i><i class="W"></i></td></tr>
+      <tr><td><span class="pos">5</span></td>
+        <td><span class="club"><span class="badge" style="background:#132257">TOT</span><b>Tottenham Hotspur</b></span></td>
+        <td class="sec">3</td><td class="sec">+2</td><td class="pts">6</td>
+        <td class="form"><i class="W"></i><i class="W"></i><i class="L"></i></td></tr>
+      <tr><td><span class="pos">18</span></td>
+        <td><span class="club"><span class="badge" style="background:#7BC5EC;color:#003087">COV</span><b>Coventry City</b><span class="tag">COYG: 20th</span></span></td>
+        <td class="sec">3</td><td class="sec">−4</td><td class="pts">1</td>
+        <td class="form"><i class="L"></i><i class="D"></i><i class="L"></i></td></tr>
+      <tr><td><span class="pos">19</span></td>
+        <td><span class="club"><span class="badge" style="background:#F5A12D;color:#3B2100">HUL</span><b>Hull City</b></span></td>
+        <td class="sec">3</td><td class="sec">−5</td><td class="pts">1</td>
+        <td class="form"><i class="L"></i><i class="L"></i><i class="D"></i></td></tr>
+    </tbody>
+  </table>
+  <p class="tnote">Built from finished fixtures, so the order is right before the official table
+    updates. Projected resolves every remaining match to last season's result.</p>
+</div></section>
+
+<hr class="rule">
+
+<section><div class="wrap">
+  <div class="shead"><h2>Standings</h2><a href="#">How scoring works</a></div>
+  <div class="tiles">
+    <div class="tile">
+      <h3>Predictions</h3>
+      <p class="big">AURE <span>leads by 3</span></p>
+      <div class="lb">
+        <div class="lead"><span class="i">1</span><span class="who">AURE</span><span class="d">▲1</span><span class="v">41</span></div>
+        <div><span class="i">2</span><span class="who">COYG</span><span class="d dn">▼1</span><span class="v">38</span></div>
+        <div><span class="i">3</span><span class="who">BULBA</span><span class="v">31</span></div>
+        <div><span class="i">4</span><span class="who">TWZT</span><span class="v">27</span></div>
+      </div>
+      <p>Almost entirely on Brighton in seventh.</p>
+    </div>
+    <div class="tile">
+      <h3>Fantasy · Gameweek 1</h3>
+      <p class="big">64 <span>COYG, live</span></p>
+      <div class="lb">
+        <div class="lead"><span class="i">1</span><span class="who">COYG</span><span class="v">64</span></div>
+        <div><span class="i">2</span><span class="who">TWZT</span><span class="v">58</span></div>
+        <div><span class="i">3</span><span class="who">AURE</span><span class="v">51</span></div>
+        <div><span class="i">4</span><span class="who">BULBA</span><span class="v">44</span></div>
+      </div>
+      <p>Haaland captained twice. Eleven points on BULBA's bench.</p>
+    </div>
+  </div>
+</div></section>
+
+<hr class="rule">
+
+<section><div class="wrap">
+  <div class="shead"><h2>Matches</h2><a href="#">All ten</a></div>
+  <div class="fx">
+    <div class="fxr">
+      <div class="head">
+        <span class="side"><span class="badge" style="background:#F5A12D;color:#3B2100">HUL</span>Hull City</span>
+        <span class="v" style="color:var(--ink-3);font-size:14px">vs</span>
+        <span class="side">Manchester United<span class="badge" style="background:#DA020E">MUN</span></span>
+        <span class="ko">Sat 14:30 · your time</span>
+      </div>
+      <div class="odds">
+        <b class="up">4.20<i>▲</i><span>Hull</span></b>
+        <b>3.60<span>Draw</span></b>
+        <b class="dn">1.85<i>▼</i><span>Man Utd</span></b>
+      </div>
+      <div class="acts">
+        <button class="chip tick">Watched · 03:30 in Alaska</button>
+        <button class="chip">Line-ups</button>
+        <button class="chip">Where to watch</button>
+      </div>
+    </div>
+    <div class="fxr">
+      <div class="head">
+        <span class="side"><span class="badge" style="background:#003399">EVE</span>Everton</span>
+        <span class="v" style="color:var(--ink-3);font-size:14px">vs</span>
+        <span class="side">Crystal Palace<span class="badge" style="background:#1B458F">CRY</span></span>
+        <span class="ko">Sat 17:00 · your time</span>
+      </div>
+      <div class="odds">
+        <b>2.30<span>Everton</span></b><b>3.30<span>Draw</span></b><b>3.10<span>Palace</span></b>
+      </div>
+      <div class="acts">
+        <button class="chip on">Mark as watched</button>
+        <button class="chip">Line-ups</button>
+        <button class="chip">Where to watch</button>
+      </div>
+    </div>
+  </div>
+  <p class="tnote">Odds from bet365, refreshed every 30 minutes. Line-ups appear an hour before
+    kick-off.</p>
+</div></section>
+
+<hr class="rule">
+
+<section style="padding-top:0"><div class="wrap">
+  <div class="season">
+    <div class="top"><h2>The season</h2><span>21 August 2026 — 30 May 2027</span></div>
+    <div class="track"><i style="width:0.4%"></i></div>
+    <div class="ticks">
+      <b class="now" style="left:0">Today · day 1</b>
+      <b style="left:45%">Boxing Day</b>
+      <b style="left:58%">Deadline day</b>
+      <b style="left:100%">Final day</b>
+    </div>
+    <div class="stats">
+      <div><b>282</b><span>days until the final whistle</span></div>
+      <div><b>0</b><span>of 38 gameweeks played</span></div>
+      <div><b>380</b><span>matches still to come</span></div>
+      <div class="soft"><b>0</b><span>matches you've watched</span></div>
+    </div>
+  </div>
+</div></section>
+
+<hr class="rule">
+
+<section><div class="wrap">
+  <div class="shead"><h2>Latest</h2><a href="#">More</a></div>
+  <div class="cards">
+    <article class="card"><div class="art a1"></div><div class="body">
+      <p class="k">Us</p><h3>Two predictions still unfiled</h3>
+      <p>TWZT and BULBA have four hours left.</p></div></article>
+    <article class="card"><div class="art a2"></div><div class="body">
+      <p class="k">Fantasy</p><h3>Three of you captained the same player</h3>
+      <p>Again. Haaland, gameweek one.</p></div></article>
+    <article class="card"><div class="art a3"></div><div class="body">
+      <p class="k">Video</p><h3>The Overlap on the title race</h3>
+      <p>Posted two hours ago.</p></div></article>
+  </div>
+</div></section>
+
+<footer><div class="wrap">Design direction. Numbers illustrative. Image areas stand in for
+  licensed photography.</div></footer>
+</body>
+</html>

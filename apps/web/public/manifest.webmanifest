@@ -1,0 +1,12 @@
+{
+  "name": "Prediction League",
+  "short_name": "League",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
+  "description": "Premier League predictions, fantasy and a watch log for four friends.",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

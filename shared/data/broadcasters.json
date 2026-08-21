@@ -1,0 +1,67 @@
+{
+  "$comment": "Where to watch, per market. There is no reliable free API for broadcast rights, so this is maintained data. Rights change between seasons, so each entry records verified_on and the source it was checked against. Editable at runtime from /admin without a redeploy.",
+  "season": "2026-27",
+  "verified_on": "2026-08-21",
+  "note": "The UK Saturday 3pm blackout does not apply in any of these four markets, so every match is available to all four people.",
+  "markets": [
+    {
+      "country": "UA",
+      "label": "Ukraine",
+      "cities": ["Lviv"],
+      "competition": "premier-league",
+      "provider": "Setanta Sports",
+      "url": "https://setantasports.com/",
+      "verified_on": "2026-08-21",
+      "rights_through": "2027-28",
+      "source": "https://ask-diego.com/en/where-to-watch/premier-league/ukraine/",
+      "note": "Setanta holds Ukrainian rights for the 2025-26 to 2027-28 cycle, all 380 matches."
+    },
+    {
+      "country": "US",
+      "label": "United States",
+      "cities": ["Michigan", "Alaska"],
+      "competition": "premier-league",
+      "provider": "Peacock",
+      "url": "https://www.peacocktv.com/sports/premier-league",
+      "verified_on": "2026-08-21",
+      "rights_through": "2027-28",
+      "source": "https://corporate.comcast.com/press/releases/nbcuniversal-six-year-extension-exclusive-us-home-of-premier-league",
+      "note": "NBCUniversal is the exclusive US home through 2027-28. Peacock streams roughly 175 matches exclusively; the rest split across NBC (free-to-air) and USA Network, which is why US listings need per-fixture overrides.",
+      "splits_round": true,
+      "alternates": [
+        { "provider": "NBC", "url": "https://www.nbcsports.com/soccer/premier-league" },
+        { "provider": "USA Network", "url": "https://www.usanetwork.com/" },
+        { "provider": "Telemundo", "url": "https://www.telemundodeportes.com/", "language": "es" }
+      ]
+    },
+    {
+      "country": "CA",
+      "label": "Canada",
+      "cities": ["Alberta"],
+      "competition": "premier-league",
+      "provider": "Fubo",
+      "url": "https://ca.fubo.tv/",
+      "verified_on": "2026-08-21",
+      "rights_through": "2027-28",
+      "source": "https://ir.fubo.tv/news/news-details/2025/Fubo-Retains-Exclusive-Rights-to-Premier-League-in-Canada-With-Multi-Year-Agreement-Beginning-With-20252026-Season/default.aspx",
+      "note": "Fubo holds exclusive Canadian rights from 2025-26 through 2027-28, all 380 matches. Sportsnet, TSN and CBC do not carry the Premier League in this cycle."
+    }
+  ],
+  "champions_league": [
+    {
+      "country": "UA", "provider": "MEGOGO", "url": "https://megogo.net/",
+      "verified_on": "2026-08-21", "confidence": "unverified",
+      "note": "Champions League rights were not verified for this cycle. Shown with a caveat in the UI until confirmed."
+    },
+    {
+      "country": "US", "provider": "Paramount+", "url": "https://www.paramountplus.com/",
+      "verified_on": "2026-08-21", "confidence": "unverified",
+      "note": "Champions League rights not verified for 2026-27. Flagged in the UI."
+    },
+    {
+      "country": "CA", "provider": "DAZN", "url": "https://www.dazn.com/",
+      "verified_on": "2026-08-21", "confidence": "unverified",
+      "note": "Champions League rights not verified for 2026-27. Flagged in the UI."
+    }
+  ]
+}

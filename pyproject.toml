@@ -1,0 +1,74 @@
+[project]
+name = "prediction-league"
+version = "0.1.0"
+description = "Prediction League 26/27 - Premier League predictions and FPL for four friends"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.4",
+    "sqlalchemy>=2.0.30",
+    "alembic>=1.13",
+    "asyncpg>=0.29",
+    "redis>=5.0",
+    "httpx>=0.27",
+    "tenacity>=9.0",
+    "structlog>=24.4",
+    "itsdangerous>=2.2",
+    "python-multipart>=0.0.9",
+    "feedparser>=6.0",
+    "pillow>=10.4",
+    "boto3>=1.35",
+    # Pinned deliberately: the container's system zoneinfo may be stale or
+    # absent, and Alberta's 2026-11-01 change to permanent UTC-6 only exists
+    # in recent tzdata. Shipping our own copy keeps kickoff times correct.
+    "tzdata>=2026.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "respx>=0.21",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["shared"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["error::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+src = ["shared", "services", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RUF", "ASYNC", "DTZ", "PT"]
+ignore = [
+    "B008",    # FastAPI's Depends() in defaults is the framework's own idiom
+    "RUF001",  # club names legitimately contain typographic apostrophes
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+disallow_any_generics = true
+files = ["shared", "services"]
+
+[[tool.mypy.overrides]]
+module = ["feedparser.*", "boto3.*", "botocore.*"]
+ignore_missing_imports = true

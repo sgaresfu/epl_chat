@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Python — lint, types, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint (ruff)
+        run: ruff check shared services tests scripts
+
+      - name: Format check (ruff)
+        run: ruff format --check shared services tests scripts
+
+      - name: Types (mypy --strict)
+        run: mypy shared services
+
+      - name: Tests (pytest)
+        run: pytest -q
+
+      - name: Migrations apply and roll back cleanly
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./ci.db
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+
+  frontend:
+    name: Web — typecheck, tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e ".[dev]"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm ci
+        working-directory: apps/web
+
+      # The generated types are committed so the frontend builds on its own,
+      # but a stale copy would defeat the point. Regenerate and fail on a diff.
+      - name: API types are in sync with the OpenAPI schema
+        run: |
+          python scripts/export_openapi.py > /dev/null
+          cd apps/web && npm run gen:api
+          git diff --exit-code -- openapi.json apps/web/src/api/schema.d.ts \
+            || { echo "::error::Generated API types are stale. Run scripts/export_openapi.py and npm run gen:api."; exit 1; }
+
+      - name: Typecheck
+        working-directory: apps/web
+        run: npm run typecheck
+      - name: Tests (vitest)
+        working-directory: apps/web
+        run: npm test
+      - name: Build
+        working-directory: apps/web
+        run: npm run build
+
+  data:
+    name: Data integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e ".[dev]"
+      - name: Every club, prediction and broadcast listing is well-formed
+        run: python scripts/check_data.py

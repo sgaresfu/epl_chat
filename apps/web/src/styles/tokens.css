@@ -1,0 +1,161 @@
+/*
+ * Design tokens, exactly as specified in BRIEF section 5.
+ *
+ * The reference is premierleague.com for structure and Apple for visual
+ * language. There is no ornament to hide behind, so this lives or dies on
+ * spacing and alignment precision.
+ *
+ * Club colours are the only other colour on the page, and they appear only in
+ * crests -- they are injected per element from the API's canonical club table,
+ * never hardcoded here.
+ */
+
+:root {
+  /* Ink */
+  --ink: #1d1d1f;
+  --ink-2: #6e6e73;
+  --ink-3: #86868b;
+
+  /* Ground */
+  --bg: #ffffff;
+  --bg-2: #f5f5f7;
+  --line: #d2d2d7;
+  --line-2: #e8e8ed;
+
+  /* The only action colour */
+  --blue: #0071e3;
+  --blue-h: #0077ed;
+
+  /* State */
+  --green: #30d158;
+  --red: #ff3b30;
+  --amber: #ff9f0a;
+
+  /* Tinted grounds for the "done" chip, kept at AA against their own text */
+  --green-tint: #eaf9ee;
+  --green-line: #b8ecc5;
+  --green-ink: #146b2c;
+
+  /* Type. System stack only -- on the phones these people use it resolves to
+     SF Pro, and loading a webfont to imitate it would be slower and worse. */
+  --sys: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* Radii: 9px controls, 14px inset blocks, 22px tiles, 28px large panels */
+  --r-control: 9px;
+  --r-inset: 14px;
+  --r-tile: 22px;
+  --r-panel: 28px;
+  --r-pill: 980px;
+
+  /* Used sparingly, and never as decoration */
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+
+  --wrap: 980px;
+  --gutter: 22px;
+  --section: 64px;
+  --row: 58px;
+  --nav: 48px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 17px/1.47 var(--sys);
+  letter-spacing: -0.01em;
+  /* All numerals tabular, so columns of figures align and a live score does
+     not shuffle its neighbours when it ticks over. */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Visible focus everywhere, at AA contrast against both grounds. */
+:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Respected, not merely declared: every transition and the countdown's own
+   tick are disabled, and nothing auto-animates. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.wrap {
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.rule {
+  border: 0;
+  border-top: 1px solid var(--line-2);
+  margin: 0;
+}
+
+/* Screen-reader-only, for the labels sighted users get from layout. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  padding: 12px 18px;
+  border-radius: var(--r-control);
+  font-size: 15px;
+  font-weight: 600;
+}
+.skip-link:focus {
+  left: var(--gutter);
+  top: 8px;
+}

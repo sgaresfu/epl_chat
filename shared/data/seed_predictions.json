@@ -1,0 +1,50 @@
+{
+  "$comment": "Seeded predictions from BRIEF section 6. Award picks carry the resolved FPL element id alongside the display name, verified against the live 2026/27 player list. Champions League picks deliberately carry no FPL id: those players need not be in the Premier League, and Mbappe is not.",
+  "season": "2026-27",
+  "seeded_on": "2026-08-21",
+  "predictions": [
+    {
+      "person": "coyg",
+      "submitted_at": "2026-08-14T12:00:00Z",
+      "table": ["ARS","MCI","LIV","CHE","MUN","AVL","BOU","TOT","CRY","BRE",
+                "NEW","BHA","FUL","SUN","NFO","IPS","LEE","HUL","EVE","COV"],
+      "awards": {
+        "golden_boot":          { "name": "Haaland",  "fpl_id": 411, "club": "MCI" },
+        "golden_glove":         { "name": "Raya",     "fpl_id": 1,   "club": "ARS" },
+        "defender":             { "name": "Gabriel",  "fpl_id": 4,   "club": "ARS" },
+        "playmaker":            { "name": "Ødegaard", "fpl_id": 15,  "club": "ARS" },
+        "player_of_the_season": { "name": "Rice",     "fpl_id": 13,  "club": "ARS" }
+      },
+      "champions_league": {
+        "winner": "Arsenal",
+        "finalist_a": "Arsenal",
+        "finalist_b": "Real Madrid",
+        "top_scorer": "Gyökeres",
+        "draft": true,
+        "draft_note": "Top scorer marked draft until confirmed."
+      }
+    },
+    {
+      "person": "aure",
+      "submitted_at": "2026-08-16T09:30:00Z",
+      "table": ["ARS","MCI","CHE","LIV","TOT","MUN","BHA","BOU","AVL","NEW",
+                "NFO","SUN","BRE","LEE","EVE","CRY","FUL","COV","IPS","HUL"],
+      "awards": {
+        "golden_boot":          { "name": "Isak",           "fpl_id": 379, "club": "LIV" },
+        "golden_glove":         { "name": "Raya",           "fpl_id": 1,   "club": "ARS" },
+        "defender":             { "name": "Jérémy Jacquet", "fpl_id": 362, "club": "LIV" },
+        "playmaker":            { "name": "Cherki",         "fpl_id": 399, "club": "MCI" },
+        "player_of_the_season": { "name": "Rice",           "fpl_id": 13,  "club": "ARS" }
+      },
+      "champions_league": {
+        "winner": "Man City",
+        "finalist_a": "Man City",
+        "finalist_b": "Bayern Munich",
+        "top_scorer": "Mbappé",
+        "draft": true,
+        "draft_note": "Top scorer marked draft until confirmed. Mbappe plays outside the Premier League, so this pick is not FPL-backed."
+      }
+    }
+  ],
+  "unfiled": ["twzt", "bulba"]
+}
