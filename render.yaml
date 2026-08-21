@@ -86,7 +86,7 @@ services:
     ipAllowList: []
 
   # ---- cron jobs
-  - type: cronjob
+  - type: cron
     name: league-weekly
     runtime: docker
     dockerfilePath: ./services/scheduler/Dockerfile
@@ -100,7 +100,7 @@ services:
       - key: REDIS_URL
         fromService: { name: league-redis, type: keyvalue, property: connectionString }
 
-  - type: cronjob
+  - type: cron
     name: league-daily
     runtime: docker
     dockerfilePath: ./services/scheduler/Dockerfile
@@ -114,7 +114,7 @@ services:
       - key: REDIS_URL
         fromService: { name: league-redis, type: keyvalue, property: connectionString }
 
-  - type: cronjob
+  - type: cron
     name: league-hourly
     runtime: docker
     dockerfilePath: ./services/scheduler/Dockerfile

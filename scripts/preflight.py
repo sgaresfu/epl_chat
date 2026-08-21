@@ -36,12 +36,43 @@ def warn(message: str) -> None:
     warnings.append(message)
 
 
+# Render's blueprint vocabulary. Anything outside these sets is rejected at
+# import time with a message as terse as `unknown type "cronjob"`, so it is
+# worth failing here where the error can say which service and what to use.
+VALID_TYPES = {"web", "pserv", "worker", "cron", "keyvalue"}
+VALID_RUNTIMES = {"docker", "static", "node", "python", "ruby", "go", "rust", "elixir", "image"}
+TYPO_HINTS = {"cronjob": "cron", "cron_job": "cron", "redis": "keyvalue", "static": "web"}
+
+
 def check_blueprint() -> None:
     print("render.yaml")
     import yaml
 
     blueprint = yaml.safe_load((ROOT / "render.yaml").read_text())
     services = {s["name"]: s for s in blueprint["services"]}
+
+    # Schema vocabulary first: a bad type stops the blueprint being read at all,
+    # so every other check below is moot until this passes.
+    for name, service in services.items():
+        kind = service.get("type")
+        if kind in VALID_TYPES:
+            ok(f"{name}: type '{kind}'")
+        else:
+            hint = TYPO_HINTS.get(str(kind))
+            suffix = f" -- did you mean '{hint}'?" if hint else ""
+            fail(f"{name}: invalid type {kind!r}{suffix}")
+
+        runtime = service.get("runtime")
+        if runtime is not None and runtime not in VALID_RUNTIMES:
+            fail(f"{name}: invalid runtime {runtime!r}")
+
+    for name, service in services.items():
+        if service.get("type") != "cron":
+            continue
+        if not service.get("schedule"):
+            fail(f"{name}: a cron service needs a schedule")
+        elif len(str(service["schedule"]).split()) != 5:
+            fail(f"{name}: schedule {service['schedule']!r} is not a 5-field cron expression")
 
     # Every Dockerfile the blueprint names must exist.
     for name, service in services.items():
