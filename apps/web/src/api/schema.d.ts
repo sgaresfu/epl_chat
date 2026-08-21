@@ -214,6 +214,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leaderboard */
+        get: operations["leaderboard_api_leaderboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/h2h": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Head To Head
+         * @description Where two people agree, and where they disagree most.
+         *
+         *     Needs no results, so it works from the moment both have filed -- which is
+         *     the whole of the season's opening night.
+         */
+        get: operations["head_to_head_api_h2h_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/fpl/standings": {
         parameters: {
             query?: never;
@@ -655,6 +695,47 @@ export interface components {
             /** Reason */
             reason: string | null;
         };
+        /**
+         * H2HAgreement
+         * @description A club both people placed in the same position.
+         */
+        H2HAgreement: {
+            club: components["schemas"]["ClubOut"];
+            /** Position */
+            position: number;
+        };
+        /**
+         * H2HGap
+         * @description A club the two people placed furthest apart.
+         */
+        H2HGap: {
+            club: components["schemas"]["ClubOut"];
+            /** A Position */
+            a_position: number;
+            /** B Position */
+            b_position: number;
+            /** Distance */
+            distance: number;
+        };
+        /**
+         * H2HOut
+         * @description Where two people agree, and where they disagree most.
+         */
+        H2HOut: {
+            a: components["schemas"]["PersonOut"];
+            b: components["schemas"]["PersonOut"];
+            /** Agreements */
+            agreements: components["schemas"]["H2HAgreement"][];
+            /** Gaps */
+            gaps: components["schemas"]["H2HGap"][];
+            /**
+             * Agreement Count
+             * @default 0
+             */
+            agreement_count: number;
+            /** Empty Message */
+            empty_message: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -666,6 +747,47 @@ export interface components {
             season: components["schemas"]["SeasonOut"];
             /** Line Of The Day */
             line_of_the_day: string | null;
+        };
+        /** LeaderboardOut */
+        LeaderboardOut: {
+            /** Rows */
+            rows: components["schemas"]["LeaderboardRowOut"][];
+            /** Leader */
+            leader: string | null;
+            /** Flop Of The Week */
+            flop_of_the_week: string | null;
+            /** If Season Ended Today */
+            if_season_ended_today: string | null;
+            freshness: components["schemas"]["Freshness"];
+            /** Empty Message */
+            empty_message: string | null;
+        };
+        /** LeaderboardRowOut */
+        LeaderboardRowOut: {
+            /** Rank */
+            rank: number;
+            person: components["schemas"]["PersonOut"];
+            /** Total */
+            total: number;
+            /** Table Points */
+            table_points: number;
+            /** Award Points */
+            award_points: number;
+            /** Exact Hits */
+            exact_hits: number;
+            /** Filed */
+            filed: boolean;
+            /** Status */
+            status: string;
+            /**
+             * Movement
+             * @default 0
+             */
+            movement: number;
+            /** Cursed Pick */
+            cursed_pick: string | null;
+            /** Form */
+            form: number[];
         };
         /**
          * LocalTimeOut
@@ -1380,6 +1502,58 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    leaderboard_api_leaderboard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaderboardOut"];
+                };
+            };
+        };
+    };
+    head_to_head_api_h2h_get: {
+        parameters: {
+            query: {
+                a: string;
+                b: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["H2HOut"];
                 };
             };
             /** @description Validation Error */

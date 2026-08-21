@@ -461,6 +461,79 @@
         }
       }
     },
+    "/api/leaderboard": {
+      "get": {
+        "tags": [
+          "leaderboard"
+        ],
+        "summary": "Leaderboard",
+        "operationId": "leaderboard_api_leaderboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaderboardOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/h2h": {
+      "get": {
+        "tags": [
+          "leaderboard"
+        ],
+        "summary": "Head To Head",
+        "description": "Where two people agree, and where they disagree most.\n\nNeeds no results, so it works from the moment both have filed -- which is\nthe whole of the season's opening night.",
+        "operationId": "head_to_head_api_h2h_get",
+        "parameters": [
+          {
+            "name": "a",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "A"
+            }
+          },
+          {
+            "name": "b",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "B"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/H2HOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/fpl/standings": {
       "get": {
         "tags": [
@@ -1272,6 +1345,103 @@
         "title": "Freshness",
         "description": "How old a cached payload is, so a panel can say so rather than lie."
       },
+      "H2HAgreement": {
+        "properties": {
+          "club": {
+            "$ref": "#/components/schemas/ClubOut"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          }
+        },
+        "type": "object",
+        "required": [
+          "club",
+          "position"
+        ],
+        "title": "H2HAgreement",
+        "description": "A club both people placed in the same position."
+      },
+      "H2HGap": {
+        "properties": {
+          "club": {
+            "$ref": "#/components/schemas/ClubOut"
+          },
+          "a_position": {
+            "type": "integer",
+            "title": "A Position"
+          },
+          "b_position": {
+            "type": "integer",
+            "title": "B Position"
+          },
+          "distance": {
+            "type": "integer",
+            "title": "Distance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "club",
+          "a_position",
+          "b_position",
+          "distance"
+        ],
+        "title": "H2HGap",
+        "description": "A club the two people placed furthest apart."
+      },
+      "H2HOut": {
+        "properties": {
+          "a": {
+            "$ref": "#/components/schemas/PersonOut"
+          },
+          "b": {
+            "$ref": "#/components/schemas/PersonOut"
+          },
+          "agreements": {
+            "items": {
+              "$ref": "#/components/schemas/H2HAgreement"
+            },
+            "type": "array",
+            "title": "Agreements"
+          },
+          "gaps": {
+            "items": {
+              "$ref": "#/components/schemas/H2HGap"
+            },
+            "type": "array",
+            "title": "Gaps"
+          },
+          "agreement_count": {
+            "type": "integer",
+            "title": "Agreement Count",
+            "default": 0
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "a",
+          "b",
+          "agreements",
+          "gaps",
+          "agreement_count",
+          "empty_message"
+        ],
+        "title": "H2HOut",
+        "description": "Where two people agree, and where they disagree most."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1312,6 +1482,147 @@
           "line_of_the_day"
         ],
         "title": "HomeOut"
+      },
+      "LeaderboardOut": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/LeaderboardRowOut"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "leader": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leader"
+          },
+          "flop_of_the_week": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flop Of The Week"
+          },
+          "if_season_ended_today": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "If Season Ended Today"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows",
+          "leader",
+          "flop_of_the_week",
+          "if_season_ended_today",
+          "freshness",
+          "empty_message"
+        ],
+        "title": "LeaderboardOut"
+      },
+      "LeaderboardRowOut": {
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "title": "Rank"
+          },
+          "person": {
+            "$ref": "#/components/schemas/PersonOut"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "table_points": {
+            "type": "integer",
+            "title": "Table Points"
+          },
+          "award_points": {
+            "type": "integer",
+            "title": "Award Points"
+          },
+          "exact_hits": {
+            "type": "integer",
+            "title": "Exact Hits"
+          },
+          "filed": {
+            "type": "boolean",
+            "title": "Filed"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "movement": {
+            "type": "integer",
+            "title": "Movement",
+            "default": 0
+          },
+          "cursed_pick": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cursed Pick"
+          },
+          "form": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Form"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rank",
+          "person",
+          "total",
+          "table_points",
+          "award_points",
+          "exact_hits",
+          "filed",
+          "status",
+          "movement",
+          "cursed_pick",
+          "form"
+        ],
+        "title": "LeaderboardRowOut"
       },
       "LocalTimeOut": {
         "properties": {

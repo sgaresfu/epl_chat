@@ -234,6 +234,38 @@ export interface CronRun {
   detail: string
 }
 
+export interface LeaderboardRow {
+  rank: number
+  person: Person
+  total: number
+  table_points: number
+  award_points: number
+  exact_hits: number
+  filed: boolean
+  status: string
+  movement: number
+  cursed_pick: string | null
+  form: number[]
+}
+
+export interface Leaderboard {
+  rows: LeaderboardRow[]
+  leader: string | null
+  flop_of_the_week: string | null
+  if_season_ended_today: string | null
+  freshness: Freshness
+  empty_message: string | null
+}
+
+export interface H2H {
+  a: Person
+  b: Person
+  agreements: Array<{ club: Club; position: number }>
+  gaps: Array<{ club: Club; a_position: number; b_position: number; distance: number }>
+  agreement_count: number
+  empty_message: string | null
+}
+
 export interface FplStandingRow {
   entry_id: number
   entry_name: string

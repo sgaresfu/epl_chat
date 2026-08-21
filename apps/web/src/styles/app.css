@@ -413,6 +413,11 @@
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
+/* Equal-height tiles read as a pair on the home page. Where the two hold lists
+   of different lengths, stretching leaves a tall empty box instead. */
+.tiles--fit {
+  align-items: start;
+}
 @media (max-width: 760px) {
   .tiles {
     grid-template-columns: 1fr;

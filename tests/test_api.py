@@ -589,3 +589,77 @@ class TestFplStandings:
             body = (await http.get("/api/fpl/standings")).json()
             assert 999999 in body["unmapped"]
             assert len(body["rows"]) == 5
+
+
+class TestLeaderboard:
+    async def test_nobody_has_scored_before_a_match_is_played(self, client: AsyncClient) -> None:
+        """The bug this guards: an alphabetical table is not a standing.
+
+        ``compute_table`` returns all 20 clubs on zero points before kick-off,
+        ordered by the alphabetical tie-break. Scoring predictions against that
+        order handed one person a six-point lead before a ball was kicked.
+        """
+        await sign_in(client)
+        body = (await client.get("/api/leaderboard")).json()
+        assert [row["total"] for row in body["rows"]] == [0, 0, 0, 0]
+        assert [row["exact_hits"] for row in body["rows"]] == [0, 0, 0, 0]
+
+    async def test_there_is_no_leader_before_a_match_is_played(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        body = (await client.get("/api/leaderboard")).json()
+        assert body["leader"] is None
+        assert body["if_season_ended_today"] is None
+
+    async def test_everyone_shares_first_place_on_zero(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        body = (await client.get("/api/leaderboard")).json()
+        assert {row["rank"] for row in body["rows"]} == {1}
+
+    async def test_it_explains_why_everything_is_zero(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        body = (await client.get("/api/leaderboard")).json()
+        assert "not a standing" in body["empty_message"]
+
+    async def test_all_four_are_listed_as_filed(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        body = (await client.get("/api/leaderboard")).json()
+        assert all(row["filed"] for row in body["rows"])
+        assert len(body["rows"]) == 4
+
+
+class TestHeadToHead:
+    """Comparing two predictions needs no results, so this works on day one."""
+
+    async def test_it_finds_where_two_people_agree(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        body = (await client.get("/api/h2h?a=coyg&b=bulba")).json()
+        # Both put Arsenal top.
+        assert body["agreement_count"] >= 1
+        assert body["agreements"][0]["club"]["short_name"] == "ARS"
+        assert body["agreements"][0]["position"] == 1
+
+    async def test_gaps_are_ordered_widest_first(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        gaps = (await client.get("/api/h2h?a=coyg&b=bulba")).json()["gaps"]
+        distances = [g["distance"] for g in gaps]
+        assert distances == sorted(distances, reverse=True)
+
+    async def test_a_gap_reports_both_positions(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        gap = (await client.get("/api/h2h?a=coyg&b=bulba")).json()["gaps"][0]
+        assert gap["a_position"] != gap["b_position"]
+        assert gap["distance"] == abs(gap["a_position"] - gap["b_position"])
+
+    async def test_agreements_and_gaps_account_for_every_club(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        body = (await client.get("/api/h2h?a=coyg&b=aure")).json()
+        # Gaps are capped for display, so check the agreement side is complete.
+        assert body["agreement_count"] + len(body["gaps"]) <= 20
+
+    async def test_comparing_somebody_with_themselves_is_refused(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        assert (await client.get("/api/h2h?a=coyg&b=coyg")).status_code == 422
+
+    async def test_an_unknown_person_is_a_404(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        assert (await client.get("/api/h2h?a=coyg&b=nobody")).status_code == 404

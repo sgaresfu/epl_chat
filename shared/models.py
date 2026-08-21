@@ -265,6 +265,33 @@ class LeaderboardRowOut(Model):
     form: list[int] = Field(default_factory=list)
 
 
+class H2HAgreement(Model):
+    """A club both people placed in the same position."""
+
+    club: ClubOut
+    position: int
+
+
+class H2HGap(Model):
+    """A club the two people placed furthest apart."""
+
+    club: ClubOut
+    a_position: int
+    b_position: int
+    distance: int
+
+
+class H2HOut(Model):
+    """Where two people agree, and where they disagree most."""
+
+    a: PersonOut
+    b: PersonOut
+    agreements: list[H2HAgreement] = Field(default_factory=list)
+    gaps: list[H2HGap] = Field(default_factory=list)
+    agreement_count: int = 0
+    empty_message: str | None = None
+
+
 class LeaderboardOut(Model):
     rows: list[LeaderboardRowOut]
     leader: str | None = None

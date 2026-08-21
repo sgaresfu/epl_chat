@@ -11,6 +11,8 @@ import type {
   Me,
   Predictions,
   FplStandings,
+  H2H,
+  Leaderboard,
   ProjectedTable,
   Season,
 } from './types'
@@ -26,6 +28,8 @@ export const keys = {
   predictions: ['predictions'] as const,
   admin: ['admin'] as const,
   fplStandings: ['fpl', 'standings'] as const,
+  leaderboard: ['leaderboard'] as const,
+  h2h: (a: string, b: string) => ['h2h', a, b] as const,
 }
 
 export function useMe(): UseQueryResult<Me> {
@@ -87,6 +91,21 @@ export function useFplStandings(): UseQueryResult<FplStandings> {
   return useQuery({
     queryKey: keys.fplStandings,
     queryFn: () => api.get<FplStandings>('/api/fpl/standings'),
+  })
+}
+
+export function useLeaderboard(): UseQueryResult<Leaderboard> {
+  return useQuery({
+    queryKey: keys.leaderboard,
+    queryFn: () => api.get<Leaderboard>('/api/leaderboard'),
+  })
+}
+
+export function useH2H(a: string, b: string): UseQueryResult<H2H> {
+  return useQuery({
+    queryKey: keys.h2h(a, b),
+    queryFn: () => api.get<H2H>(`/api/h2h?a=${a}&b=${b}`),
+    enabled: a !== b,
   })
 }
 

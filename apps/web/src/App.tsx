@@ -17,6 +17,9 @@ const Predictions = lazy(() =>
 )
 const Admin = lazy(() => import('@/routes/Admin').then((m) => ({ default: m.Admin })))
 const Fpl = lazy(() => import('@/routes/Fpl').then((m) => ({ default: m.Fpl })))
+const Leaderboard = lazy(() =>
+  import('@/routes/Leaderboard').then((m) => ({ default: m.Leaderboard })),
+)
 const PredictionPicker = lazy(() =>
   import('@/routes/PredictionPicker').then((m) => ({ default: m.PredictionPicker })),
 )
@@ -57,15 +60,7 @@ export function App() {
             <Route path="/predictions" element={<Predictions />} />
             <Route path="/predictions/build" element={<PredictionPicker />} />
             <Route path="/admin" element={<Admin />} />
-            <Route
-              path="/leaderboard"
-              element={
-                <Placeholder
-                  title="Leaderboard"
-                  blurb="Standings appear once the first results are in and the scoring engine has a table to score against. The engine itself is built and tested; it has nothing to score yet."
-                />
-              }
-            />
+            <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/fpl" element={<Fpl />} />
             <Route
               path="/watch"
