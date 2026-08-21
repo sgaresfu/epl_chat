@@ -292,6 +292,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/news": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** News */
+        get: operations["news_api_news_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stream": {
         parameters: {
             query?: never;
@@ -873,6 +890,38 @@ export interface components {
              * Format: date-time
              */
             server_time: string;
+        };
+        /** NewsItemOut */
+        NewsItemOut: {
+            /** Title */
+            title: string;
+            /** Url */
+            url: string;
+            /** Source */
+            source: string;
+            /** Published */
+            published: string | null;
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+        };
+        /** NewsOut */
+        NewsOut: {
+            /** Sky */
+            sky: components["schemas"]["NewsItemOut"][];
+            /** Youtube */
+            youtube: components["schemas"]["NewsItemOut"][];
+            /** Athletic */
+            athletic: components["schemas"]["NewsItemOut"][];
+            freshness: components["schemas"]["Freshness"];
+            /** Empty Message */
+            empty_message: string | null;
+            /** Youtube Message */
+            youtube_message: string | null;
+            /** Athletic Message */
+            athletic_message: string | null;
         };
         /** NextMatchOut */
         NextMatchOut: {
@@ -1680,6 +1729,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    news_api_news_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewsOut"];
                 };
             };
         };

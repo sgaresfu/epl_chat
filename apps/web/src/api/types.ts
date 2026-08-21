@@ -234,6 +234,24 @@ export interface CronRun {
   detail: string
 }
 
+export interface NewsItem {
+  title: string
+  url: string
+  source: string
+  published: string | null
+  summary: string
+}
+
+export interface News {
+  sky: NewsItem[]
+  youtube: NewsItem[]
+  athletic: NewsItem[]
+  freshness: Freshness
+  empty_message: string | null
+  youtube_message: string | null
+  athletic_message: string | null
+}
+
 export interface WatchStats {
   person: string
   watched: number

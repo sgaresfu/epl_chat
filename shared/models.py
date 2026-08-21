@@ -396,6 +396,24 @@ class WatchStatsOut(Model):
     freshness: Freshness
 
 
+class NewsItemOut(Model):
+    title: str
+    url: str
+    source: str
+    published: datetime | None = None
+    summary: str = ""
+
+
+class NewsOut(Model):
+    sky: list[NewsItemOut] = Field(default_factory=list)
+    youtube: list[NewsItemOut] = Field(default_factory=list)
+    athletic: list[NewsItemOut] = Field(default_factory=list)
+    freshness: Freshness
+    empty_message: str | None = None
+    youtube_message: str | None = None
+    athletic_message: str | None = None
+
+
 # --------------------------------------------------------------------------
 # Admin
 # --------------------------------------------------------------------------

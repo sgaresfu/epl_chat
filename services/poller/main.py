@@ -23,7 +23,7 @@ from shared import keys
 from shared.cache import CHANNEL_SCORES, Cache, build_cache
 from shared.config import Settings, get_settings
 
-from services.poller import fpl
+from services.poller import fpl, news
 from services.poller.http import UpstreamError
 
 log = structlog.get_logger(__name__)
@@ -33,6 +33,7 @@ LIVE_INTERVAL = 30  # while a match is in play
 MATCHDAY_INTERVAL = 300  # on a matchday, nothing in play
 IDLE_INTERVAL = 3600  # no football today
 BOOTSTRAP_INTERVAL = 600
+NEWS_INTERVAL = 900  # every 15 minutes, per BRIEF section 15
 
 # How close to kickoff counts as "a matchday" for the faster cadence.
 MATCHDAY_WINDOW = timedelta(hours=6)
@@ -48,10 +49,12 @@ class Poller:
         self.settings = settings
         self.cache = cache
         self.fpl = fpl.client()
+        self.sky = news.sky_client()
         self._digests: dict[str, str] = {}
 
     async def close(self) -> None:
         await self.fpl.close()
+        await self.sky.close()
 
     async def write(self, name: str, payload: Any, source: str, channel: str | None = None) -> bool:
         """Cache a payload and publish only if it differs from the last one."""
@@ -94,10 +97,20 @@ class Poller:
     # -- loops ------------------------------------------------------------
 
     async def once(self) -> None:
-        """One full pass: bootstrap, fixtures, table, league. Used by tests and seeding."""
+        """One full pass. Used by tests and by the local dev cache warm."""
         await self.poll_bootstrap()
         await self.poll_fixtures()
         await self.poll_league()
+        await self.poll_news()
+
+    async def poll_news(self) -> None:
+        """Sky's RSS needs no key, so this panel works with nothing configured."""
+        try:
+            payload = await news.poll_news(self.sky)
+        except Exception as exc:
+            log.warning("poller.news_failed", error=str(exc))
+            return
+        await self.write(keys.NEWS_SKY, payload, source="sky-rss")
 
     async def poll_bootstrap(self) -> None:
         try:
@@ -128,12 +141,16 @@ class Poller:
     async def run_forever(self) -> None:
         log.info("poller.starting", league=self.settings.fpl_league_id)
         last_bootstrap = 0.0
+        last_news = 0.0
         while True:
             started = asyncio.get_running_loop().time()
             try:
                 if started - last_bootstrap > BOOTSTRAP_INTERVAL:
                     await self.poll_bootstrap()
                     last_bootstrap = started
+                if started - last_news > NEWS_INTERVAL:
+                    await self.poll_news()
+                    last_news = started
                 await self.poll_fixtures()
                 await self.poll_league()
             except Exception as exc:

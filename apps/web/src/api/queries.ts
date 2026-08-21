@@ -13,6 +13,7 @@ import type {
   FplStandings,
   H2H,
   Leaderboard,
+  News,
   ProjectedTable,
   Season,
   WatchStats,
@@ -31,6 +32,7 @@ export const keys = {
   fplStandings: ['fpl', 'standings'] as const,
   leaderboard: ['leaderboard'] as const,
   watch: ['watch'] as const,
+  news: ['news'] as const,
   h2h: (a: string, b: string) => ['h2h', a, b] as const,
 }
 
@@ -113,6 +115,10 @@ export function useH2H(a: string, b: string): UseQueryResult<H2H> {
 
 export function useWatchStats(): UseQueryResult<WatchStats> {
   return useQuery({ queryKey: keys.watch, queryFn: () => api.get<WatchStats>('/api/watch') })
+}
+
+export function useNews(): UseQueryResult<News> {
+  return useQuery({ queryKey: keys.news, queryFn: () => api.get<News>('/api/news') })
 }
 
 export function useAdminStatus(): UseQueryResult<AdminStatus> {

@@ -18,6 +18,7 @@ const Predictions = lazy(() =>
 const Admin = lazy(() => import('@/routes/Admin').then((m) => ({ default: m.Admin })))
 const Fpl = lazy(() => import('@/routes/Fpl').then((m) => ({ default: m.Fpl })))
 const Watch = lazy(() => import('@/routes/Watch').then((m) => ({ default: m.Watch })))
+const News = lazy(() => import('@/routes/News').then((m) => ({ default: m.News })))
 const Leaderboard = lazy(() =>
   import('@/routes/Leaderboard').then((m) => ({ default: m.Leaderboard })),
 )
@@ -64,15 +65,7 @@ export function App() {
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/fpl" element={<Fpl />} />
             <Route path="/watch" element={<Watch />} />
-            <Route
-              path="/news"
-              element={
-                <Placeholder
-                  title="News"
-                  blurb="Sky Sports items and YouTube uploads need their API keys configured. Set them and this fills in without a redeploy."
-                />
-              }
-            />
+            <Route path="/news" element={<News />} />
             <Route
               path="*"
               element={<Placeholder title="Not found" blurb="That page does not exist." />}

@@ -25,6 +25,7 @@ from services.api.routes import (
     football,
     fpl,
     leaderboard,
+    news,
     predictions,
     session,
     stream,
@@ -132,6 +133,7 @@ def create_app() -> FastAPI:
         leaderboard,
         fpl,
         watch,
+        news,
         stream,
         admin,
     ):
