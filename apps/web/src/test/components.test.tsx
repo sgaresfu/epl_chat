@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Crest } from '@/components/Crest'
@@ -130,5 +132,15 @@ describe('empty and stale states', () => {
     }
     render(<StaleNote freshness={missing} label="Odds" />)
     expect(screen.getByText(/Waiting for the first update/)).toBeInTheDocument()
+  })
+})
+
+describe('live score layout', () => {
+  it('puts the minute on its own line, not welded to the score', () => {
+    // The deployed board read "3-090' - live" because .score small had no
+    // display:block, unlike .countdown small.
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/app.css'), 'utf8')
+    const block = css.slice(css.indexOf('.score small'))
+    expect(block.slice(0, 200)).toContain('display: block')
   })
 })

@@ -192,6 +192,16 @@
   font-weight: 600;
   letter-spacing: -0.035em;
 }
+/* The minute belongs under the score, not welded to it. Without this the live
+   board reads "3-090' - live". */
+.score small {
+  display: block;
+  margin-top: 12px;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--ink-2);
+  letter-spacing: -0.01em;
+}
 
 /* ---------- crests ---------- */
 .crest {
