@@ -33,6 +33,27 @@ class TestLocal:
         assert secure is False
 
 
+class TestApiServesTheFrontend:
+    """The default, and the only arrangement iOS keeps a session in."""
+
+    def test_same_origin_uses_lax(self) -> None:
+        same_site, _, _ = cookie_policy(settings(environment="production", serve_frontend=True))
+        assert same_site == "lax"
+
+    def test_it_is_secure_and_host_only(self) -> None:
+        _, secure, domain = cookie_policy(settings(environment="production", serve_frontend=True))
+        assert secure is True
+        assert domain is None
+
+    def test_it_never_falls_back_to_samesite_none(self) -> None:
+        # SameSite=None is what WebKit drops; serving same-origin must not
+        # reach that branch even with no COOKIE_DOMAIN set.
+        same_site, _, _ = cookie_policy(
+            settings(environment="production", serve_frontend=True, cookie_domain="")
+        )
+        assert same_site != "none"
+
+
 class TestSharedParentDomain:
     """The clean path: league.example.com and api.example.com."""
 
@@ -41,7 +62,9 @@ class TestSharedParentDomain:
         assert same_site == "lax"
 
     def test_the_cookie_is_scoped_to_the_parent_domain(self) -> None:
-        _, _, domain = cookie_policy(settings(environment="production", cookie_domain=".example.com"))
+        _, _, domain = cookie_policy(
+            settings(environment="production", serve_frontend=False, cookie_domain=".example.com")
+        )
         assert domain == ".example.com"
 
     def test_it_is_still_secure(self) -> None:
@@ -53,17 +76,17 @@ class TestNoSharedParent:
     """The fallback: a CDN origin and a Render origin with nothing in common."""
 
     def test_it_falls_back_to_samesite_none(self) -> None:
-        same_site, _, _ = cookie_policy(settings(environment="production"))
+        same_site, _, _ = cookie_policy(settings(environment="production", serve_frontend=False))
         assert same_site == "none"
 
     def test_samesite_none_is_always_paired_with_secure(self) -> None:
         # Browsers reject SameSite=None without Secure outright.
-        same_site, secure, _ = cookie_policy(settings(environment="production"))
+        same_site, secure, _ = cookie_policy(settings(environment="production", serve_frontend=False))
         assert same_site == "none"
         assert secure is True
 
     def test_no_domain_is_set_when_there_is_no_shared_parent(self) -> None:
-        _, _, domain = cookie_policy(settings(environment="production"))
+        _, _, domain = cookie_policy(settings(environment="production", serve_frontend=False))
         assert domain is None
 
 

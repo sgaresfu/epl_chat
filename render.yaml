@@ -1,4 +1,4 @@
-# One blueprint, the whole stack, at no monthly cost.
+# One blueprint, one service, at no monthly cost.
 #
 # The brief specifies three services plus Redis plus Postgres. That shape is
 # right for an app with real traffic, and it costs about $35 a month — for four
@@ -11,43 +11,18 @@
 # in its own process or not. So the poller runs inside the api
 # (POLLER_IN_PROCESS), the cache is in-process, and the database is external.
 #
-# To restore the briefed architecture, set POLLER_IN_PROCESS=false, add back a
-# `worker` service running `python -m services.poller.main`, and add a
-# `keyvalue` service for REDIS_URL. Nothing in the code needs to change.
+# The frontend is served by the api rather than as a separate static site, for
+# a reason that has nothing to do with cost: two origins makes the session
+# cookie third-party, and every browser on iOS is WebKit, so Safari drops it and
+# nobody can sign in from a phone. Three of the four watch on one.
+#
+# To restore the briefed architecture, set POLLER_IN_PROCESS=false and
+# SERVE_FRONTEND=false, add back a `worker` service running
+# `python -m services.poller.main`, a `keyvalue` service for REDIS_URL, and a
+# static site with VITE_API_BASE and FRONTEND_ORIGIN. Nothing in the code needs
+# to change — but plan for a custom domain, or the phones stay locked out.
 
 services:
-  # ---- the frontend: a static site on Render's CDN. Free, and never sleeps.
-  - type: web
-    name: league-web
-    runtime: static
-    buildCommand: cd apps/web && npm ci && npm run build
-    staticPublishPath: apps/web/dist
-    envVars:
-      # Set by hand, to the api's full URL, e.g. https://league-api.onrender.com
-      #
-      # `fromService … property: host` does not do what its name suggests: it
-      # yields the service *name* ("league-api"), not the hostname. The frontend
-      # then requested https://league-api/api/me and every call died with
-      # ERR_NAME_NOT_RESOLVED — visible only in a browser, because the api
-      # itself was perfectly healthy.
-      #
-      # This is baked in at build time, so changing it needs a redeploy of this
-      # static site, not just a restart.
-      - key: VITE_API_BASE
-        sync: false
-    routes:
-      # A single-page app: every unknown path is the app shell, not a 404.
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    headers:
-      - path: /assets/*
-        name: Cache-Control
-        value: public, max-age=31536000, immutable
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-
   # ---- the api, with the poller running inside it.
   #
   # On the free plan this spins down after 15 minutes idle and takes 30-60s to
@@ -71,15 +46,10 @@ services:
         value: production
       - key: POLLER_IN_PROCESS
         value: "true"
-      # The CORS allow-list. Set by hand, because `fromService … property:
-      # host` does not populate for a static site — it silently resolved to
-      # empty, which left the api rejecting every browser request while every
-      # health check stayed green. The api now refuses to start without it.
-      #
-      # Set this to the league-web service's URL after the first apply. If
-      # Render suffixed the service names, use the suffixed host.
-      - key: FRONTEND_ORIGIN
-        sync: false
+      # The api serves the React app from the same origin, so there is no
+      # cross-origin request to allow and no third-party cookie to lose.
+      - key: SERVE_FRONTEND
+        value: "true"
 
   # ---- cron jobs. Billed per minute of runtime, so a job that finishes in
   # seconds costs a fraction of a cent a month. They run in their own container

@@ -61,22 +61,27 @@ def serializer(settings: Settings) -> URLSafeTimedSerializer:
 def cookie_policy(settings: Settings) -> tuple[str, bool, str | None]:
     """Decide SameSite, Secure and Domain for the session cookie.
 
-    Three cases, and the difference between them is the whole cross-origin
+    Four cases, and the difference between them is the whole cross-origin
     problem from BRIEF section 3:
 
     * **local** -- same-origin through the Vite proxy, so ``Lax`` over plain
       HTTP. ``Secure`` would stop the cookie being stored at all on ``http://``.
-    * **shared parent domain** (``COOKIE_DOMAIN`` set) -- the clean path. The
-      cookie is first-party for both hosts, so ``Lax`` works and no third-party
-      cookie policy applies.
-    * **no shared parent** -- the cookie is third-party, so it needs
-      ``SameSite=None``, which browsers only honour together with ``Secure``.
+    * **the api serves the frontend** -- one origin, so the cookie is
+      first-party and ``Lax`` is both correct and the only thing iOS keeps.
+    * **shared parent domain** (``COOKIE_DOMAIN`` set) -- also first-party
+      across both hosts, so ``Lax`` again.
+    * **separate hosts, no shared parent** -- the cookie is third-party, so it
+      needs ``SameSite=None``, which browsers only honour with ``Secure`` and
+      which WebKit drops anyway.
 
     Returned rather than applied inline so it can be asserted in tests, since
-    getting it wrong fails only in a deployed browser.
+    getting it wrong fails only in a deployed browser -- and on iOS, only on a
+    real phone.
     """
     if settings.environment == "local":
         return "lax", False, None
+    if settings.serve_frontend:
+        return "lax", True, None
     if settings.cookie_domain:
         return "lax", True, settings.cookie_domain
     return "none", True, None

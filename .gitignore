@@ -13,3 +13,6 @@ dist/
 # Held back only until the GitHub token gains the `workflow` scope.
 # Restore with: gh auth refresh -s workflow && ./scripts/enable_ci.sh
 .github/workflows/
+
+# Built frontend, copied into the image at build time by the Dockerfile.
+/static/

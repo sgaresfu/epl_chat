@@ -49,6 +49,25 @@ class TestTheSettingIsActuallyRead:
 
 
 class TestBlueprintMatchesTheCode:
+    def test_the_api_serves_the_frontend_itself(self) -> None:
+        """One origin, so the session cookie is first-party.
+
+        Two origins made it third-party, and every browser on iOS is WebKit —
+        Safari's tracking prevention dropped it and nobody could sign in from a
+        phone. Three of the four watch on one.
+        """
+        env = {e["key"]: e.get("value") for e in SERVICES["league-api"]["envVars"] if "key" in e}
+        assert env.get("SERVE_FRONTEND") == "true"
+
+    def test_there_is_no_separate_static_site(self) -> None:
+        statics = [s for s in BLUEPRINT["services"] if s.get("runtime") == "static"]
+        assert statics == []
+
+    def test_no_cross_origin_variables_are_needed(self) -> None:
+        raw = (ROOT / "render.yaml").read_text()
+        for key in ("VITE_API_BASE",):
+            assert f"key: {key}" not in raw
+
     def test_the_api_enables_the_in_process_poller(self) -> None:
         env = {e["key"]: e.get("value") for e in SERVICES["league-api"]["envVars"] if "key" in e}
         assert env.get("POLLER_IN_PROCESS") == "true"
@@ -233,13 +252,12 @@ class TestServiceReferencesThatDoNotWork:
                     "the service name, not a hostname"
                 )
 
-    def test_both_urls_are_declared_somewhere(self) -> None:
+    def test_the_cross_origin_problem_is_gone_entirely(self) -> None:
+        """Neither variable is needed once the api serves the app."""
         declared = {
             entry["key"]
             for service in SERVICES.values()
             for entry in service.get("envVars", [])
             if "key" in entry
         }
-        declared |= {e["key"] for e in BLUEPRINT["envVarGroups"][0]["envVars"]}
-        for key in self.CROSS_REFERENCES:
-            assert key in declared, f"{key} is not declared anywhere"
+        assert "VITE_API_BASE" not in declared

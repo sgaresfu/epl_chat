@@ -129,13 +129,17 @@ class TestCorsMustBeConfigured:
     nothing in the logs said why.
     """
 
-    def test_an_empty_frontend_origin_is_refused(self) -> None:
+    def test_an_empty_origin_is_fine_when_the_api_serves_the_app(self) -> None:
+        # Same origin, so there is no cross-origin request to allow.
+        validate_for_deployment(production(frontend_origin="", serve_frontend=True))
+
+    def test_an_empty_origin_is_refused_when_the_frontend_is_separate(self) -> None:
         with pytest.raises(ConfigurationError, match="FRONTEND_ORIGIN"):
-            validate_for_deployment(production(frontend_origin=""))
+            validate_for_deployment(production(frontend_origin="", serve_frontend=False))
 
     def test_the_message_explains_the_symptom(self) -> None:
         with pytest.raises(ConfigurationError) as exc:
-            validate_for_deployment(production(frontend_origin=""))
+            validate_for_deployment(production(frontend_origin="", serve_frontend=False))
         assert "login fails" in str(exc.value)
 
     def test_a_configured_origin_passes(self) -> None:

@@ -55,10 +55,17 @@ class Settings(BaseSettings):
 
     sentry_dsn: str = ""
     frontend_origin: str = "http://localhost:5173"
-    # Set to ".example.com" when the web and api services share a parent domain:
-    # the session cookie is then first-party and SameSite=Lax works. Leave empty
-    # when they do not, and the cookie falls back to SameSite=None; Secure.
+    # Set to ".example.com" when the web and api are separate hosts under one
+    # parent domain. Unnecessary while the api serves the frontend itself.
     cookie_domain: str = ""
+
+    # Serve the built React app from this process, same origin.
+    #
+    # Two origins makes the session cookie third-party, and every browser on
+    # iOS is WebKit, so Safari's tracking prevention drops it -- nobody could
+    # sign in from a phone. Same-origin removes CORS, SameSite=None and
+    # VITE_API_BASE in one go. Set false to go back to a separate static site.
+    serve_frontend: bool = True
 
     # --- quota budgets (see BRIEF section 4, "Quota discipline") -----------
     # The brief's stated intervals overrun both free tiers, so the ceilings are
@@ -215,12 +222,13 @@ def validate_for_deployment(settings: Settings) -> None:
             "CODE_TWZT, CODE_BULBA or nobody can sign in."
         )
 
-    if not settings.cors_origins:
+    if not settings.serve_frontend and not settings.cors_origins:
         problems.append(
-            "FRONTEND_ORIGIN is unset, so the CORS allow-list is empty and the "
-            "api rejects every browser request — login fails with no error the "
-            "user can see. Set it to the frontend's URL, e.g. "
-            "https://league-web.onrender.com"
+            "FRONTEND_ORIGIN is unset while the frontend is served separately, "
+            "so the CORS allow-list is empty and the api rejects every browser "
+            "request — login fails with no error the user can see. Either set it "
+            "to the frontend's URL, or leave SERVE_FRONTEND on so the api serves "
+            "the app itself."
         )
 
     if len(settings.session_secret) < 32 or "dev-only" in settings.session_secret:

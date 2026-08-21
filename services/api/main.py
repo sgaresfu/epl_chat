@@ -202,6 +202,12 @@ def create_app() -> FastAPI:
             status_code=200 if ready else 503,
         )
 
+    # Mounted last: every /api route and the health checks are already
+    # registered, so only genuinely unmatched paths reach the app shell.
+    from services.api import spa
+
+    spa.mount(app)
+
     return app
 
 
