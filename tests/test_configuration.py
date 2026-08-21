@@ -24,6 +24,7 @@ GOOD = {
     "database_url": "postgresql://u:p@ep-x.eu-central-1.aws.neon.tech/neondb",
     "session_secret": "a" * 64,
     "code_coyg": "something",
+    "frontend_origin": "https://league-web.onrender.com",
 }
 
 
@@ -116,3 +117,32 @@ class TestTheEntrypointChecksFirst:
             capture_output=True,
         )
         assert b"DATABASE_URL is not set" not in result.stderr
+
+
+class TestCorsMustBeConfigured:
+    """An empty allow-list rejects every browser request, silently.
+
+    Render's `fromService … property: host` did not populate FRONTEND_ORIGIN for
+    a static site, so the deployed api allowed no origin at all. The api was
+    healthy, every endpoint answered 200 to curl, and the browser simply could
+    not log in — the preflight returned 400 with no allow-origin header and
+    nothing in the logs said why.
+    """
+
+    def test_an_empty_frontend_origin_is_refused(self) -> None:
+        with pytest.raises(ConfigurationError, match="FRONTEND_ORIGIN"):
+            validate_for_deployment(production(frontend_origin=""))
+
+    def test_the_message_explains_the_symptom(self) -> None:
+        with pytest.raises(ConfigurationError) as exc:
+            validate_for_deployment(production(frontend_origin=""))
+        assert "login fails" in str(exc.value)
+
+    def test_a_configured_origin_passes(self) -> None:
+        validate_for_deployment(production(frontend_origin="https://league-web.onrender.com"))
+
+    def test_a_bare_host_is_accepted_and_normalised(self) -> None:
+        # Render supplies hosts without a scheme.
+        config = production(frontend_origin="league-web.onrender.com")
+        validate_for_deployment(config)
+        assert config.cors_origins == ["https://league-web.onrender.com"]

@@ -215,6 +215,14 @@ def validate_for_deployment(settings: Settings) -> None:
             "CODE_TWZT, CODE_BULBA or nobody can sign in."
         )
 
+    if not settings.cors_origins:
+        problems.append(
+            "FRONTEND_ORIGIN is unset, so the CORS allow-list is empty and the "
+            "api rejects every browser request — login fails with no error the "
+            "user can see. Set it to the frontend's URL, e.g. "
+            "https://league-web.onrender.com"
+        )
+
     if len(settings.session_secret) < 32 or "dev-only" in settings.session_secret:
         problems.append(
             "SESSION_SECRET is missing or is the development placeholder. "

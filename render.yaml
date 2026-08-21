@@ -65,13 +65,15 @@ services:
         value: production
       - key: POLLER_IN_PROCESS
         value: "true"
-      # The CORS allow-list, wired to the static site rather than pasted in.
-      # A mismatch here presents as a login that silently never sticks.
+      # The CORS allow-list. Set by hand, because `fromService … property:
+      # host` does not populate for a static site — it silently resolved to
+      # empty, which left the api rejecting every browser request while every
+      # health check stayed green. The api now refuses to start without it.
+      #
+      # Set this to the league-web service's URL after the first apply. If
+      # Render suffixed the service names, use the suffixed host.
       - key: FRONTEND_ORIGIN
-        fromService:
-          name: league-web
-          type: web
-          property: host
+        sync: false
 
   # ---- cron jobs. Billed per minute of runtime, so a job that finishes in
   # seconds costs a fraction of a cent a month. They run in their own container
