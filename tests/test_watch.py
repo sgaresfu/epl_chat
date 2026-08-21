@@ -48,13 +48,13 @@ class TestWindow:
 
 
 class TestToggleIsServerChecked:
-    async def test_marking_before_kickoff_is_refused(self, client: AsyncClient) -> None:
-        # Nothing has kicked off yet, so every fixture must refuse.
-        await sign_in(client, "coyg")
-        response = await client.post(
+    async def test_marking_before_kickoff_is_refused(self, future_client: AsyncClient) -> None:
+        # Against fixtures that have not kicked off, whenever this is run.
+        await sign_in(future_client, "coyg")
+        response = await future_client.post(
             "/api/watch",
             json={"fixture_id": OPENER},
-            headers={"X-CSRF-Token": client.cookies.get("pl_csrf") or ""},
+            headers={"X-CSRF-Token": future_client.cookies.get("pl_csrf") or ""},
         )
         assert response.status_code == 409
         assert "not kicked off" in response.json()["detail"]

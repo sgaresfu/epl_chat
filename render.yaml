@@ -1,14 +1,22 @@
-# One blueprint, the whole stack. Secrets live in the environment group and
-# never in this file.
-
-databases:
-  - name: league-postgres
-    plan: basic-256mb
-    databaseName: league
-    user: league
+# One blueprint, the whole stack, at no monthly cost.
+#
+# The brief specifies three services plus Redis plus Postgres. That shape is
+# right for an app with real traffic, and it costs about $35 a month — for four
+# people checking a table. What actually drives that bill is process separation:
+# a background worker exists only to poll, and Redis exists only so that worker
+# and the api can share a cache.
+#
+# At this size neither buys anything. asyncio already keeps a slow upstream off
+# every other request, and one poll still serves all four people whether it runs
+# in its own process or not. So the poller runs inside the api
+# (POLLER_IN_PROCESS), the cache is in-process, and the database is external.
+#
+# To restore the briefed architecture, set POLLER_IN_PROCESS=false, add back a
+# `worker` service running `python -m services.poller.main`, and add a
+# `keyvalue` service for REDIS_URL. Nothing in the code needs to change.
 
 services:
-  # ---- the frontend: a static site on Render's CDN, never served from Python
+  # ---- the frontend: a static site on Render's CDN. Free, and never sleeps.
   - type: web
     name: league-web
     runtime: static
@@ -34,27 +42,28 @@ services:
         name: X-Content-Type-Options
         value: nosniff
 
-  # ---- the api: always on, because a cold start on a live-score page is the
-  # exact failure this architecture exists to avoid.
+  # ---- the api, with the poller running inside it.
+  #
+  # On the free plan this spins down after 15 minutes idle and takes 30-60s to
+  # wake. While it sleeps the poller sleeps too, so live scores refresh only
+  # once somebody opens the page. Change `plan` to `starter` for ~$7/month and
+  # it never sleeps.
   - type: web
     name: league-api
     runtime: docker
     dockerfilePath: ./services/api/Dockerfile
     dockerContext: .
-    plan: starter
+    plan: free
     healthCheckPath: /healthz
     # Runs after the build and before the new instance takes traffic, so the
-    # schema is always ahead of the code that depends on it. Without this the
-    # first deploy comes up against an empty database.
+    # schema is always ahead of the code that depends on it.
     preDeployCommand: alembic upgrade head
     envVars:
       - fromGroup: league-secrets
-      - key: DATABASE_URL
-        fromDatabase: { name: league-postgres, property: connectionString }
-      - key: REDIS_URL
-        fromService: { name: league-redis, type: keyvalue, property: connectionString }
       - key: ENVIRONMENT
         value: production
+      - key: POLLER_IN_PROCESS
+        value: "true"
       # The CORS allow-list, wired to the static site rather than pasted in.
       # A mismatch here presents as a login that silently never sticks.
       - key: FRONTEND_ORIGIN
@@ -63,42 +72,19 @@ services:
           type: web
           property: host
 
-  # ---- the poller: the only process that talks to an upstream
-  - type: worker
-    name: league-poller
-    runtime: docker
-    dockerfilePath: ./services/poller/Dockerfile
-    dockerContext: .
-    plan: starter
-    envVars:
-      - fromGroup: league-secrets
-      - key: DATABASE_URL
-        fromDatabase: { name: league-postgres, property: connectionString }
-      - key: REDIS_URL
-        fromService: { name: league-redis, type: keyvalue, property: connectionString }
-      - key: ENVIRONMENT
-        value: production
-
-  - type: keyvalue
-    name: league-redis
-    plan: starter
-    maxmemoryPolicy: noeviction
-    ipAllowList: []
-
-  # ---- cron jobs
+  # ---- cron jobs. Billed per minute of runtime, so a job that finishes in
+  # seconds costs a fraction of a cent a month. They run in their own container
+  # with an empty cache and fetch what they need themselves, which also means
+  # they still run when the api is asleep.
   - type: cron
     name: league-weekly
     runtime: docker
     dockerfilePath: ./services/scheduler/Dockerfile
     dockerContext: .
-    schedule: '0 6 * * 1' # Monday 06:00 UTC: snapshot, leaderboard, summary, push
+    schedule: '0 6 * * 1' # Monday 06:00 UTC: snapshot, leaderboard, summary
     dockerCommand: python -m services.scheduler.main weekly
     envVars:
       - fromGroup: league-secrets
-      - key: DATABASE_URL
-        fromDatabase: { name: league-postgres, property: connectionString }
-      - key: REDIS_URL
-        fromService: { name: league-redis, type: keyvalue, property: connectionString }
 
   - type: cron
     name: league-daily
@@ -109,27 +95,18 @@ services:
     dockerCommand: python -m services.scheduler.main daily
     envVars:
       - fromGroup: league-secrets
-      - key: DATABASE_URL
-        fromDatabase: { name: league-postgres, property: connectionString }
-      - key: REDIS_URL
-        fromService: { name: league-redis, type: keyvalue, property: connectionString }
-
-  - type: cron
-    name: league-hourly
-    runtime: docker
-    dockerfilePath: ./services/scheduler/Dockerfile
-    dockerContext: .
-    schedule: '30 * * * *' # Hourly: prune caches, log quota usage
-    dockerCommand: python -m services.scheduler.main hourly
-    envVars:
-      - fromGroup: league-secrets
-      - key: REDIS_URL
-        fromService: { name: league-redis, type: keyvalue, property: connectionString }
 
 envVarGroups:
   - name: league-secrets
     envVars:
       # Values are set in the Render dashboard, never committed here.
+      #
+      # An external Postgres, because Render's free tier is deleted 30 days
+      # after creation — which would fall in the middle of the season. Neon and
+      # Supabase both have a genuinely persistent free tier. Paste the full
+      # connection string; a bare postgresql:// is normalised in shared/config.
+      - key: DATABASE_URL
+        sync: false
       - key: SESSION_SECRET
         generateValue: true
       - key: CODE_COYG
@@ -140,6 +117,7 @@ envVarGroups:
         sync: false
       - key: CODE_BULBA
         sync: false
+      # Optional. Each missing key degrades one panel with a clear message.
       - key: FOOTBALL_DATA_KEY
         sync: false
       - key: API_FOOTBALL_KEY
@@ -163,8 +141,7 @@ envVarGroups:
       - key: SENTRY_DSN
         sync: false
       # Left empty for the default onrender.com hosts, which share no usable
-      # parent domain: the cookie is then third-party and falls back to
-      # SameSite=None; Secure. Set it to ".yourdomain.com" once a custom domain
-      # is attached to both services, and the cookie becomes first-party.
+      # parent domain: the cookie is then third-party, SameSite=None; Secure.
+      # Set to ".yourdomain.com" once a custom domain covers both services.
       - key: COOKIE_DOMAIN
         sync: false

@@ -61,10 +61,37 @@ class TestHourly:
 
 
 class TestDailyAndWeekly:
-    async def test_daily_says_so_when_there_is_no_data(self) -> None:
+    async def test_daily_fetches_for_itself_when_its_cache_is_cold(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A cron container starts with an empty cache every single time.
+
+        With the poller inside the api and no shared Redis, a job that only read
+        the cache would report "no data" on every run, for ever.
+        """
+        called: list[str] = []
+
+        async def fake_ensure(cache: Any, settings: Any) -> list[dict[str, Any]]:
+            called.append("fetched")
+            return [{"finished": False, "kickoff_time": "2026-08-21T19:00:00Z"}]
+
+        monkeypatch.setattr("services.scheduler.main.ensure_fixtures", fake_ensure)
+        detail = await daily(MemoryCache(), Settings())
+        assert called == ["fetched"]
+        assert "1 to come" in detail
+
+    async def test_daily_says_so_when_the_fetch_also_fails(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        async def fake_ensure(cache: Any, settings: Any) -> None:
+            return None
+
+        monkeypatch.setattr("services.scheduler.main.ensure_fixtures", fake_ensure)
         assert "no fixture data" in await daily(MemoryCache(), Settings())
 
-    async def test_weekly_says_so_when_there_is_no_data(self) -> None:
+    async def test_weekly_says_so_when_no_data_can_be_had(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        async def fake_ensure(cache: Any, settings: Any) -> None:
+            return None
+
+        monkeypatch.setattr("services.scheduler.main.ensure_fixtures", fake_ensure)
         assert "nothing to snapshot" in await weekly(MemoryCache(), Settings())
 
     async def test_daily_counts_played_and_upcoming(

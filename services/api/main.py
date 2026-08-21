@@ -8,9 +8,12 @@ upstream traffic.
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 import structlog
 from fastapi import FastAPI, Request
@@ -49,6 +52,23 @@ def configure_logging(level: str) -> None:
     )
 
 
+async def _run_poller(poller: Any) -> None:
+    """Own the poller's lifetime alongside the api's.
+
+    A crash here must not take the api down with it -- the site serving slightly
+    stale data is far better than the site being gone.
+    """
+    log = structlog.get_logger(__name__)
+    try:
+        await poller.run_forever()
+    except asyncio.CancelledError:
+        raise
+    except Exception as exc:
+        log.error("api.poller_crashed", error=str(exc))
+    finally:
+        await poller.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
@@ -75,10 +95,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception as exc:
         log.warning("api.seed_predictions_failed", error=str(exc))
 
-    if settings.seed_on_start and settings.environment == "local":
-        # Dev affordance: one pass of the poller so a clean clone shows real
-        # data without a second process. Deliberately gated on `local` -- the
-        # architecture depends on the api never calling an upstream.
+    poller_task: asyncio.Task[None] | None = None
+    if settings.poller_in_process:
+        # The poller runs here rather than in its own worker. See render.yaml
+        # for why: at four users the split costs a $7 worker and $10 of Redis
+        # and buys nothing that asyncio does not already provide.
+        from services.poller.main import Poller
+
+        poller_task = asyncio.create_task(_run_poller(Poller(settings, cache)))
+        log.info("api.poller_started_in_process")
+
+    elif settings.seed_on_start and settings.environment == "local":
+        # Dev affordance when the poller runs separately: one pass so a clean
+        # clone shows real data without starting a second process.
         from services.poller.main import Poller
 
         poller = Poller(settings, cache)
@@ -94,6 +123,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        if poller_task is not None:
+            poller_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await poller_task
+
         from shared.session import dispose
 
         await cache.close()

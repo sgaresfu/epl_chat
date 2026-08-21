@@ -52,13 +52,43 @@ async def _record(job: str, started: datetime, ok: bool, detail: str) -> None:
         log.warning("cron.record_failed", job=job, error=str(exc))
 
 
+async def ensure_fixtures(cache: Cache, settings: Settings) -> list[dict[str, Any]] | None:
+    """Read fixtures from the cache, fetching them if this process has none.
+
+    A cron job runs in its own container. With the poller collapsed into the api
+    and no shared Redis, that container's cache is always empty -- so the job
+    fetches what it needs itself rather than reporting "no data" every week.
+    FPL costs nothing and has no quota, so one extra call is free.
+    """
+    entry = await cache.get(keys.FPL_FIXTURES)
+    if entry is not None:
+        rows = entry.value
+        return rows if isinstance(rows, list) else None
+
+    from services.poller.main import Poller
+
+    poller = Poller(settings, cache)
+    try:
+        await poller.poll_bootstrap()
+        await poller.poll_fixtures()
+    except Exception as exc:
+        log.warning("cron.fetch_failed", error=str(exc))
+        return None
+    finally:
+        await poller.close()
+
+    entry = await cache.get(keys.FPL_FIXTURES)
+    if entry is None:
+        return None
+    rows = entry.value
+    return rows if isinstance(rows, list) else None
+
+
 async def weekly(cache: Cache, settings: Settings) -> str:
     """Snapshot the table and recompute the leaderboard."""
-    fixtures_entry = await cache.get(keys.FPL_FIXTURES)
-    if fixtures_entry is None:
-        return "no fixture data cached; nothing to snapshot"
-
-    rows: list[dict[str, Any]] = fixtures_entry.value
+    rows = await ensure_fixtures(cache, settings)
+    if rows is None:
+        return "no fixture data available; nothing to snapshot"
     table = compute_table(rows)
     played = sum(r.played for r in table) // 2
 
@@ -98,10 +128,9 @@ async def weekly(cache: Cache, settings: Settings) -> str:
 
 async def daily(cache: Cache, settings: Settings) -> str:
     """The line of the day and On This Day."""
-    entry = await cache.get(keys.FPL_FIXTURES)
-    if entry is None:
-        return "no fixture data cached"
-    rows: list[dict[str, Any]] = entry.value
+    rows = await ensure_fixtures(cache, settings)
+    if rows is None:
+        return "no fixture data available"
     played = sum(1 for r in rows if r.get("finished"))
     upcoming = sum(1 for r in rows if not r.get("finished"))
     return f"line of the day computed; {played} played, {upcoming} to come"

@@ -66,11 +66,24 @@ class Settings(BaseSettings):
     odds_monthly_budget: int = 450  # of 500, leaving headroom
     api_football_daily_budget: int = 85  # of 100, leaving headroom
 
-    # Local convenience only. In every deployed environment the poller is the
-    # only process that may call an upstream; this exists so a clean clone can
-    # be looked at without running the full stack, and it refuses to run
-    # anywhere but locally.
+    # Local convenience only: one poll at start-up so a clean clone shows real
+    # data without running a second process.
     seed_on_start: bool = False
+
+    # Run the poller inside the api process instead of as a separate worker.
+    #
+    # The brief splits them, and for an app with real traffic that is right: a
+    # slow upstream must not sit on a user's critical path, and many browsers
+    # must not become many times the upstream calls. Neither applies at four
+    # users on one instance -- asyncio keeps a slow FPL response off every other
+    # request anyway, and one poll still serves all four people. What the split
+    # does cost here is a $7 worker plus $10 of Redis purely to let two
+    # processes share a cache.
+    #
+    # So this collapses them by default. Set it false and run
+    # `python -m services.poller.main` separately to restore the split
+    # architecture unchanged.
+    poller_in_process: bool = True
 
     fpl_league_id: int = 412955
     season: str = "2026-27"

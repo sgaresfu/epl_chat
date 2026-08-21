@@ -66,7 +66,12 @@ def settings() -> Settings:
         code_twzt=CODES["twzt"],
         code_bulba=CODES["bulba"],
         frontend_origin="http://localhost:5173",
-        prediction_lock="2026-08-21T19:00:00Z",
+        # Deliberately far future. The real lock is 2026-08-21T19:00:00Z, and
+        # pinning tests to it made every "before the lock" case pass only until
+        # that instant and fail for ever after -- a test suite with an expiry
+        # date. Post-lock behaviour is tested by constructing a past lock
+        # explicitly, so both sides are covered without consulting the clock.
+        prediction_lock="2099-01-01T00:00:00Z",
     )
 
 
@@ -81,6 +86,50 @@ async def cache(
     await store.set(keys.FPL_FIXTURES, fixtures_payload, source="fpl")
     await store.set(keys.FPL_LEAGUE, league_payload, source="fpl")
     return store
+
+
+@pytest.fixture
+async def future_cache(
+    bootstrap: dict[str, Any],
+    fixtures_payload: list[dict[str, Any]],
+    league_payload: dict[str, Any],
+) -> MemoryCache:
+    """A cache whose fixtures have not kicked off yet, whenever the tests run.
+
+    The captured payload is real, so its kickoffs are real dates that stop being
+    in the future the moment the season starts. Shifting them by a year keeps
+    "before kick-off" tests meaningful for ever instead of turning them into
+    failures the first time somebody runs the suite after 19:00 on 21 August.
+    """
+    from datetime import datetime, timedelta
+
+    shifted: list[dict[str, Any]] = []
+    for row in fixtures_payload:
+        copy = dict(row)
+        raw = copy.get("kickoff_time")
+        if raw:
+            moment = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+            copy["kickoff_time"] = (moment + timedelta(days=365)).isoformat().replace("+00:00", "Z")
+        copy["started"] = False
+        copy["finished"] = False
+        shifted.append(copy)
+
+    store = MemoryCache()
+    await store.set(keys.FPL_BOOTSTRAP, bootstrap, source="fpl")
+    await store.set(keys.FPL_FIXTURES, shifted, source="fpl")
+    await store.set(keys.FPL_LEAGUE, league_payload, source="fpl")
+    return store
+
+
+@pytest.fixture
+async def future_client(
+    settings: Settings, future_cache: MemoryCache, sessions: Any
+) -> AsyncIterator[AsyncClient]:
+    """A client whose fixtures are all still to come."""
+    app = _build_app(settings, future_cache, sessions)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://api.test") as http:
+        yield http
 
 
 @pytest.fixture

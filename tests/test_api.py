@@ -190,10 +190,11 @@ class TestFixtures:
         await sign_in(client)
         assert (await client.get("/api/fixtures/999999")).status_code == 404
 
-    async def test_the_watch_window_is_shut_before_kickoff(self, client: AsyncClient) -> None:
-        await sign_in(client)
-        body = (await client.get("/api/fixtures?gameweek=1")).json()
-        # Nothing has kicked off yet, so no match can be marked watched.
+    async def test_the_watch_window_is_shut_before_kickoff(self, future_client: AsyncClient) -> None:
+        # Uses fixtures that are still ahead, so this stays meaningful once the
+        # real season has started.
+        await sign_in(future_client)
+        body = (await future_client.get("/api/fixtures?gameweek=1")).json()
         assert all(f["watch_open"] is False for f in body["fixtures"])
 
 
