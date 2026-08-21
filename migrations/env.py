@@ -27,9 +27,8 @@ target_metadata = Base.metadata
 
 
 def database_url() -> str:
-    url = get_settings().database_url
-    # Alembic drives migrations synchronously.
-    return url.replace("+asyncpg", "+psycopg").replace("+aiosqlite", "")
+    """Alembic drives migrations synchronously, so it needs a sync driver."""
+    return get_settings().sync_database_url
 
 
 def run_migrations_offline() -> None:

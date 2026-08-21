@@ -23,7 +23,8 @@ def engine() -> AsyncEngine:
     if _engine is None:
         settings = get_settings()
         _engine = create_async_engine(
-            settings.database_url,
+            # Normalised, because Render hands over a driverless postgresql://
+            settings.async_database_url,
             pool_pre_ping=True,  # Render recycles idle connections
             pool_size=5,
             max_overflow=5,

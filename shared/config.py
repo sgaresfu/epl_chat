@@ -77,6 +77,32 @@ class Settings(BaseSettings):
     prediction_lock: str = "2026-08-21T19:00:00Z"
 
     @property
+    def async_database_url(self) -> str:
+        """The database URL with an async driver, whatever form it arrived in.
+
+        Render's Postgres ``connectionString`` is a bare ``postgresql://…`` with
+        no driver, which SQLAlchemy resolves to psycopg2 -- a *sync* driver that
+        an async engine cannot use and that is not installed. The failure is
+        ``ModuleNotFoundError: psycopg2``, which points at a missing package
+        rather than at the scheme, so it is worth normalising here rather than
+        debugging at 3am on a first deploy.
+        """
+        url = self.database_url
+        if url.startswith("postgres://"):  # the older Heroku-style prefix
+            url = url.replace("postgres://", "postgresql://", 1)
+        if url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if url.startswith("sqlite://") and "+aiosqlite" not in url:
+            url = url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+        return url
+
+    @property
+    def sync_database_url(self) -> str:
+        """The same database, with a synchronous driver, for Alembic."""
+        url = self.async_database_url
+        return url.replace("+asyncpg", "+psycopg").replace("+aiosqlite", "")
+
+    @property
     def codes(self) -> dict[str, str]:
         """Code word per person key, excluding any that are unset."""
         raw = {

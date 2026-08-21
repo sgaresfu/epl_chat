@@ -150,6 +150,35 @@ def check_generated_types() -> None:
         ok(f"openapi.json matches the app ({len(live['paths'])} paths)")
 
 
+def check_database_drivers() -> None:
+    """A driverless Postgres URL breaks both the app and its migrations."""
+    print("\ndatabase drivers")
+    from shared.config import Settings
+    from sqlalchemy import create_engine
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    render_style = "postgresql://league:pw@dpg-abc.oregon-postgres.render.com/league"
+    config = Settings(database_url=render_style, session_secret="preflight" * 4)
+
+    try:
+        create_async_engine(config.async_database_url)
+        ok("Render's postgresql:// resolves to an async driver")
+    except Exception as exc:
+        fail(f"async engine cannot be built from Render's URL: {exc}")
+
+    try:
+        create_engine(config.sync_database_url)
+        ok("the same URL resolves to a sync driver for Alembic")
+    except Exception as exc:
+        fail(f"alembic cannot build a sync engine from Render's URL: {exc}")
+
+    dockerfile = (ROOT / "services" / "api" / "Dockerfile").read_text()
+    if "psycopg" in dockerfile:
+        ok("the api image installs a sync Postgres driver for preDeployCommand")
+    else:
+        fail("services/api/Dockerfile has no psycopg; `alembic upgrade head` will fail")
+
+
 def check_data_files() -> None:
     print("\ncommitted data")
     for name in ("broadcasters.json", "seed_predictions.json", "season_2025_26.json", "fpl_mapping.json"):
@@ -165,6 +194,7 @@ def main() -> int:
     check_blueprint()
     check_env_example()
     check_generated_types()
+    check_database_drivers()
     check_data_files()
 
     print("\n" + "=" * 40)

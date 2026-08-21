@@ -11,7 +11,8 @@ WORKDIR /app
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir \
       "fastapi>=0.115" "uvicorn[standard]>=0.30" "pydantic>=2.9" "pydantic-settings>=2.4" \
-      "sqlalchemy>=2.0.30" "alembic>=1.13" "asyncpg>=0.29" "redis>=5.0" "httpx>=0.27" \
+      "sqlalchemy>=2.0.30" "alembic>=1.13" "asyncpg>=0.29" "psycopg[binary]>=3.2" \
+      "redis>=5.0" "httpx>=0.27" \
       "tenacity>=9.0" "structlog>=24.4" "itsdangerous>=2.2" "python-multipart>=0.0.9" \
       "feedparser>=6.0" "pillow>=10.4" "boto3>=1.35" "tzdata>=2026.1"
 
