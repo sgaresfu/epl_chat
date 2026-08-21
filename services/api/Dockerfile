@@ -20,6 +20,7 @@ COPY shared ./shared
 COPY services ./services
 COPY migrations ./migrations
 COPY alembic.ini ./
+RUN chmod +x services/api/entrypoint.sh
 
 # Never run as root.
 RUN useradd --create-home --uid 10001 app && chown -R app:app /app
@@ -29,7 +30,10 @@ EXPOSE 8000
 
 # The container's own zoneinfo may be stale or missing; the tzdata package above
 # ships a known-good copy so Alberta's 2026-11-01 rule change is applied.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/healthz')"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD python -c "import os,urllib.request;urllib.request.urlopen(f\"http://127.0.0.1:{os.environ.get('PORT','8000')}/healthz\")"
 
-CMD ["uvicorn", "services.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+# Migrations run in the entrypoint rather than a preDeployCommand, which Render
+# only offers on paid plans. A failed migration exits non-zero and fails the
+# deploy, instead of serving traffic against a schema that never arrived.
+CMD ["./services/api/entrypoint.sh"]

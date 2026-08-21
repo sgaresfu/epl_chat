@@ -144,3 +144,58 @@ class TestCronStillWorksWhileTheApiSleeps:
         """
         source = (ROOT / "services" / "scheduler" / "main.py").read_text()
         assert "ensure_fixtures" in source
+
+
+class TestFreeTierConstraints:
+    """Render rejects paid-only fields on a free service at blueprint level."""
+
+    PAID_ONLY = ("preDeployCommand", "autoDeployTrigger", "maxShutdownDelaySeconds")
+
+    def test_no_free_service_uses_a_paid_only_field(self) -> None:
+        for name, service in SERVICES.items():
+            if service.get("plan") not in (None, "free"):
+                continue
+            for field in self.PAID_ONLY:
+                assert field not in service, f"{name} uses paid-only {field!r}"
+
+    def test_migrations_still_run_before_the_api_serves(self) -> None:
+        """preDeployCommand is the proper hook, but it needs a paid plan.
+
+        Without it the schema has to arrive some other way, or the first deploy
+        comes up against an empty database.
+        """
+        entrypoint = ROOT / "services" / "api" / "entrypoint.sh"
+        assert entrypoint.exists()
+        assert "alembic upgrade head" in entrypoint.read_text()
+
+    def test_the_image_actually_runs_the_entrypoint(self) -> None:
+        dockerfile = (ROOT / "services" / "api" / "Dockerfile").read_text()
+        assert "entrypoint.sh" in dockerfile
+
+    def test_the_entrypoint_aborts_on_a_failed_migration(self) -> None:
+        """`set -e` is what turns a bad migration into a failed deploy.
+
+        Without it the script would carry on and serve traffic against a schema
+        that never arrived.
+        """
+        body = (ROOT / "services" / "api" / "entrypoint.sh").read_text()
+        assert "set -e" in body
+
+    def test_the_entrypoint_execs_so_signals_reach_uvicorn(self) -> None:
+        # Without exec, uvicorn is a child of the shell and never sees Render's
+        # SIGTERM, so the lifespan cannot close the poller or the DB pool.
+        body = (ROOT / "services" / "api" / "entrypoint.sh").read_text()
+        assert "exec uvicorn" in body
+
+    def test_the_entrypoint_honours_the_port_render_assigns(self) -> None:
+        body = (ROOT / "services" / "api" / "entrypoint.sh").read_text()
+        assert "PORT" in body
+
+    def test_the_entrypoint_is_valid_shell(self) -> None:
+        import subprocess
+
+        result = subprocess.run(
+            ["sh", "-n", str(ROOT / "services" / "api" / "entrypoint.sh")],
+            capture_output=True,
+        )
+        assert result.returncode == 0, result.stderr.decode()

@@ -97,12 +97,35 @@ def check_blueprint() -> None:
         else:
             ok(f"{name}: runs '{match.group(1)}' ({service.get('schedule')})")
 
-    # The api must migrate before it serves traffic.
+    # Features Render only offers on paid plans. Using one on a free service
+    # is rejected at blueprint level, before anything else is read.
+    free_tier_forbidden = ("preDeployCommand", "autoDeployTrigger", "maxShutdownDelaySeconds")
+    for name, service in services.items():
+        if service.get("plan") not in (None, "free"):
+            continue
+        for field in free_tier_forbidden:
+            if field in service:
+                fail(f"{name}: '{field}' is not supported on the free plan")
+    ok("no paid-only fields on free services")
+
+    # Migrations must still run somewhere before the api serves traffic.
     api = services.get("league-api", {})
+    entrypoint = ROOT / "services" / "api" / "entrypoint.sh"
     if "alembic upgrade head" in str(api.get("preDeployCommand", "")):
-        ok("league-api: migrations run before traffic")
+        ok("league-api: migrations run via preDeployCommand")
+    elif entrypoint.exists() and "alembic upgrade head" in entrypoint.read_text():
+        ok("league-api: migrations run in the container entrypoint")
+        dockerfile = (ROOT / "services" / "api" / "Dockerfile").read_text()
+        if "entrypoint.sh" in dockerfile:
+            ok("league-api: the image actually runs that entrypoint")
+        else:
+            fail("league-api: entrypoint.sh exists but the Dockerfile does not run it")
+        if entrypoint.read_text().lstrip().startswith("#!"):
+            ok("league-api: entrypoint has a shebang")
+        else:
+            fail("league-api: entrypoint.sh has no shebang")
     else:
-        fail("league-api: no preDeployCommand running alembic; first deploy has no schema")
+        fail("league-api: nothing runs alembic; the first deploy would have no schema")
 
     # The static site must publish what the build produces.
     web = services.get("league-web", {})

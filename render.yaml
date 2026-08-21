@@ -55,9 +55,10 @@ services:
     dockerContext: .
     plan: free
     healthCheckPath: /healthz
-    # Runs after the build and before the new instance takes traffic, so the
-    # schema is always ahead of the code that depends on it.
-    preDeployCommand: alembic upgrade head
+    # No preDeployCommand: Render offers that only on paid plans. The image's
+    # entrypoint runs `alembic upgrade head` before starting uvicorn, and exits
+    # non-zero if it fails, so a bad migration fails the deploy rather than
+    # serving traffic against a schema that never arrived.
     envVars:
       - fromGroup: league-secrets
       - key: ENVIRONMENT
