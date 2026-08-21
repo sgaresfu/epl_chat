@@ -9,3 +9,7 @@ __pycache__/
 node_modules/
 dist/
 .DS_Store
+
+# Held back only until the GitHub token gains the `workflow` scope.
+# Restore with: gh auth refresh -s workflow && ./scripts/enable_ci.sh
+.github/workflows/
