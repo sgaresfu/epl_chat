@@ -16,6 +16,7 @@ const Predictions = lazy(() =>
   import('@/routes/Predictions').then((m) => ({ default: m.Predictions })),
 )
 const Admin = lazy(() => import('@/routes/Admin').then((m) => ({ default: m.Admin })))
+const Fpl = lazy(() => import('@/routes/Fpl').then((m) => ({ default: m.Fpl })))
 
 export function App() {
   const { data: me, isLoading, error } = useMe()
@@ -61,15 +62,7 @@ export function App() {
                 />
               }
             />
-            <Route
-              path="/fpl"
-              element={
-                <Placeholder
-                  title="Fantasy"
-                  blurb="The mini-league has all four managers registered, but FPL keeps new entries out of the scored standings until gameweek one is settled. Squads and live points appear then."
-                />
-              }
-            />
+            <Route path="/fpl" element={<Fpl />} />
             <Route
               path="/watch"
               element={

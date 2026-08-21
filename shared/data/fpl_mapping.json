@@ -1,0 +1,11 @@
+{
+  "$comment": "Which FPL entry belongs to which person. Nothing in either dataset links them -- FPL knows real names, this league knows code words -- so the mapping is supplied once and stored. Confirmed by the league owner on 2026-08-21. Editable from /admin without a redeploy.",
+  "league_id": 412955,
+  "confirmed_on": "2026-08-21",
+  "entries": [
+    { "person": "coyg",  "entry_id": 2125208, "entry_name": "champ",         "player_name": "nazarii kutepiv" },
+    { "person": "aure",  "entry_id": 1070904, "entry_name": "HOBOurnemouth", "player_name": "yurii axel" },
+    { "person": "twzt",  "entry_id": 6339618, "entry_name": "Ionrunit",      "player_name": "Pavlo Hartsula" },
+    { "person": "bulba", "entry_id": 453470,  "entry_name": "Isak Teeties",  "player_name": "Ivan Marshutka" }
+  ]
+}

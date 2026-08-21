@@ -502,3 +502,69 @@ class TestAdmin:
         pl = [b for b in body if b["competition"] == "premier-league"]
         assert {b["country"] for b in pl} == {"UA", "US", "CA"}
         assert all(b["verified_on"] for b in pl)
+
+
+class TestFplStandings:
+    """The mapping is what makes a squad belong to a person."""
+
+    async def test_all_four_managers_are_listed_before_the_first_deadline(self, client: AsyncClient) -> None:
+        # FPL keeps them in new_entries until GW1 is scored; reading only
+        # standings.results would return an empty league on launch day.
+        await sign_in(client)
+        body = (await client.get("/api/fpl/standings")).json()
+        assert len(body["rows"]) == 4
+
+    async def test_every_entry_is_attributed_to_a_person(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        body = (await client.get("/api/fpl/standings")).json()
+        assert {r["person"] for r in body["rows"]} == {"coyg", "aure", "twzt", "bulba"}
+        assert body["unmapped"] == []
+
+    async def test_the_mapping_matches_the_confirmed_entries(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        rows = (await client.get("/api/fpl/standings")).json()["rows"]
+        by_person = {r["person"]: r for r in rows}
+        assert by_person["coyg"]["entry_name"] == "champ"
+        assert by_person["aure"]["entry_name"] == "HOBOurnemouth"
+        assert by_person["twzt"]["entry_name"] == "Ionrunit"
+        assert by_person["bulba"]["entry_name"] == "Isak Teeties"
+
+    async def test_pending_rows_explain_why_there_are_no_points_yet(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        body = (await client.get("/api/fpl/standings")).json()
+        assert all(r["pending"] for r in body["rows"])
+        assert all(r["total"] == 0 for r in body["rows"])
+        assert "gameweek one is settled" in body["empty_message"]
+
+    async def test_the_league_is_named(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        body = (await client.get("/api/fpl/standings")).json()
+        assert body["league_id"] == 412955
+        assert body["league_name"] == "EPL 50$"
+
+    async def test_an_unmapped_entry_is_reported_not_dropped(self, settings: object, cache: object) -> None:
+        # A fifth manager joining must be visible as something to fix.
+        from httpx import ASGITransport
+        from httpx import AsyncClient as Client
+        from shared import keys
+
+        from tests.conftest import CODES, _build_app
+
+        payload = (await cache.get(keys.FPL_LEAGUE)).value  # type: ignore[attr-defined]
+        payload["new_entries"]["results"].append(
+            {
+                "entry": 999999,
+                "entry_name": "Interloper",
+                "player_first_name": "A",
+                "player_last_name": "Stranger",
+                "joined_time": "2026-08-21T00:00:00Z",
+            }
+        )
+        await cache.set(keys.FPL_LEAGUE, payload, source="fpl")  # type: ignore[attr-defined]
+
+        app = _build_app(settings, cache)  # type: ignore[arg-type]
+        async with Client(transport=ASGITransport(app=app), base_url="http://api.test") as http:
+            await http.post("/api/session", json={"code": CODES["coyg"]})
+            body = (await http.get("/api/fpl/standings")).json()
+            assert 999999 in body["unmapped"]
+            assert len(body["rows"]) == 5

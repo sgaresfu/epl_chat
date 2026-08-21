@@ -234,6 +234,27 @@ export interface CronRun {
   detail: string
 }
 
+export interface FplStandingRow {
+  entry_id: number
+  entry_name: string
+  player_name: string
+  person: string | null
+  rank: number | null
+  total: number
+  event_total: number
+  pending: boolean
+}
+
+export interface FplStandings {
+  league_id: number
+  league_name: string
+  rows: FplStandingRow[]
+  gameweek: number
+  freshness: Freshness
+  empty_message: string | null
+  unmapped: number[]
+}
+
 export interface AdminStatus {
   caches: CacheAge[]
   quotas: Quota[]

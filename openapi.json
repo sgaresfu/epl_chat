@@ -461,6 +461,27 @@
         }
       }
     },
+    "/api/fpl/standings": {
+      "get": {
+        "tags": [
+          "fpl"
+        ],
+        "summary": "Standings",
+        "operationId": "standings_api_fpl_standings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FplStandingsOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stream": {
       "get": {
         "tags": [
@@ -1088,6 +1109,126 @@
           "watch_open"
         ],
         "title": "FixtureOut"
+      },
+      "FplStandingRow": {
+        "properties": {
+          "entry_id": {
+            "type": "integer",
+            "title": "Entry Id"
+          },
+          "entry_name": {
+            "type": "string",
+            "title": "Entry Name"
+          },
+          "player_name": {
+            "type": "string",
+            "title": "Player Name"
+          },
+          "person": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Person"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "default": 0
+          },
+          "event_total": {
+            "type": "integer",
+            "title": "Event Total",
+            "default": 0
+          },
+          "pending": {
+            "type": "boolean",
+            "title": "Pending",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "entry_id",
+          "entry_name",
+          "player_name",
+          "person",
+          "rank",
+          "total",
+          "event_total",
+          "pending"
+        ],
+        "title": "FplStandingRow"
+      },
+      "FplStandingsOut": {
+        "properties": {
+          "league_id": {
+            "type": "integer",
+            "title": "League Id"
+          },
+          "league_name": {
+            "type": "string",
+            "title": "League Name"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/FplStandingRow"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "gameweek": {
+            "type": "integer",
+            "title": "Gameweek"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          },
+          "unmapped": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Unmapped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "league_id",
+          "league_name",
+          "rows",
+          "gameweek",
+          "freshness",
+          "empty_message",
+          "unmapped"
+        ],
+        "title": "FplStandingsOut"
       },
       "Freshness": {
         "properties": {

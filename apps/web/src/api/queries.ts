@@ -10,6 +10,7 @@ import type {
   LeagueTable,
   Me,
   Predictions,
+  FplStandings,
   ProjectedTable,
   Season,
 } from './types'
@@ -24,6 +25,7 @@ export const keys = {
   fixtures: (gw?: number) => ['fixtures', gw ?? 'all'] as const,
   predictions: ['predictions'] as const,
   admin: ['admin'] as const,
+  fplStandings: ['fpl', 'standings'] as const,
 }
 
 export function useMe(): UseQueryResult<Me> {
@@ -78,6 +80,13 @@ export function usePredictions(): UseQueryResult<Predictions> {
   return useQuery({
     queryKey: keys.predictions,
     queryFn: () => api.get<Predictions>('/api/predictions'),
+  })
+}
+
+export function useFplStandings(): UseQueryResult<FplStandings> {
+  return useQuery({
+    queryKey: keys.fplStandings,
+    queryFn: () => api.get<FplStandings>('/api/fpl/standings'),
   })
 }
 

@@ -214,6 +214,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fpl/standings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Standings */
+        get: operations["standings_api_fpl_standings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stream": {
         parameters: {
             query?: never;
@@ -574,6 +591,50 @@ export interface components {
              * @default false
              */
             watch_open: boolean;
+        };
+        /** FplStandingRow */
+        FplStandingRow: {
+            /** Entry Id */
+            entry_id: number;
+            /** Entry Name */
+            entry_name: string;
+            /** Player Name */
+            player_name: string;
+            /** Person */
+            person: string | null;
+            /** Rank */
+            rank: number | null;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /**
+             * Event Total
+             * @default 0
+             */
+            event_total: number;
+            /**
+             * Pending
+             * @default false
+             */
+            pending: boolean;
+        };
+        /** FplStandingsOut */
+        FplStandingsOut: {
+            /** League Id */
+            league_id: number;
+            /** League Name */
+            league_name: string;
+            /** Rows */
+            rows: components["schemas"]["FplStandingRow"][];
+            /** Gameweek */
+            gameweek: number;
+            freshness: components["schemas"]["Freshness"];
+            /** Empty Message */
+            empty_message: string | null;
+            /** Unmapped */
+            unmapped: number[];
         };
         /**
          * Freshness
@@ -1328,6 +1389,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    standings_api_fpl_standings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FplStandingsOut"];
                 };
             };
         };

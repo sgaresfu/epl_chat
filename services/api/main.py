@@ -20,7 +20,7 @@ from shared.cache import build_cache
 from shared.config import get_settings
 
 from services.api.deps import AppState
-from services.api.routes import admin, football, predictions, session, stream, tables
+from services.api.routes import admin, football, fpl, predictions, session, stream, tables
 
 
 def configure_logging(level: str) -> None:
@@ -93,7 +93,7 @@ def create_app() -> FastAPI:
         max_age=600,
     )
 
-    for module in (session, football, tables, predictions, stream, admin):
+    for module in (session, football, tables, predictions, fpl, stream, admin):
         app.include_router(module.router)
 
     @app.get("/healthz", tags=["ops"])
