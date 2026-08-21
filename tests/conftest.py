@@ -133,6 +133,19 @@ async def _noop_lifespan(app: Any) -> AsyncIterator[None]:
 
 
 @pytest.fixture
+async def empty_db() -> AsyncIterator[Any]:
+    """Schema, but no people and no predictions -- the pre-seed state."""
+    from shared.db import Base
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    engine = create_async_engine("sqlite+aiosqlite://", future=True)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    yield async_sessionmaker(engine, expire_on_commit=False)
+    await engine.dispose()
+
+
+@pytest.fixture
 async def client(settings: Settings, cache: MemoryCache, sessions: Any) -> AsyncIterator[AsyncClient]:
     app = _build_app(settings, cache, sessions)
     transport = ASGITransport(app=app)

@@ -272,17 +272,31 @@ class TestColdStart:
 class TestPredictions:
     """The lock is the part that must be right, and it is enforced server-side."""
 
-    async def test_both_seeded_predictions_are_present(self, client: AsyncClient) -> None:
+    async def test_all_four_seeded_predictions_are_present(self, client: AsyncClient) -> None:
         await sign_in(client)
         body = (await client.get("/api/predictions")).json()
         filed = {p["person"] for p in body["predictions"] if p["filed"]}
-        assert filed == {"coyg", "aure"}
+        assert filed == {"coyg", "aure", "twzt", "bulba"}
 
-    async def test_the_two_unfiled_slots_stay_open_until_the_lock(self, client: AsyncClient) -> None:
-        await sign_in(client)
-        body = (await client.get("/api/predictions")).json()
-        unfiled = {p["person"]: p["status"] for p in body["predictions"] if not p["filed"]}
-        assert unfiled == {"twzt": "open", "bulba": "open"}
+    async def test_an_unfiled_slot_reads_open_before_the_lock(
+        self, settings: object, cache: object, empty_db: object
+    ) -> None:
+        """A person with no row shows an open slot, not an error.
+
+        Exercised against a database with nothing seeded, because all four are
+        filed now -- the state still has to work for a future season.
+        """
+        from httpx import ASGITransport
+        from httpx import AsyncClient as Client
+
+        from tests.conftest import CODES, _build_app
+
+        app = _build_app(settings, cache, empty_db)  # type: ignore[arg-type]
+        async with Client(transport=ASGITransport(app=app), base_url="http://api.test") as http:
+            await http.post("/api/session", json={"code": CODES["coyg"]})
+            body = (await http.get("/api/predictions")).json()
+            statuses = {p["person"]: p["status"] for p in body["predictions"]}
+            assert set(statuses.values()) == {"open"}
 
     async def test_an_owner_sees_their_own_picks(self, client: AsyncClient) -> None:
         await sign_in(client, "coyg")
@@ -433,7 +447,7 @@ class TestPredictionLock:
             assert theirs["table"][0] == "ARS"
 
     async def test_an_unfiled_slot_reads_did_not_file_after_the_lock(
-        self, cache: object, sessions: object
+        self, cache: object, empty_db: object
     ) -> None:
         from httpx import ASGITransport
         from httpx import AsyncClient as Client
@@ -447,7 +461,8 @@ class TestPredictionLock:
             code_coyg=CODES["coyg"],
             prediction_lock="2020-01-01T00:00:00Z",
         )
-        app = _build_app(past_lock, cache, sessions)  # type: ignore[arg-type]
+        # An empty database: nobody filed, so every slot must read did-not-file.
+        app = _build_app(past_lock, cache, empty_db)  # type: ignore[arg-type]
         async with Client(transport=ASGITransport(app=app), base_url="http://api.test") as http:
             await http.post("/api/session", json={"code": CODES["coyg"]})
             body = (await http.get("/api/predictions")).json()

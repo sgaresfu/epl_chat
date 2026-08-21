@@ -34,11 +34,19 @@ async def db_factory() -> Any:
 
 
 class TestSeeding:
-    async def test_the_two_seeded_predictions_are_written_once(self, db_factory: Any) -> None:
+    async def test_every_seeded_prediction_is_written_once(self, db_factory: Any) -> None:
+        import json
+        import pathlib
+
+        seed = json.loads(
+            (pathlib.Path(__file__).parents[1] / "shared" / "data" / "seed_predictions.json").read_text()
+        )
+        expected = len(seed["predictions"])
+
         async with db_factory() as db:
             written = await seed_predictions(db)
             await db.commit()
-        assert written == 2
+        assert written == expected
 
     async def test_seeding_twice_does_not_duplicate(self, db_factory: Any) -> None:
         async with db_factory() as db:
