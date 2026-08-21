@@ -127,18 +127,41 @@ def check_blueprint() -> None:
     else:
         fail("league-api: nothing runs alembic; the first deploy would have no schema")
 
-    # The static site must publish what the build produces.
-    web = services.get("league-web", {})
-    if web.get("staticPublishPath") == "apps/web/dist":
-        ok("league-web: publishes apps/web/dist")
+    # The frontend either has its own static site, or the api serves it. Either
+    # is fine; having neither means there is no app at all.
+    web = services.get("league-web")
+    api = services.get("league-api", {})
+    api_env = {e["key"]: e.get("value") for e in api.get("envVars", []) if "key" in e}
+
+    if web is not None:
+        if web.get("staticPublishPath") == "apps/web/dist":
+            ok("league-web: publishes apps/web/dist")
+        else:
+            fail(f"league-web: staticPublishPath is {web.get('staticPublishPath')!r}")
+        if any(
+            r.get("type") == "rewrite" and r.get("destination") == "/index.html"
+            for r in web.get("routes", [])
+        ):
+            ok("league-web: SPA rewrite present, so deep links do not 404")
+        else:
+            fail("league-web: no SPA rewrite; /table would 404 on a hard refresh")
+    elif api_env.get("SERVE_FRONTEND") == "true":
+        ok("league-api serves the frontend from the same origin")
+
+        # The image must actually contain a built frontend, or the api comes up
+        # healthy and serves nothing but JSON.
+        dockerfile = (ROOT / "services" / "api" / "Dockerfile").read_text()
+        if "npm run build" in dockerfile and "/web/dist" in dockerfile:
+            ok("the api image builds the frontend into itself")
+        else:
+            fail("SERVE_FRONTEND is on but the api Dockerfile does not build the app")
+
+        if (ROOT / "services" / "api" / "spa.py").exists():
+            ok("the api has a shell route, so deep links do not 404")
+        else:
+            fail("no spa.py; a hard load of /table would 404")
     else:
-        fail(f"league-web: staticPublishPath is {web.get('staticPublishPath')!r}")
-    if any(
-        r.get("type") == "rewrite" and r.get("destination") == "/index.html" for r in web.get("routes", [])
-    ):
-        ok("league-web: SPA rewrite present, so deep links do not 404")
-    else:
-        fail("league-web: no SPA rewrite; /table would 404 on a hard refresh")
+        fail("no static site and SERVE_FRONTEND is not on — nothing serves the app")
 
     # No secret may be committed.
     group = blueprint.get("envVarGroups", [{}])[0]
