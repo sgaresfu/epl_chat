@@ -89,6 +89,30 @@ class Settings(BaseSettings):
     season: str = "2026-27"
     prediction_lock: str = "2026-08-21T19:00:00Z"
 
+    @staticmethod
+    def _swap_ssl_param(url: str, *, to: str) -> str:
+        """Rename the SSL query parameter between the two drivers' spellings.
+
+        Hosted Postgres almost always hands out ``?sslmode=require``, which is
+        libpq's spelling and what psycopg expects. asyncpg has never accepted it
+        and fails with ``connect() got an unexpected keyword argument
+        'sslmode'`` -- a message that reads like a library bug rather than a URL
+        that needs one word changed.
+
+        ``to`` is ``"ssl"`` for the async driver and ``"sslmode"`` for the sync
+        one, so a URL written either way works with both.
+        """
+        from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+        parts = urlsplit(url)
+        if not parts.query:
+            return url
+
+        other = "sslmode" if to == "ssl" else "ssl"
+        params = [(other if k == to else k, v) for k, v in parse_qsl(parts.query)]
+        params = [(to if k in ("ssl", "sslmode") else k, v) for k, v in params]
+        return urlunsplit(parts._replace(query=urlencode(params)))
+
     @property
     def async_database_url(self) -> str:
         """The database URL with an async driver, whatever form it arrived in.
@@ -107,13 +131,17 @@ class Settings(BaseSettings):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
         if url.startswith("sqlite://") and "+aiosqlite" not in url:
             url = url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+        if "asyncpg" in url:
+            url = self._swap_ssl_param(url, to="ssl")
         return url
 
     @property
     def sync_database_url(self) -> str:
         """The same database, with a synchronous driver, for Alembic."""
-        url = self.async_database_url
-        return url.replace("+asyncpg", "+psycopg").replace("+aiosqlite", "")
+        url = self.async_database_url.replace("+asyncpg", "+psycopg").replace("+aiosqlite", "")
+        if "psycopg" in url:
+            url = self._swap_ssl_param(url, to="sslmode")
+        return url
 
     @property
     def codes(self) -> dict[str, str]:

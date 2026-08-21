@@ -93,3 +93,64 @@ class TestTheImageCanRunMigrations:
         dockerfile = (pathlib.Path(__file__).parents[1] / "services" / "api" / "Dockerfile").read_text()
         assert "psycopg" in dockerfile
         assert "alembic" in dockerfile
+
+
+class TestSslParameterTranslation:
+    """Hosted Postgres hands out ?sslmode=require. asyncpg has never accepted it.
+
+    The failure is ``connect() got an unexpected keyword argument 'sslmode'``,
+    which reads like a library bug rather than a URL needing one word changed.
+    psycopg wants the opposite spelling, so both have to be produced from
+    whichever one arrives.
+
+    Verified against a real Neon database: both drivers connect and Alembic
+    creates all 16 tables.
+    """
+
+    # A fictional host in the shape a hosted provider emits. Never a real one:
+    # a test fixture is committed, public, and indexed for ever.
+    NEON = "postgresql://owner:pw@ep-example-0000.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+
+    def test_the_async_url_uses_asyncpgs_spelling(self) -> None:
+        url = settings(self.NEON).async_database_url
+        assert "ssl=require" in url
+        assert "sslmode" not in url
+
+    def test_the_sync_url_uses_libpqs_spelling(self) -> None:
+        url = settings(self.NEON).sync_database_url
+        assert "sslmode=require" in url
+        assert "ssl=require" not in url
+
+    def test_a_url_written_the_other_way_round_also_works(self) -> None:
+        # Some providers, and some copy-paste, produce ?ssl=require instead.
+        flipped = self.NEON.replace("sslmode=", "ssl=")
+        config = settings(flipped)
+        assert "ssl=require" in config.async_database_url
+        assert "sslmode=require" in config.sync_database_url
+
+    def test_the_host_and_database_survive_the_rewrite(self) -> None:
+        url = settings(self.NEON).async_database_url
+        assert "ep-example-0000.c-2.eu-central-1.aws.neon.tech" in url
+        assert "/neondb" in url
+
+    def test_credentials_survive_the_rewrite(self) -> None:
+        assert "owner:pw@" in settings(self.NEON).async_database_url
+
+    def test_a_url_with_no_query_string_is_untouched(self) -> None:
+        plain = "postgresql://u:p@host/db"
+        assert settings(plain).async_database_url == "postgresql+asyncpg://u:p@host/db"
+
+    def test_other_query_parameters_are_preserved(self) -> None:
+        url = settings(f"{self.NEON}&application_name=league").async_database_url
+        assert "application_name=league" in url
+        assert "ssl=require" in url
+
+    def test_both_engines_build_from_a_neon_url(self) -> None:
+        config = settings(self.NEON)
+        create_async_engine(config.async_database_url)
+        create_engine(config.sync_database_url)
+
+    def test_sqlite_is_unaffected(self) -> None:
+        config = settings("sqlite+aiosqlite:///./league.db")
+        assert "ssl" not in config.async_database_url
+        assert "ssl" not in config.sync_database_url
