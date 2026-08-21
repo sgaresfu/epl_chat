@@ -14,24 +14,27 @@
 import type { components } from './schema'
 import type {
   AdminStatus,
+  Bets,
   Club,
   Fixture,
   FixtureList,
   FplStandings,
-  H2H,
-  Leaderboard,
-  News,
-  WatchStats,
   Freshness,
+  H2H,
   Home,
+  Leaderboard,
   LeagueTable,
   LocalTime,
   Me,
+  News,
   Person,
+  Polls,
   Predictions,
   ProjectedTable,
   Season,
   TableRow,
+  Timeline,
+  WatchStats,
 } from './types'
 
 type Schemas = components['schemas']
@@ -74,10 +77,13 @@ type _Lb = Assert<Exact<Leaderboard, Schemas['LeaderboardOut']>>
 type _H2H = Assert<Exact<H2H, Schemas['H2HOut']>>
 type _Watch = Assert<Exact<WatchStats, Schemas['WatchStatsOut']>>
 type _News = Assert<Exact<News, Schemas['NewsOut']>>
+type _Polls = Assert<Exact<Polls, Schemas['PollsOut']>>
+type _Bets = Assert<Exact<Bets, Schemas['BetsOut']>>
+type _Timeline = Assert<Exact<Timeline, Schemas['TimelineOut']>>
 
 // Referenced so `noUnusedLocals` sees them as used. Every entry is `true` by
 // construction; a drifted type makes its `Assert` fail to satisfy the constraint.
 export type ContractHolds = [
   _Person, _Me, _Club, _Freshness, _LocalTime, _TableRow, _LeagueTable,
-  _Projected, _Fixture, _FixtureList, _Season, _Home, _Predictions, _Admin, _Fpl, _Lb, _H2H, _Watch, _News,
+  _Projected, _Fixture, _FixtureList, _Season, _Home, _Predictions, _Admin, _Fpl, _Lb, _H2H, _Watch, _News, _Polls, _Bets, _Timeline,
 ]

@@ -1239,3 +1239,169 @@
     margin-left: auto;
   }
 }
+
+/* ---------- chat ---------- */
+.composer {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 26px;
+  flex-wrap: wrap;
+}
+.composer input,
+.composer select,
+.composer textarea {
+  flex: 1;
+  min-width: 180px;
+  min-height: 44px;
+  border-radius: var(--r-control);
+  border: 1px solid var(--line);
+  padding: 11px 14px;
+  font: 16px var(--sys);
+  background: var(--bg);
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.composer input:focus,
+.composer select:focus,
+.composer textarea:focus {
+  border-color: var(--blue);
+  outline: none;
+}
+.composer .btn {
+  flex: 0 0 auto;
+}
+
+.quote {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line-2);
+}
+.quote__body {
+  font-size: 19px;
+  line-height: 1.42;
+  letter-spacing: -0.015em;
+}
+.quote__meta {
+  margin-top: 9px;
+  font-size: 13px;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+/* Poll bars: the fill carries the proportion, the number carries the fact. */
+.poll__option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: var(--r-inset);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  font: 16px var(--sys);
+  color: var(--ink);
+  min-height: 52px;
+}
+.poll__option:hover:not(:disabled) {
+  border-color: var(--blue);
+}
+.poll__option[data-mine='true'] {
+  border-color: var(--blue);
+  border-width: 2px;
+}
+.poll__option:disabled {
+  cursor: default;
+}
+.poll__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--bg-2);
+  transition: width 0.3s ease;
+  z-index: 0;
+}
+.poll__label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.poll__count {
+  margin-left: auto;
+  font-size: 15px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.poll__voters {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.bet {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line-2);
+}
+.bet__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.bet__who {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.bet__terms {
+  margin-top: 7px;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.feed {
+  border-top: 1px solid var(--line-2);
+}
+.feed__row {
+  display: flex;
+  gap: 14px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--line-2);
+  align-items: baseline;
+}
+.feed__kind {
+  flex: 0 0 96px;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+}
+.feed__body {
+  flex: 1;
+  min-width: 0;
+}
+/* Both are spans, so they need display:block or they weld together --
+   "Bet settledCOYG was right: ...". Same defect the live score had. */
+.feed__title {
+  display: block;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.feed__detail {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+.feed__when {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}

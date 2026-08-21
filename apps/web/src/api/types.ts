@@ -234,6 +234,68 @@ export interface CronRun {
   detail: string
 }
 
+export interface Quote {
+  id: number
+  person: string
+  body: string
+  subject_type: string | null
+  subject_id: string | null
+  created_at: string
+}
+
+export interface PollOption {
+  choice: string
+  votes: number
+  voters: string[]
+}
+
+export interface Poll {
+  id: number
+  question: string
+  options: PollOption[]
+  opens_at: string
+  closes_at: string
+  open: boolean
+  my_vote: string | null
+  total_votes: number
+}
+
+export interface Polls {
+  current: Poll | null
+  archive: Poll[]
+  empty_message: string | null
+}
+
+export interface Bet {
+  id: number
+  proposer: string
+  opponent: string
+  terms: string
+  created_at: string
+  settled_at: string | null
+  winner: string | null
+  settled: boolean
+}
+
+export interface Bets {
+  bets: Bet[]
+  scoreboard: Record<string, number>
+  empty_message: string | null
+}
+
+export interface TimelineEntry {
+  kind: string
+  at: string
+  person: string | null
+  title: string
+  detail: string | null
+}
+
+export interface Timeline {
+  entries: TimelineEntry[]
+  empty_message: string | null
+}
+
 export interface NewsItem {
   title: string
   url: string

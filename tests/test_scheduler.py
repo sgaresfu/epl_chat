@@ -106,8 +106,18 @@ class TestDailyAndWeekly:
         written: list[Any] = []
 
         class FakeSession:
+            """Enough of a session for the snapshot path.
+
+            `weekly` also asks whether a poll is already open, so `scalar` has to
+            answer -- returning a poll means "one is running", which keeps this
+            test to the snapshot it is actually about.
+            """
+
             def add(self, row: Any) -> None:
                 written.append(row)
+
+            async def scalar(self, *_: Any, **__: Any) -> Any:
+                return object()  # a poll is already open
 
         from contextlib import asynccontextmanager
 
@@ -119,9 +129,8 @@ class TestDailyAndWeekly:
 
         detail = await weekly(cache, Settings())
         assert "snapshotted gameweek 1" in detail
-        assert len(written) == 1
 
-        snapshot = written[0]
+        snapshot = next(w for w in written if hasattr(w, "gameweek"))
         assert snapshot.gameweek == 1
         assert len(snapshot.payload["table"]) == 20
         assert snapshot.payload["matches_played"] == 0
@@ -136,6 +145,9 @@ class TestDailyAndWeekly:
         class FakeSession:
             def add(self, row: Any) -> None: ...
 
+            async def scalar(self, *_: Any, **__: Any) -> Any:
+                return object()  # a poll is already open
+
         @asynccontextmanager
         async def fake_session() -> Any:
             yield FakeSession()
@@ -143,3 +155,64 @@ class TestDailyAndWeekly:
         monkeypatch.setattr("services.scheduler.main.session", fake_session)
         detail = await weekly(cache, Settings())
         assert "no matches played yet" in detail
+
+
+class TestWeeklyPoll:
+    """The Monday job opens a poll, and can be retried without stacking them."""
+
+    async def test_it_opens_a_poll_when_none_is_running(self, sessions: Any) -> None:
+        from contextlib import asynccontextmanager
+
+        import services.scheduler.main as scheduler
+        from shared.db import Poll
+        from sqlalchemy import select
+
+        @asynccontextmanager
+        async def use_test_db() -> Any:
+            async with sessions() as db:
+                yield db
+                await db.commit()
+
+        original = scheduler.session
+        scheduler.session = use_test_db  # type: ignore[assignment]
+        try:
+            detail = await scheduler.ensure_weekly_poll()
+            assert "opened a poll" in detail
+            async with sessions() as db:
+                polls = list(await db.scalars(select(Poll)))
+            assert len(polls) == 1
+            assert len(polls[0].options) == 4
+        finally:
+            scheduler.session = original  # type: ignore[assignment]
+
+    async def test_running_it_twice_does_not_stack_polls(self, sessions: Any) -> None:
+        from contextlib import asynccontextmanager
+
+        import services.scheduler.main as scheduler
+        from shared.db import Poll
+        from sqlalchemy import select
+
+        @asynccontextmanager
+        async def use_test_db() -> Any:
+            async with sessions() as db:
+                yield db
+                await db.commit()
+
+        original = scheduler.session
+        scheduler.session = use_test_db  # type: ignore[assignment]
+        try:
+            await scheduler.ensure_weekly_poll()
+            second = await scheduler.ensure_weekly_poll()
+            assert "already open" in second
+            async with sessions() as db:
+                polls = list(await db.scalars(select(Poll)))
+            assert len(polls) == 1
+        finally:
+            scheduler.session = original  # type: ignore[assignment]
+
+    def test_every_poll_has_four_options(self) -> None:
+        from services.scheduler.main import WEEKLY_POLLS
+
+        for question, options in WEEKLY_POLLS:
+            assert question.endswith("?"), question
+            assert len(options) == 4, question

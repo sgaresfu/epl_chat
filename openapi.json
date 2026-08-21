@@ -637,6 +637,251 @@
         }
       }
     },
+    "/api/chat/quotes": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Quotes",
+        "operationId": "quotes_api_chat_quotes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/QuoteOut"
+                  },
+                  "type": "array",
+                  "title": "Response Quotes Api Chat Quotes Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Add Quote",
+        "operationId": "add_quote_api_chat_quotes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chat/poll": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Poll",
+        "operationId": "poll_api_chat_poll_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PollsOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Vote",
+        "operationId": "vote_api_chat_poll_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PollOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chat/bets": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Bets",
+        "operationId": "bets_api_chat_bets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BetsOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Settle Bet",
+        "operationId": "settle_bet_api_chat_bets_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettleBetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BetOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Propose Bet",
+        "operationId": "propose_bet_api_chat_bets_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BetOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/timeline": {
+      "get": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "Timeline",
+        "description": "Every vote, quote, bet and prediction in one feed, newest first.",
+        "operationId": "timeline_api_timeline_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimelineOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stream": {
       "get": {
         "tags": [
@@ -865,6 +1110,127 @@
           "player_of_the_season"
         ],
         "title": "AwardPicks"
+      },
+      "BetIn": {
+        "properties": {
+          "opponent": {
+            "type": "string",
+            "title": "Opponent"
+          },
+          "terms": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Terms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "opponent",
+          "terms"
+        ],
+        "title": "BetIn"
+      },
+      "BetOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "proposer": {
+            "type": "string",
+            "title": "Proposer"
+          },
+          "opponent": {
+            "type": "string",
+            "title": "Opponent"
+          },
+          "terms": {
+            "type": "string",
+            "title": "Terms"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "settled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settled At"
+          },
+          "winner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Winner"
+          },
+          "settled": {
+            "type": "boolean",
+            "title": "Settled",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "proposer",
+          "opponent",
+          "terms",
+          "created_at",
+          "settled_at",
+          "winner",
+          "settled"
+        ],
+        "title": "BetOut"
+      },
+      "BetsOut": {
+        "properties": {
+          "bets": {
+            "items": {
+              "$ref": "#/components/schemas/BetOut"
+            },
+            "type": "array",
+            "title": "Bets"
+          },
+          "scoreboard": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Scoreboard"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bets",
+          "scoreboard",
+          "empty_message"
+        ],
+        "title": "BetsOut"
       },
       "BroadcasterOut": {
         "properties": {
@@ -2173,6 +2539,132 @@
         ],
         "title": "PersonOut"
       },
+      "PollOptionOut": {
+        "properties": {
+          "choice": {
+            "type": "string",
+            "title": "Choice"
+          },
+          "votes": {
+            "type": "integer",
+            "title": "Votes"
+          },
+          "voters": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Voters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "choice",
+          "votes",
+          "voters"
+        ],
+        "title": "PollOptionOut"
+      },
+      "PollOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/PollOptionOut"
+            },
+            "type": "array",
+            "title": "Options"
+          },
+          "opens_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Opens At"
+          },
+          "closes_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Closes At"
+          },
+          "open": {
+            "type": "boolean",
+            "title": "Open"
+          },
+          "my_vote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "My Vote"
+          },
+          "total_votes": {
+            "type": "integer",
+            "title": "Total Votes",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "question",
+          "options",
+          "opens_at",
+          "closes_at",
+          "open",
+          "my_vote",
+          "total_votes"
+        ],
+        "title": "PollOut"
+      },
+      "PollsOut": {
+        "properties": {
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PollOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "archive": {
+            "items": {
+              "$ref": "#/components/schemas/PollOut"
+            },
+            "type": "array",
+            "title": "Archive"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "current",
+          "archive",
+          "empty_message"
+        ],
+        "title": "PollsOut"
+      },
       "PredictionIn": {
         "properties": {
           "table": {
@@ -2496,6 +2988,102 @@
         ],
         "title": "QuotaOut"
       },
+      "QuoteIn": {
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Body"
+          },
+          "subject_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "club",
+                  "player",
+                  "match"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Type"
+          },
+          "subject_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 32
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "body"
+        ],
+        "title": "QuoteIn"
+      },
+      "QuoteOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "person": {
+            "type": "string",
+            "title": "Person"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "subject_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Type"
+          },
+          "subject_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "person",
+          "body",
+          "subject_type",
+          "subject_id",
+          "created_at"
+        ],
+        "title": "QuoteOut"
+      },
       "SeasonOut": {
         "properties": {
           "starts": {
@@ -2580,6 +3168,24 @@
         ],
         "title": "SeasonOut",
         "description": "Computed from fixture data and the current date, never hardcoded."
+      },
+      "SettleBetIn": {
+        "properties": {
+          "bet_id": {
+            "type": "integer",
+            "title": "Bet Id"
+          },
+          "winner": {
+            "type": "string",
+            "title": "Winner"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bet_id",
+          "winner"
+        ],
+        "title": "SettleBetIn"
       },
       "TableOut": {
         "properties": {
@@ -2711,6 +3317,54 @@
         ],
         "title": "TableRowOut"
       },
+      "TimelineEntryOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "person": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Person"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "at",
+          "person",
+          "title",
+          "detail"
+        ],
+        "title": "TimelineEntryOut"
+      },
       "TimelineMarker": {
         "properties": {
           "label": {
@@ -2740,6 +3394,34 @@
           "is_now"
         ],
         "title": "TimelineMarker"
+      },
+      "TimelineOut": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineEntryOut"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries",
+          "empty_message"
+        ],
+        "title": "TimelineOut"
       },
       "ValidationError": {
         "properties": {
@@ -2780,6 +3462,26 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VoteIn": {
+        "properties": {
+          "poll_id": {
+            "type": "integer",
+            "title": "Poll Id"
+          },
+          "choice": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Choice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "poll_id",
+          "choice"
+        ],
+        "title": "VoteIn"
       },
       "WatchStatsOut": {
         "properties": {

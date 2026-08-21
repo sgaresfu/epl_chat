@@ -19,6 +19,7 @@ const Admin = lazy(() => import('@/routes/Admin').then((m) => ({ default: m.Admi
 const Fpl = lazy(() => import('@/routes/Fpl').then((m) => ({ default: m.Fpl })))
 const Watch = lazy(() => import('@/routes/Watch').then((m) => ({ default: m.Watch })))
 const News = lazy(() => import('@/routes/News').then((m) => ({ default: m.News })))
+const Chat = lazy(() => import('@/routes/Chat').then((m) => ({ default: m.Chat })))
 const Leaderboard = lazy(() =>
   import('@/routes/Leaderboard').then((m) => ({ default: m.Leaderboard })),
 )
@@ -66,6 +67,7 @@ export function App() {
             <Route path="/fpl" element={<Fpl />} />
             <Route path="/watch" element={<Watch />} />
             <Route path="/news" element={<News />} />
+            <Route path="/chat" element={<Chat />} />
             <Route
               path="*"
               element={<Placeholder title="Not found" blurb="That page does not exist." />}

@@ -12,10 +12,14 @@ import type {
   Predictions,
   FplStandings,
   H2H,
+  Bets,
   Leaderboard,
   News,
+  Polls,
+  Quote,
   ProjectedTable,
   Season,
+  Timeline,
   WatchStats,
 } from './types'
 
@@ -33,6 +37,10 @@ export const keys = {
   leaderboard: ['leaderboard'] as const,
   watch: ['watch'] as const,
   news: ['news'] as const,
+  quotes: ['chat', 'quotes'] as const,
+  poll: ['chat', 'poll'] as const,
+  bets: ['chat', 'bets'] as const,
+  timeline: ['timeline'] as const,
   h2h: (a: string, b: string) => ['h2h', a, b] as const,
 }
 
@@ -119,6 +127,22 @@ export function useWatchStats(): UseQueryResult<WatchStats> {
 
 export function useNews(): UseQueryResult<News> {
   return useQuery({ queryKey: keys.news, queryFn: () => api.get<News>('/api/news') })
+}
+
+export function useQuotes(): UseQueryResult<Quote[]> {
+  return useQuery({ queryKey: keys.quotes, queryFn: () => api.get<Quote[]>('/api/chat/quotes') })
+}
+
+export function usePoll(): UseQueryResult<Polls> {
+  return useQuery({ queryKey: keys.poll, queryFn: () => api.get<Polls>('/api/chat/poll') })
+}
+
+export function useBets(): UseQueryResult<Bets> {
+  return useQuery({ queryKey: keys.bets, queryFn: () => api.get<Bets>('/api/chat/bets') })
+}
+
+export function useTimeline(): UseQueryResult<Timeline> {
+  return useQuery({ queryKey: keys.timeline, queryFn: () => api.get<Timeline>('/api/timeline') })
 }
 
 export function useAdminStatus(): UseQueryResult<AdminStatus> {

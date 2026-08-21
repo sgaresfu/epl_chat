@@ -309,6 +309,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/chat/quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quotes */
+        get: operations["quotes_api_chat_quotes_get"];
+        put?: never;
+        /** Add Quote */
+        post: operations["add_quote_api_chat_quotes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Poll */
+        get: operations["poll_api_chat_poll_get"];
+        put?: never;
+        /** Vote */
+        post: operations["vote_api_chat_poll_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/bets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bets */
+        get: operations["bets_api_chat_bets_get"];
+        /** Settle Bet */
+        put: operations["settle_bet_api_chat_bets_put"];
+        /** Propose Bet */
+        post: operations["propose_bet_api_chat_bets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Timeline
+         * @description Every vote, quote, bet and prediction in one feed, newest first.
+         */
+        get: operations["timeline_api_timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stream": {
         parameters: {
             query?: never;
@@ -475,6 +550,49 @@ export interface components {
              * @default
              */
             player_of_the_season: string;
+        };
+        /** BetIn */
+        BetIn: {
+            /** Opponent */
+            opponent: string;
+            /** Terms */
+            terms: string;
+        };
+        /** BetOut */
+        BetOut: {
+            /** Id */
+            id: number;
+            /** Proposer */
+            proposer: string;
+            /** Opponent */
+            opponent: string;
+            /** Terms */
+            terms: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Settled At */
+            settled_at: string | null;
+            /** Winner */
+            winner: string | null;
+            /**
+             * Settled
+             * @default false
+             */
+            settled: boolean;
+        };
+        /** BetsOut */
+        BetsOut: {
+            /** Bets */
+            bets: components["schemas"]["BetOut"][];
+            /** Scoreboard */
+            scoreboard: {
+                [key: string]: number;
+            };
+            /** Empty Message */
+            empty_message: string | null;
         };
         /** BroadcasterOut */
         BroadcasterOut: {
@@ -978,6 +1096,51 @@ export interface components {
             /** Fpl Entry Id */
             fpl_entry_id: number | null;
         };
+        /** PollOptionOut */
+        PollOptionOut: {
+            /** Choice */
+            choice: string;
+            /** Votes */
+            votes: number;
+            /** Voters */
+            voters: string[];
+        };
+        /** PollOut */
+        PollOut: {
+            /** Id */
+            id: number;
+            /** Question */
+            question: string;
+            /** Options */
+            options: components["schemas"]["PollOptionOut"][];
+            /**
+             * Opens At
+             * Format: date-time
+             */
+            opens_at: string;
+            /**
+             * Closes At
+             * Format: date-time
+             */
+            closes_at: string;
+            /** Open */
+            open: boolean;
+            /** My Vote */
+            my_vote: string | null;
+            /**
+             * Total Votes
+             * @default 0
+             */
+            total_votes: number;
+        };
+        /** PollsOut */
+        PollsOut: {
+            current: components["schemas"]["PollOut"] | null;
+            /** Archive */
+            archive: components["schemas"]["PollOut"][];
+            /** Empty Message */
+            empty_message: string | null;
+        };
         /** PredictionIn */
         PredictionIn: {
             /** Table */
@@ -1101,6 +1264,33 @@ export interface components {
              */
             note: string;
         };
+        /** QuoteIn */
+        QuoteIn: {
+            /** Body */
+            body: string;
+            /** Subject Type */
+            subject_type?: ("club" | "player" | "match") | null;
+            /** Subject Id */
+            subject_id?: string | null;
+        };
+        /** QuoteOut */
+        QuoteOut: {
+            /** Id */
+            id: number;
+            /** Person */
+            person: string;
+            /** Body */
+            body: string;
+            /** Subject Type */
+            subject_type: string | null;
+            /** Subject Id */
+            subject_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /**
          * SeasonOut
          * @description Computed from fixture data and the current date, never hardcoded.
@@ -1143,6 +1333,13 @@ export interface components {
             watched: number;
             /** Markers */
             markers: components["schemas"]["TimelineMarker"][];
+        };
+        /** SettleBetIn */
+        SettleBetIn: {
+            /** Bet Id */
+            bet_id: number;
+            /** Winner */
+            winner: string;
         };
         /** TableOut */
         TableOut: {
@@ -1189,6 +1386,22 @@ export interface components {
             /** Note */
             note: string | null;
         };
+        /** TimelineEntryOut */
+        TimelineEntryOut: {
+            /** Kind */
+            kind: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Person */
+            person: string | null;
+            /** Title */
+            title: string;
+            /** Detail */
+            detail: string | null;
+        };
         /** TimelineMarker */
         TimelineMarker: {
             /** Label */
@@ -1206,6 +1419,13 @@ export interface components {
              */
             is_now: boolean;
         };
+        /** TimelineOut */
+        TimelineOut: {
+            /** Entries */
+            entries: components["schemas"]["TimelineEntryOut"][];
+            /** Empty Message */
+            empty_message: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1218,6 +1438,13 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** VoteIn */
+        VoteIn: {
+            /** Poll Id */
+            poll_id: number;
+            /** Choice */
+            choice: string;
         };
         /** WatchStatsOut */
         WatchStatsOut: {
@@ -1749,6 +1976,218 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NewsOut"];
+                };
+            };
+        };
+    };
+    quotes_api_chat_quotes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteOut"][];
+                };
+            };
+        };
+    };
+    add_quote_api_chat_quotes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuoteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuoteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    poll_api_chat_poll_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollsOut"];
+                };
+            };
+        };
+    };
+    vote_api_chat_poll_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PollOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bets_api_chat_bets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BetsOut"];
+                };
+            };
+        };
+    };
+    settle_bet_api_chat_bets_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettleBetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    propose_bet_api_chat_bets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    timeline_api_timeline_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimelineOut"];
                 };
             };
         };

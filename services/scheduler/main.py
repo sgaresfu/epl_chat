@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import structlog
@@ -33,6 +33,16 @@ from services.poller.fpl import compute_table, current_gameweek
 log = structlog.get_logger(__name__)
 
 JOBS = ("weekly", "daily", "hourly")
+
+# Rotated week by week. Deliberately about things the four of them argue over
+# rather than anything a statistic could settle.
+WEEKLY_POLLS: tuple[tuple[str, list[str]], ...] = (
+    ("Who finishes top of the pile?", ["Arsenal", "Man City", "Liverpool", "Somebody else"]),
+    ("Which of us is most wrong so far?", ["COYG", "AURE", "TWZT", "BULBA"]),
+    ("First manager sacked?", ["Already gone", "By Christmas", "Spring", "All four survive"]),
+    ("Golden Boot?", ["Haaland", "Isak", "Palmer", "A surprise"]),
+    ("Who goes down with them?", ["Coventry", "Hull", "Ipswich", "One of the established"]),
+)
 
 
 async def _record(job: str, started: datetime, ok: bool, detail: str) -> None:
@@ -84,6 +94,33 @@ async def ensure_fixtures(cache: Cache, settings: Settings) -> list[dict[str, An
     return rows if isinstance(rows, list) else None
 
 
+async def ensure_weekly_poll() -> str:
+    """Open a poll for the week if none is running.
+
+    Idempotent: a second run inside the same week finds the open poll and leaves
+    it alone, so the Monday job can be retried without stacking duplicates.
+    """
+    from shared.db import Poll
+    from sqlalchemy import select
+
+    now = datetime.now(UTC)
+    async with session() as db:
+        running = await db.scalar(select(Poll).where(Poll.closes_at > now))
+        if running is not None:
+            return "a poll is already open"
+
+        question, options = WEEKLY_POLLS[now.isocalendar().week % len(WEEKLY_POLLS)]
+        db.add(
+            Poll(
+                question=question,
+                options=options,
+                opens_at=now,
+                closes_at=now + timedelta(days=7),
+            )
+        )
+    return f"opened a poll: {question}"
+
+
 async def weekly(cache: Cache, settings: Settings) -> str:
     """Snapshot the table and recompute the leaderboard."""
     rows = await ensure_fixtures(cache, settings)
@@ -121,9 +158,11 @@ async def weekly(cache: Cache, settings: Settings) -> str:
     # The leaderboard is computed from snapshots plus predictions. Until a match
     # has been played there is nothing to score, and saying so beats writing a
     # row of zeroes that looks like a real result.
+    poll_note = await ensure_weekly_poll()
+
     if played == 0:
-        return f"snapshotted gameweek {gameweek}; no matches played yet, so no leaderboard run"
-    return f"snapshotted gameweek {gameweek} after {played} matches"
+        return f"snapshotted gameweek {gameweek}; no matches played yet, so no leaderboard run; {poll_note}"
+    return f"snapshotted gameweek {gameweek} after {played} matches; {poll_note}"
 
 
 async def daily(cache: Cache, settings: Settings) -> str:

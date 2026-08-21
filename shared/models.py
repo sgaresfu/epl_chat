@@ -396,6 +396,89 @@ class WatchStatsOut(Model):
     freshness: Freshness
 
 
+class QuoteOut(Model):
+    id: int
+    person: str
+    body: str
+    subject_type: str | None = None
+    subject_id: str | None = None
+    created_at: datetime
+
+
+class QuoteIn(Model):
+    body: str = Field(min_length=1, max_length=500)
+    subject_type: Literal["club", "player", "match"] | None = None
+    subject_id: str | None = Field(default=None, max_length=32)
+
+
+class PollOptionOut(Model):
+    choice: str
+    votes: int
+    voters: list[str] = Field(default_factory=list)
+
+
+class PollOut(Model):
+    id: int
+    question: str
+    options: list[PollOptionOut] = Field(default_factory=list)
+    opens_at: datetime
+    closes_at: datetime
+    open: bool
+    my_vote: str | None = None
+    total_votes: int = 0
+
+
+class PollsOut(Model):
+    current: PollOut | None = None
+    archive: list[PollOut] = Field(default_factory=list)
+    empty_message: str | None = None
+
+
+class VoteIn(Model):
+    poll_id: int
+    choice: str = Field(min_length=1, max_length=128)
+
+
+class BetOut(Model):
+    id: int
+    proposer: str
+    opponent: str
+    terms: str
+    created_at: datetime
+    settled_at: datetime | None = None
+    winner: str | None = None
+    settled: bool = False
+
+
+class BetIn(Model):
+    opponent: str
+    terms: str = Field(min_length=1, max_length=500)
+
+
+class SettleBetIn(Model):
+    bet_id: int
+    winner: str
+
+
+class BetsOut(Model):
+    bets: list[BetOut] = Field(default_factory=list)
+    scoreboard: dict[str, int] = Field(default_factory=dict)
+    empty_message: str | None = None
+
+
+class TimelineEntryOut(Model):
+    kind: str
+    at: datetime
+    person: str | None = None
+    title: str
+    detail: str | None = None
+
+
+class TimelineOut(Model):
+    entries: list[TimelineEntryOut] = Field(default_factory=list)
+    empty_message: str | None = None
+
+
 class NewsItemOut(Model):
     title: str
     url: str

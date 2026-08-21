@@ -210,7 +210,7 @@ The brief left three open, plus a fourth that emerged.
 ## Testing
 
 ```bash
-./.venv/bin/python -m pytest -q          # 269 tests
+./.venv/bin/python -m pytest -q          # 369 tests
 ./.venv/bin/mypy shared services         # strict
 ./.venv/bin/ruff check shared services tests scripts
 ./.venv/bin/python scripts/check_data.py # committed-data integrity
@@ -244,14 +244,15 @@ season timeline, auth with the cross-origin cookie, the cache and pub/sub layer,
 the FPL poller, the Sky news poller, SSE, the three cron jobs, `/`, `/table`
 (actual and projected), `/fixtures` with the watch toggle, `/predictions`
 (all four filed, redacted, server-locked), the picker at `/predictions/build`,
-`/leaderboard` with head-to-head, `/fpl` standings, `/watch`, `/news`, `/admin`.
+`/leaderboard` with head-to-head, `/fpl` standings, `/watch`, `/news`, `/chat`
+(quotes, the weekly poll, the bets ledger and the season timeline), `/admin`.
 
 **Shipped, but legitimately empty until football happens:** `/leaderboard`
 scores through the real engine and has nothing to score until matches are
 played, and says so. `/watch` opens the moment a match kicks off. `/news` shows
 Sky headlines now and names the missing YouTube key.
 
-**Not started:** `/europe`, `/calendar`, `/chat`, `/archive`, web push, the PWA
+**Not started:** `/europe`, `/calendar`, `/archive`, web push, the PWA
 service worker, the shareable PNG export, odds and line-up clients, YouTube
 uploads (needs a key), the manager photo tiles, and the awards and Champions
 League halves of the picker — the 1-20 table is built, but award picks still
