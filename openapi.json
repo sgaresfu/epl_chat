@@ -1681,6 +1681,47 @@
         ],
         "title": "FixtureOut"
       },
+      "FplChipOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "half": {
+            "type": "integer",
+            "title": "Half"
+          },
+          "played_in": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Played In"
+          },
+          "played": {
+            "type": "boolean",
+            "title": "Played",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "half",
+          "played_in",
+          "played"
+        ],
+        "title": "FplChipOut"
+      },
       "FplPlayerOut": {
         "properties": {
           "element": {
@@ -1862,6 +1903,13 @@
             "title": "Bench Counts",
             "default": false
           },
+          "chips": {
+            "items": {
+              "$ref": "#/components/schemas/FplChipOut"
+            },
+            "type": "array",
+            "title": "Chips"
+          },
           "players_played": {
             "type": "integer",
             "title": "Players Played",
@@ -1886,6 +1934,7 @@
           "live_points",
           "bench_points",
           "bench_counts",
+          "chips",
           "players_played",
           "players_to_play"
         ],

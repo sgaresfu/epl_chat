@@ -166,6 +166,13 @@ class Poller:
                 continue
             await self.write(keys.fpl_picks(member.entry_id, gameweek), picks, source="fpl")
 
+            try:
+                history = await fpl.entry_history(self.fpl, member.entry_id)
+            except UpstreamError as exc:
+                log.info("poller.history_unavailable", entry=member.entry_id, error=str(exc))
+            else:
+                await self.write(keys.fpl_history(member.entry_id), history, source="fpl")
+
         try:
             live = await fpl.live_gameweek(self.fpl, gameweek)
         except UpstreamError as exc:

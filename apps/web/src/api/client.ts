@@ -30,6 +30,8 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /** True when the fix is to sign in again rather than to retry. */
+    readonly needsSignIn = false,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -37,7 +39,7 @@ export class ApiError extends Error {
 
   /** A 401 means "sign in", not "something broke". */
   get isUnauthorised(): boolean {
-    return this.status === 401
+    return this.status === 401 || this.needsSignIn
   }
 }
 
@@ -79,6 +81,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       body && typeof body === 'object' && 'detail' in body
         ? String((body as { detail: unknown }).detail)
         : `Request failed (${response.status})`
+
+    // A CSRF failure almost always means a stale session rather than an
+    // attack: cookies left over from a previous deployment are no longer sent,
+    // so the token cannot match. Clearing them and asking for the code word
+    // again fixes it, which is a far better answer than showing somebody
+    // "CSRF token missing or invalid" and leaving them stuck.
+    if (response.status === 403 && detail.toLowerCase().includes('csrf')) {
+      throw new ApiError(403, 'Your session expired. Sign in again.', true)
+    }
+
     throw new ApiError(response.status, detail)
   }
 

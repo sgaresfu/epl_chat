@@ -339,6 +339,14 @@ class FplPlayerOut(Model):
     differential: bool = False
 
 
+class FplChipOut(Model):
+    code: str
+    name: str
+    half: int
+    played_in: int | None = None
+    played: bool = False
+
+
 class FplSquadOut(Model):
     person: str | None
     entry_id: int
@@ -352,6 +360,7 @@ class FplSquadOut(Model):
     bench_points: int = 0
     # True when Bench Boost is active, so the bench counts toward live_points.
     bench_counts: bool = False
+    chips: list[FplChipOut] = Field(default_factory=list)
     players_played: int = 0
     players_to_play: int = 0
 

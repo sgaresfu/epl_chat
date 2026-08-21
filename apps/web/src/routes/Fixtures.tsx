@@ -101,16 +101,15 @@ function Row({ fixture, me }: { fixture: Fixture; me: string | undefined }) {
   )
 }
 
-export function Fixtures() {
+export function Fixtures({ embedded = false }: { embedded?: boolean } = {}) {
   const [gameweek, setGameweek] = useState(1)
   const { data, isLoading } = useFixtures(gameweek)
   const { data: me } = useMe()
 
-  return (
-    <section className="section">
-      <div className="wrap">
-        <div className="shead">
-          <h2>Matches</h2>
+  const body = (
+      <>
+        <div className="shead" style={embedded ? { marginTop: 4 } : undefined}>
+          {!embedded && <h2>Matches</h2>}
           <span className="seg" role="group" aria-label="Gameweek">
             <button type="button" onClick={() => setGameweek((g) => Math.max(1, g - 1))}>
               ‹
@@ -144,7 +143,14 @@ export function Fixtures() {
             <StaleNote freshness={data.freshness} label="Fixtures" />
           </>
         )}
-      </div>
+      </>
+  )
+
+  if (embedded) return body
+
+  return (
+    <section className="section">
+      <div className="wrap">{body}</div>
     </section>
   )
 }

@@ -38,6 +38,43 @@ function Player({ player }: { player: FplPlayer }) {
   )
 }
 
+function Chips({ squad }: { squad: FplSquad }) {
+  if (squad.chips.length === 0) return null
+  // Two halves of the season, each with its own set. Showing them together
+  // would imply eight are available now, when only the first four are.
+  const half = squad.chips.filter((c) => c.half === 1)
+  const later = squad.chips.filter((c) => c.half === 2)
+  const played = squad.chips.filter((c) => c.played)
+
+  return (
+    <>
+      <p className="squad__group">
+        Chips · {played.length} used, {squad.chips.length - played.length} left
+      </p>
+      <div className="chips-row">
+        {half.map((chip) => (
+          <span
+            key={`${chip.code}-${chip.half}`}
+            className="chip-pill"
+            data-played={chip.played}
+            title={chip.played ? `Played in gameweek ${chip.played_in}` : 'Still available'}
+          >
+            {chip.name}
+            {chip.played && <b> GW{chip.played_in}</b>}
+          </span>
+        ))}
+      </div>
+      {later.length > 0 && (
+        <p className="chips-note">
+          {later.filter((c) => !c.played).length} more from gameweek 20
+          {later.some((c) => c.played) &&
+            ` · ${later.filter((c) => c.played).map((c) => c.name).join(', ')} already used`}
+        </p>
+      )}
+    </>
+  )
+}
+
 function Squad({ squad, me }: { squad: FplSquad; me: string | undefined }) {
   const differentials = [...squad.starting, ...squad.bench].filter((p) => p.differential)
   return (
@@ -58,6 +95,8 @@ function Squad({ squad, me }: { squad: FplSquad; me: string | undefined }) {
         {squad.chip && ` · ${CHIP_NAMES[squad.chip] ?? squad.chip}`}
         {differentials.length > 0 && ` · ${differentials.length} differential${differentials.length === 1 ? '' : 's'}`}
       </p>
+
+      <Chips squad={squad} />
 
       <p className="squad__group">Starting XI</p>
       {squad.starting.map((p) => (

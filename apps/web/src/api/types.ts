@@ -377,6 +377,14 @@ export interface FplPlayer {
   differential: boolean
 }
 
+export interface FplChip {
+  code: string
+  name: string
+  half: number
+  played_in: number | null
+  played: boolean
+}
+
 export interface FplSquad {
   person: string | null
   entry_id: number
@@ -389,6 +397,7 @@ export interface FplSquad {
   live_points: number
   bench_points: number
   bench_counts: boolean
+  chips: FplChip[]
   players_played: number
   players_to_play: number
 }

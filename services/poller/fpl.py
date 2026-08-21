@@ -283,6 +283,72 @@ def current_gameweek(boot: dict[str, Any]) -> dict[str, Any] | None:
 
 POSITIONS: dict[int, str] = {1: "GK", 2: "DEF", 3: "MID", 4: "FWD", 5: "MNG"}
 
+# FPL's chip codes, and what a person would actually call them.
+CHIP_NAMES: dict[str, str] = {
+    "wildcard": "Wildcard",
+    "freehit": "Free Hit",
+    "bboost": "Bench Boost",
+    "3xc": "Triple Captain",
+    "manager": "Assistant Manager",
+}
+
+
+@dataclass(frozen=True, slots=True)
+class Chip:
+    """One chip, in one half of the season."""
+
+    code: str
+    name: str
+    half: int
+    played_in: int | None = None
+
+    @property
+    def played(self) -> bool:
+        return self.played_in is not None
+
+
+def chip_catalogue(boot: dict[str, Any]) -> list[tuple[str, int]]:
+    """Every chip available this season, as (code, half).
+
+    FPL grants a fresh set at the halfway point, so each manager gets each chip
+    twice over a season. Read from bootstrap rather than hardcoded, because the
+    set has changed between seasons before -- Assistant Manager appeared in one
+    and the rules moved in the next.
+    """
+    out: list[tuple[str, int]] = []
+    for chip in boot.get("chips", []) or []:
+        code = str(chip.get("name", ""))
+        start = int(chip.get("start_event") or 1)
+        if not code:
+            continue
+        out.append((code, 1 if start < 20 else 2))
+    return out
+
+
+def chips_for(boot: dict[str, Any], history: dict[str, Any]) -> list[Chip]:
+    """Which chips this manager has played, and which are still in hand."""
+    played: dict[tuple[str, int], int] = {}
+    for row in history.get("chips", []) or []:
+        code = str(row.get("name", ""))
+        event = int(row.get("event") or 0)
+        if code:
+            played[(code, 1 if event < 20 else 2)] = event
+
+    return [
+        Chip(
+            code=code,
+            name=CHIP_NAMES.get(code, code),
+            half=half,
+            played_in=played.get((code, half)),
+        )
+        for code, half in chip_catalogue(boot)
+    ]
+
+
+async def entry_chips(up: Upstream, entry_id: int) -> dict[str, Any]:
+    """The manager's chip history."""
+    return await entry_history(up, entry_id)
+
 
 def player_index(boot: dict[str, Any]) -> dict[int, dict[str, Any]]:
     """FPL element id -> the bits of a player the UI actually shows."""

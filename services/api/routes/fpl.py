@@ -20,6 +20,7 @@ from fastapi import APIRouter
 from shared import keys
 from shared.fpl_people import person_for
 from shared.models import (
+    FplChipOut,
     FplPlayerOut,
     FplSquadOut,
     FplSquadsOut,
@@ -30,6 +31,7 @@ from shared.models import (
 from services.api import views
 from services.api.deps import Config, CurrentSession, State
 from services.poller.fpl import (
+    chips_for,
     current_gameweek,
     live_stats,
     parse_league,
@@ -215,6 +217,22 @@ async def squads(_: CurrentSession, state: State, settings: Config, gw: int | No
         if person and captain:
             captains[person] = captain.name
 
+        history_entry = await state.cache.get(keys.fpl_history(member.entry_id))
+        chips = (
+            [
+                FplChipOut(
+                    code=c.code,
+                    name=c.name,
+                    half=c.half,
+                    played_in=c.played_in,
+                    played=c.played,
+                )
+                for c in chips_for(boot_entry.value, history_entry.value)
+            ]
+            if history_entry is not None
+            else []
+        )
+
         chip = picks_payload.get("active_chip")
         boosted = chip == BENCH_BOOST
         bench_points = sum(p.points for p in bench)
@@ -235,6 +253,7 @@ async def squads(_: CurrentSession, state: State, settings: Config, gw: int | No
                 live_points=sum(p.points for p in counted),
                 bench_points=bench_points,
                 bench_counts=boosted,
+                chips=chips,
                 players_played=sum(1 for p in counted if p.played),
                 players_to_play=sum(1 for p in counted if not p.played),
             )

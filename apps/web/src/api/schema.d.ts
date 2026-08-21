@@ -813,6 +813,22 @@ export interface components {
              */
             watch_open: boolean;
         };
+        /** FplChipOut */
+        FplChipOut: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Half */
+            half: number;
+            /** Played In */
+            played_in: number | null;
+            /**
+             * Played
+             * @default false
+             */
+            played: boolean;
+        };
         /**
          * FplPlayerOut
          * @description One player in a squad, with whatever the live feed knows so far.
@@ -915,6 +931,8 @@ export interface components {
              * @default false
              */
             bench_counts: boolean;
+            /** Chips */
+            chips: components["schemas"]["FplChipOut"][];
             /**
              * Players Played
              * @default 0

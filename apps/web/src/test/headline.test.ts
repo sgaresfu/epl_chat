@@ -56,6 +56,11 @@ describe('headline', () => {
     expect(headline(home({}, { matches_played: 42 }))).toBe('42 matches in.')
   })
 
+  it('says "match", singular, after exactly one', () => {
+    // The live site read "1 matches in." for the whole of opening night.
+    expect(headline(home({}, { matches_played: 1 }))).toBe('1 match in.')
+  })
+
   it('closes the season out on the final day', () => {
     expect(headline(home({}, { matches_played: 380, matches_total: 380 }))).toBe('That is the season.')
   })

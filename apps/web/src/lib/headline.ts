@@ -25,5 +25,6 @@ export function headline(home: Home | undefined): string {
     return `${Math.ceil(hours / 24)} days until the season starts.`
   }
 
-  return `${season.matches_played} matches in.`
+  const n = season.matches_played
+  return `${n} ${n === 1 ? 'match' : 'matches'} in.`
 }

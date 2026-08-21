@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { useMe } from '@/api/queries'
+import { useStaleSessionRecovery } from '@/api/useStaleSessionRecovery'
 import { useLiveStream } from '@/api/useLiveStream'
 import { Nav } from '@/components/Nav'
 import { TableSkeleton } from '@/components/states'
@@ -10,8 +11,7 @@ import { Placeholder } from '@/routes/Placeholder'
 
 // Route-level code splitting: the picker's logic and the chart library stay off
 // the home page's critical path.
-const Table = lazy(() => import('@/routes/Table').then((m) => ({ default: m.Table })))
-const Fixtures = lazy(() => import('@/routes/Fixtures').then((m) => ({ default: m.Fixtures })))
+const League = lazy(() => import('@/routes/League').then((m) => ({ default: m.League })))
 const Predictions = lazy(() =>
   import('@/routes/Predictions').then((m) => ({ default: m.Predictions })),
 )
@@ -29,6 +29,7 @@ const PredictionPicker = lazy(() =>
 
 export function App() {
   const { data: me, isLoading, error } = useMe()
+  useStaleSessionRecovery()
   const stream = useLiveStream(Boolean(me))
 
   if (isLoading) {
@@ -58,8 +59,9 @@ export function App() {
         >
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/table" element={<Table />} />
-            <Route path="/fixtures" element={<Fixtures />} />
+            <Route path="/table" element={<League />} />
+            {/* Kept so existing links and bookmarks still land somewhere sensible. */}
+            <Route path="/fixtures" element={<Navigate to="/table?view=matches" replace />} />
             <Route path="/predictions" element={<Predictions />} />
             <Route path="/predictions/build" element={<PredictionPicker />} />
             <Route path="/admin" element={<Admin />} />

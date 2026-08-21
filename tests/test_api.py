@@ -710,3 +710,71 @@ class TestBenchBoostArithmetic:
 
         squad = FplSquadOut(person="coyg", entry_id=1, entry_name="x")
         assert squad.bench_counts is False
+
+
+class TestFplChips:
+    """Which chips each manager has spent, and which are still in hand."""
+
+    def test_the_catalogue_comes_from_bootstrap_not_a_hardcoded_list(self) -> None:
+        # The chip set has changed between seasons; reading it keeps us honest.
+        from services.poller.fpl import chip_catalogue
+
+        boot = {
+            "chips": [
+                {"name": "wildcard", "start_event": 2},
+                {"name": "wildcard", "start_event": 20},
+                {"name": "bboost", "start_event": 1},
+            ]
+        }
+        assert chip_catalogue(boot) == [("wildcard", 1), ("wildcard", 2), ("bboost", 1)]
+
+    def test_a_played_chip_is_marked_with_its_gameweek(self) -> None:
+        from services.poller.fpl import chips_for
+
+        boot = {"chips": [{"name": "bboost", "start_event": 1}]}
+        history = {"chips": [{"name": "bboost", "event": 1}]}
+        chips = chips_for(boot, history)
+        assert chips[0].played is True
+        assert chips[0].played_in == 1
+
+    def test_an_unplayed_chip_is_not(self) -> None:
+        from services.poller.fpl import chips_for
+
+        boot = {"chips": [{"name": "3xc", "start_event": 1}]}
+        assert chips_for(boot, {"chips": []})[0].played is False
+
+    def test_the_two_halves_are_tracked_separately(self) -> None:
+        """FPL grants a fresh set at gameweek 20.
+
+        Playing Bench Boost in the first half must not mark the second-half one
+        as spent.
+        """
+        from services.poller.fpl import chips_for
+
+        boot = {
+            "chips": [
+                {"name": "bboost", "start_event": 1},
+                {"name": "bboost", "start_event": 20},
+            ]
+        }
+        chips = chips_for(boot, {"chips": [{"name": "bboost", "event": 1}]})
+        assert [c.played for c in chips] == [True, False]
+        assert [c.half for c in chips] == [1, 2]
+
+    def test_a_second_half_chip_is_attributed_to_the_second_half(self) -> None:
+        from services.poller.fpl import chips_for
+
+        boot = {
+            "chips": [
+                {"name": "bboost", "start_event": 1},
+                {"name": "bboost", "start_event": 20},
+            ]
+        }
+        chips = chips_for(boot, {"chips": [{"name": "bboost", "event": 25}]})
+        assert [c.played for c in chips] == [False, True]
+
+    def test_codes_are_rendered_as_names_people_use(self) -> None:
+        from services.poller.fpl import CHIP_NAMES
+
+        assert CHIP_NAMES["bboost"] == "Bench Boost"
+        assert CHIP_NAMES["3xc"] == "Triple Captain"

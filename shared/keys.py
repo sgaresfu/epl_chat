@@ -30,6 +30,10 @@ def fpl_picks(entry_id: int, gameweek: int) -> str:
     return key("fpl", "picks", entry_id, gameweek)
 
 
+def fpl_history(entry_id: int) -> str:
+    return key("fpl", "history", entry_id)
+
+
 def lineups(fixture_id: int) -> str:
     return key("lineups", fixture_id)
 
