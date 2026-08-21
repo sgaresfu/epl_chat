@@ -10,7 +10,21 @@
  *    header on every mutation -- the double-submit half the server checks.
  */
 
-export const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? ''
+/**
+ * Where the API lives.
+ *
+ * Render's blueprint can only inject a service's *host* (`x.onrender.com`),
+ * not a full URL, so a bare host is normalised to `https://` here. Left empty
+ * in development, where Vite proxies `/api` and the two are same-origin.
+ */
+function resolveBase(): string {
+  const raw = (import.meta.env.VITE_API_BASE as string | undefined)?.trim() ?? ''
+  if (!raw) return ''
+  const withScheme = /^https?:\/\//.test(raw) ? raw : `https://${raw}`
+  return withScheme.replace(/\/$/, '')
+}
+
+export const API_BASE = resolveBase()
 
 export class ApiError extends Error {
   constructor(

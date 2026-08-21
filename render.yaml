@@ -15,8 +15,12 @@ services:
     buildCommand: cd apps/web && npm ci && npm run build
     staticPublishPath: apps/web/dist
     envVars:
+      # Render supplies the host only; the client prefixes https:// itself.
       - key: VITE_API_BASE
-        value: https://api.example.com   # replace with the api service's domain
+        fromService:
+          name: league-api
+          type: web
+          property: host
     routes:
       # A single-page app: every unknown path is the app shell, not a 404.
       - type: rewrite
@@ -51,6 +55,13 @@ services:
         fromService: { name: league-redis, type: keyvalue, property: connectionString }
       - key: ENVIRONMENT
         value: production
+      # The CORS allow-list, wired to the static site rather than pasted in.
+      # A mismatch here presents as a login that silently never sticks.
+      - key: FRONTEND_ORIGIN
+        fromService:
+          name: league-web
+          type: web
+          property: host
 
   # ---- the poller: the only process that talks to an upstream
   - type: worker
@@ -151,11 +162,9 @@ envVarGroups:
         sync: false
       - key: SENTRY_DSN
         sync: false
-      - key: FRONTEND_ORIGIN
-        sync: false
-      # Set to ".yourdomain.com" when the web and api services share a parent
-      # domain: the cookie is then first-party and SameSite=Lax just works.
-      # Leave empty if they do not, and the api falls back to
-      # SameSite=None; Secure with the CORS allow-list above.
+      # Left empty for the default onrender.com hosts, which share no usable
+      # parent domain: the cookie is then third-party and falls back to
+      # SameSite=None; Secure. Set it to ".yourdomain.com" once a custom domain
+      # is attached to both services, and the cookie becomes first-party.
       - key: COOKIE_DOMAIN
         sync: false

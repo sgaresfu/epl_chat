@@ -89,8 +89,22 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        """Explicit allow-list. Never ``*`` -- browsers reject that with credentials."""
-        return [o.strip() for o in self.frontend_origin.split(",") if o.strip()]
+        """Explicit allow-list. Never ``*`` -- browsers reject that with credentials.
+
+        Render's blueprint can only supply a service's *host* (``x.onrender.com``),
+        not a full origin, so a bare host is normalised to ``https://`` here.
+        A CORS entry without a scheme never matches, and the failure looks like
+        a mysterious login loop rather than a configuration error.
+        """
+        origins: list[str] = []
+        for raw in self.frontend_origin.split(","):
+            value = raw.strip().rstrip("/")
+            if not value:
+                continue
+            if not value.startswith(("http://", "https://")):
+                value = f"https://{value}"
+            origins.append(value)
+        return origins
 
     def has(self, key: str) -> bool:
         """Whether an optional upstream credential is configured."""

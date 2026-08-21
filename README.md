@@ -79,6 +79,22 @@ naming what is missing; everything else keeps working. `/admin` lists them.
    `FRONTEND_ORIGIN` on the api to the web service's URL.
 5. Run migrations once: `alembic upgrade head` from the api service's shell.
 
+### Deploying to Render's default hosts
+
+The blueprint wires the two cross-references itself, so nothing is pasted by
+hand: the static site receives the api's host as `VITE_API_BASE`, and the api
+receives the static site's host as `FRONTEND_ORIGIN`. Render supplies a *host*
+rather than a full URL, so both sides prefix `https://` themselves.
+
+With the default `*.onrender.com` hosts the two share no usable parent domain,
+so `COOKIE_DOMAIN` stays empty and the session cookie is third-party:
+`SameSite=None; Secure`. That works in Chrome and Firefox, but **Safari's
+tracking prevention and any "block third-party cookies" setting can drop it**,
+which presents as a login that appears to succeed and then immediately forgets
+you. If that happens, attach a custom domain to both services and set
+`COOKIE_DOMAIN=.yourdomain.com` — the cookie becomes first-party and the
+problem disappears.
+
 ### The cookie, which is the part that bites
 
 The frontend is on a CDN and the api is a separate service, so they are
