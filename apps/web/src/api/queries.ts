@@ -10,6 +10,7 @@ import type {
   LeagueTable,
   Me,
   Predictions,
+  FplSquads,
   FplStandings,
   H2H,
   Bets,
@@ -34,6 +35,7 @@ export const keys = {
   predictions: ['predictions'] as const,
   admin: ['admin'] as const,
   fplStandings: ['fpl', 'standings'] as const,
+  fplSquads: ['fpl', 'squads'] as const,
   leaderboard: ['leaderboard'] as const,
   watch: ['watch'] as const,
   news: ['news'] as const,
@@ -143,6 +145,15 @@ export function useBets(): UseQueryResult<Bets> {
 
 export function useTimeline(): UseQueryResult<Timeline> {
   return useQuery({ queryKey: keys.timeline, queryFn: () => api.get<Timeline>('/api/timeline') })
+}
+
+export function useFplSquads(): UseQueryResult<FplSquads> {
+  return useQuery({
+    queryKey: keys.fplSquads,
+    queryFn: () => api.get<FplSquads>('/api/fpl/squads'),
+    // Live during a match; the stream also invalidates this on an fpl event.
+    refetchInterval: 60_000,
+  })
 }
 
 export function useAdminStatus(): UseQueryResult<AdminStatus> {

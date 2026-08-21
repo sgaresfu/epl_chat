@@ -46,6 +46,13 @@ class Season:
     markers: tuple[Marker, ...]
 
 
+def _is_over(fixture: dict[str, Any]) -> bool:
+    """See ``services.poller.fpl.is_over``: FPL's ``finished`` flag lags."""
+    from services.poller.fpl import is_over
+
+    return is_over(fixture)
+
+
 def _parse(value: str | None) -> datetime | None:
     if not value:
         return None
@@ -78,7 +85,7 @@ def build(
     percent = max(0.0, min(100.0, elapsed / span * 100.0))
 
     matches_total = len(fixture_rows)
-    matches_played = sum(1 for f in fixture_rows if f.get("finished"))
+    matches_played = sum(1 for f in fixture_rows if _is_over(f))
     gameweeks_total = len(event_rows) or 38
     gameweeks_played = sum(1 for e in event_rows if e.get("finished"))
 

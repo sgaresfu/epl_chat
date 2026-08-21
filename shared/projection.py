@@ -20,7 +20,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from services.poller.fpl import TableRow, order_table
+from services.poller.fpl import TableRow, is_over, order_table
 
 from shared.clubs import CLUBS, by_fpl_id
 
@@ -118,7 +118,7 @@ def project(
     modelled_count = 0
 
     for fixture in fixtures:
-        if fixture.get("finished"):
+        if is_over(fixture):
             continue
         if not fixture.get("kickoff_time"):
             # A postponed match has no date; it is excluded from projections

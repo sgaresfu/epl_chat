@@ -28,7 +28,7 @@ from shared.models import (
 )
 from shared.timezones import PLACES, local_kickoff
 
-from services.poller.fpl import TableRow, compute_table
+from services.poller.fpl import TableRow, compute_table, is_over
 
 # Fixtures worth a badge. Keyed by the pair of canonical short names.
 DERBIES: dict[frozenset[str], str] = {
@@ -197,7 +197,9 @@ def build_fixture(
     away = by_fpl_id(int(row["team_a"]))
     kickoff = _parse(row.get("kickoff_time"))
 
-    finished = bool(row.get("finished"))
+    # Not row["finished"]: FPL leaves that false until bonus points are
+    # confirmed, so a match that ended an hour ago still read as live.
+    finished = is_over(row)
     started = bool(row.get("started"))
     # FPL flags a postponed match by clearing its kickoff while keeping the row.
     postponed = kickoff is None and not finished

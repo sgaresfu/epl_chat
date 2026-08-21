@@ -317,6 +317,54 @@ class FplStandingRow(Model):
     pending: bool = False
 
 
+class FplPlayerOut(Model):
+    """One player in a squad, with whatever the live feed knows so far."""
+
+    element: int
+    name: str
+    club: str
+    position: str
+    slot: int
+    is_captain: bool = False
+    is_vice_captain: bool = False
+    multiplier: int = 1
+    on_bench: bool = False
+    points: int = 0
+    minutes: int = 0
+    goals: int = 0
+    assists: int = 0
+    bonus: int = 0
+    played: bool = False
+    # True when nobody else in the mini-league owns them.
+    differential: bool = False
+
+
+class FplSquadOut(Model):
+    person: str | None
+    entry_id: int
+    entry_name: str
+    starting: list[FplPlayerOut] = Field(default_factory=list)
+    bench: list[FplPlayerOut] = Field(default_factory=list)
+    captain: FplPlayerOut | None = None
+    vice_captain: FplPlayerOut | None = None
+    chip: str | None = None
+    live_points: int = 0
+    bench_points: int = 0
+    # True when Bench Boost is active, so the bench counts toward live_points.
+    bench_counts: bool = False
+    players_played: int = 0
+    players_to_play: int = 0
+
+
+class FplSquadsOut(Model):
+    gameweek: int
+    squads: list[FplSquadOut] = Field(default_factory=list)
+    captains: dict[str, str] = Field(default_factory=dict)
+    freshness: Freshness
+    empty_message: str | None = None
+    note: str | None = None
+
+
 class FplStandingsOut(Model):
     league_id: int
     league_name: str
@@ -489,6 +537,7 @@ class NewsItemOut(Model):
 
 class NewsOut(Model):
     sky: list[NewsItemOut] = Field(default_factory=list)
+    sources: list[str] = Field(default_factory=list)
     youtube: list[NewsItemOut] = Field(default_factory=list)
     athletic: list[NewsItemOut] = Field(default_factory=list)
     freshness: Freshness

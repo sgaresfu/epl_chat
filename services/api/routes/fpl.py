@@ -19,11 +19,22 @@ from typing import Any
 from fastapi import APIRouter
 from shared import keys
 from shared.fpl_people import person_for
-from shared.models import FplStandingRow, FplStandingsOut
+from shared.models import (
+    FplPlayerOut,
+    FplSquadOut,
+    FplSquadsOut,
+    FplStandingRow,
+    FplStandingsOut,
+)
 
 from services.api import views
 from services.api.deps import Config, CurrentSession, State
-from services.poller.fpl import current_gameweek, parse_league
+from services.poller.fpl import (
+    current_gameweek,
+    live_stats,
+    parse_league,
+    player_index,
+)
 
 router = APIRouter(tags=["fpl"])
 
@@ -87,4 +98,157 @@ async def standings(_: CurrentSession, state: State, settings: Config) -> FplSta
             else None
         ),
         unmapped=unmapped,
+    )
+
+
+# --------------------------------------------------------------------------
+# Squads
+# --------------------------------------------------------------------------
+
+STARTING_SLOTS = 11
+
+# FPL's own names for the chips. Bench Boost is the one that changes the
+# arithmetic: it makes the four bench players score for real, so a total that
+# only sums the starting XI is wrong for exactly the weeks somebody plays it.
+BENCH_BOOST = "bboost"
+
+
+@router.get("/api/fpl/squads", response_model=FplSquadsOut)
+async def squads(_: CurrentSession, state: State, settings: Config, gw: int | None = None) -> FplSquadsOut:
+    """Every squad, live, from the moment teams are picked.
+
+    FPL exposes picks as soon as the deadline passes -- long before the round is
+    "scored" -- so there is no reason to withhold them. Points simply read zero
+    until players take the pitch, which is the honest state rather than a
+    withheld one.
+    """
+    boot_entry = await state.cache.get(keys.FPL_BOOTSTRAP)
+    league_entry = await state.cache.get(keys.FPL_LEAGUE)
+
+    event = current_gameweek(boot_entry.value) if boot_entry else None
+    gameweek = gw or (int(event["id"]) if event else 1)
+
+    if boot_entry is None or league_entry is None:
+        return FplSquadsOut(
+            gameweek=gameweek,
+            freshness=views.freshness(league_entry, keys.FPL_LEAGUE),
+            empty_message="Squads appear once the poller has fetched the league.",
+        )
+
+    players = player_index(boot_entry.value)
+    live_entry = await state.cache.get(keys.fpl_live(gameweek))
+    live = live_stats(live_entry.value) if live_entry else {}
+
+    members = parse_league(league_entry.value)
+    raw: dict[int, dict[str, Any]] = {}
+    for member in members:
+        cached = await state.cache.get(keys.fpl_picks(member.entry_id, gameweek))
+        if cached is not None:
+            raw[member.entry_id] = cached.value
+
+    if not raw:
+        return FplSquadsOut(
+            gameweek=gameweek,
+            freshness=views.freshness(league_entry, keys.FPL_LEAGUE),
+            empty_message=(
+                "Squads are locked until the gameweek deadline. They appear here the moment it passes."
+            ),
+        )
+
+    # A differential is a player nobody else in the league owns.
+    ownership: dict[int, int] = {}
+    for picks in raw.values():
+        for pick in picks.get("picks", []):
+            ownership[int(pick["element"])] = ownership.get(int(pick["element"]), 0) + 1
+
+    built: list[FplSquadOut] = []
+    captains: dict[str, str] = {}
+
+    for member in members:
+        picks_payload = raw.get(member.entry_id)
+        if picks_payload is None:
+            continue
+
+        starting: list[FplPlayerOut] = []
+        bench: list[FplPlayerOut] = []
+        captain: FplPlayerOut | None = None
+        vice: FplPlayerOut | None = None
+
+        for pick in picks_payload.get("picks", []):
+            element = int(pick["element"])
+            info = players.get(element, {"name": f"#{element}", "club": "?", "position": "?"})
+            stats = live.get(element, {})
+            slot = int(pick.get("position", 0))
+            multiplier = int(pick.get("multiplier", 1))
+            base = int(stats.get("points", 0))
+
+            player = FplPlayerOut(
+                element=element,
+                name=str(info["name"]),
+                club=str(info["club"]),
+                position=str(info["position"]),
+                slot=slot,
+                is_captain=bool(pick.get("is_captain")),
+                is_vice_captain=bool(pick.get("is_vice_captain")),
+                multiplier=multiplier,
+                on_bench=slot > STARTING_SLOTS,
+                # The captain's armband doubles what they score.
+                points=base * (multiplier if slot <= STARTING_SLOTS else 1),
+                minutes=int(stats.get("minutes", 0)),
+                goals=int(stats.get("goals", 0)),
+                assists=int(stats.get("assists", 0)),
+                bonus=int(stats.get("bonus", 0)),
+                played=bool(stats.get("played", False)),
+                differential=ownership.get(element, 0) == 1,
+            )
+
+            if player.is_captain:
+                captain = player
+            if player.is_vice_captain:
+                vice = player
+            (bench if player.on_bench else starting).append(player)
+
+        starting.sort(key=lambda p: p.slot)
+        bench.sort(key=lambda p: p.slot)
+
+        person = person_for(member.entry_id)
+        if person and captain:
+            captains[person] = captain.name
+
+        chip = picks_payload.get("active_chip")
+        boosted = chip == BENCH_BOOST
+        bench_points = sum(p.points for p in bench)
+        counted = starting + bench if boosted else starting
+
+        built.append(
+            FplSquadOut(
+                person=person,
+                entry_id=member.entry_id,
+                entry_name=member.entry_name,
+                starting=starting,
+                bench=bench,
+                captain=captain,
+                vice_captain=vice,
+                chip=chip,
+                # With Bench Boost the bench counts; without it, those points
+                # are the ones left behind.
+                live_points=sum(p.points for p in counted),
+                bench_points=bench_points,
+                bench_counts=boosted,
+                players_played=sum(1 for p in counted if p.played),
+                players_to_play=sum(1 for p in counted if not p.played),
+            )
+        )
+
+    built.sort(key=lambda s: (-s.live_points, s.person or "zz"))
+
+    return FplSquadsOut(
+        gameweek=gameweek,
+        squads=built,
+        captains=captains,
+        freshness=views.freshness(live_entry, keys.FPL_LEAGUE),
+        note=(
+            "Points update every 30 seconds while matches are in play. A player "
+            "who has not kicked off yet reads zero rather than being hidden."
+        ),
     )

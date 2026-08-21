@@ -20,7 +20,7 @@ from typing import Any
 
 import structlog
 from shared import keys
-from shared.cache import CHANNEL_SCORES, Cache, build_cache
+from shared.cache import CHANNEL_FPL, CHANNEL_SCORES, Cache, build_cache
 from shared.config import Settings, get_settings
 
 from services.poller import fpl, news
@@ -76,7 +76,7 @@ class Poller:
 
     async def anything_in_play(self) -> bool:
         rows = await self.fixtures_now()
-        return any(r.get("started") and not r.get("finished") for r in rows)
+        return any(fpl.is_in_play(r) for r in rows)
 
     async def is_matchday(self) -> bool:
         rows = await self.fixtures_now()
@@ -106,11 +106,11 @@ class Poller:
     async def poll_news(self) -> None:
         """Sky's RSS needs no key, so this panel works with nothing configured."""
         try:
-            payload = await news.poll_news(self.sky)
+            payload = await news.poll_news()
         except Exception as exc:
             log.warning("poller.news_failed", error=str(exc))
             return
-        await self.write(keys.NEWS_SKY, payload, source="sky-rss")
+        await self.write(keys.NEWS_SKY, payload, source="rss")
 
     async def poll_bootstrap(self) -> None:
         try:
@@ -137,6 +137,41 @@ class Poller:
             log.warning("poller.league_failed", error=str(exc))
             return
         await self.write(keys.FPL_LEAGUE, payload, source="fpl")
+        await self.poll_squads(payload)
+
+    async def poll_squads(self, league_payload: dict[str, Any]) -> None:
+        """Every manager's picks, and the live points for the round.
+
+        Picks are readable the moment the deadline passes, so there is nothing
+        to wait for. FPL is free and unmetered, so four extra calls cost nothing
+        that matters.
+        """
+        boot = await self.cache.get(keys.FPL_BOOTSTRAP)
+        event = fpl.current_gameweek(boot.value) if boot else None
+        if event is None:
+            return
+        gameweek = int(event["id"])
+
+        # Before the deadline nobody's team is visible; asking is just noise.
+        if not event.get("finished") and event.get("is_next") and not event.get("deadline_time_passed", True):
+            deadline = fpl.parse_kickoff(event.get("deadline_time"))
+            if deadline and datetime.now(UTC) < deadline:
+                return
+
+        for member in fpl.parse_league(league_payload):
+            try:
+                picks = await fpl.entry_picks(self.fpl, member.entry_id, gameweek)
+            except UpstreamError as exc:
+                log.info("poller.picks_unavailable", entry=member.entry_id, error=str(exc))
+                continue
+            await self.write(keys.fpl_picks(member.entry_id, gameweek), picks, source="fpl")
+
+        try:
+            live = await fpl.live_gameweek(self.fpl, gameweek)
+        except UpstreamError as exc:
+            log.warning("poller.live_failed", error=str(exc))
+            return
+        await self.write(keys.fpl_live(gameweek), live, source="fpl", channel=CHANNEL_FPL)
 
     async def run_forever(self) -> None:
         log.info("poller.starting", league=self.settings.fpl_league_id)

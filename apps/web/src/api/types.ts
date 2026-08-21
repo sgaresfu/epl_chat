@@ -306,6 +306,7 @@ export interface NewsItem {
 
 export interface News {
   sky: NewsItem[]
+  sources: string[]
   youtube: NewsItem[]
   athletic: NewsItem[]
   freshness: Freshness
@@ -355,6 +356,50 @@ export interface H2H {
   gaps: Array<{ club: Club; a_position: number; b_position: number; distance: number }>
   agreement_count: number
   empty_message: string | null
+}
+
+export interface FplPlayer {
+  element: number
+  name: string
+  club: string
+  position: string
+  slot: number
+  is_captain: boolean
+  is_vice_captain: boolean
+  multiplier: number
+  on_bench: boolean
+  points: number
+  minutes: number
+  goals: number
+  assists: number
+  bonus: number
+  played: boolean
+  differential: boolean
+}
+
+export interface FplSquad {
+  person: string | null
+  entry_id: number
+  entry_name: string
+  starting: FplPlayer[]
+  bench: FplPlayer[]
+  captain: FplPlayer | null
+  vice_captain: FplPlayer | null
+  chip: string | null
+  live_points: number
+  bench_points: number
+  bench_counts: boolean
+  players_played: number
+  players_to_play: number
+}
+
+export interface FplSquads {
+  gameweek: number
+  squads: FplSquad[]
+  captains: Record<string, string>
+  freshness: Freshness
+  empty_message: string | null
+  note: string | null
 }
 
 export interface FplStandingRow {

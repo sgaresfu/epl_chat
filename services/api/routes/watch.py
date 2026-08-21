@@ -28,6 +28,7 @@ from services.api.auth import require_csrf
 from services.api.deps import CurrentSession, Db, State
 from services.api.repository import ensure_people
 from services.api.views import watch_window_open
+from services.poller.fpl import is_over
 
 log = structlog.get_logger(__name__)
 router = APIRouter(tags=["watch"])
@@ -56,7 +57,7 @@ async def toggle(body: WatchToggleIn, session: CurrentSession, state: State, db:
     kickoff = datetime.fromisoformat(str(kickoff_raw).replace("Z", "+00:00")) if kickoff_raw else None
     now = datetime.now(UTC)
 
-    if not watch_window_open(kickoff, bool(fixture.get("finished")), now):
+    if not watch_window_open(kickoff, is_over(fixture), now):
         detail = (
             "That match has not kicked off yet."
             if kickoff and now < kickoff

@@ -138,6 +138,39 @@ def parse_league(payload: dict[str, Any]) -> list[LeagueMember]:
     return sorted(members.values(), key=lambda m: (m.rank is None, m.rank or 0, m.entry_name))
 
 
+FULL_TIME_MINUTES = 90
+
+
+def is_over(fixture: dict[str, Any]) -> bool:
+    """Whether a match has actually finished.
+
+    ``finished`` is not the flag it looks like. FPL only sets it once bonus
+    points are confirmed, which can be hours after full time; in between it
+    reports ``finished: false`` with ``finished_provisional: true``, ninety
+    minutes played and a final score.
+
+    Trusting ``finished`` alone meant the site called a match that ended an hour
+    ago "live", and left the winner on zero points in the table.
+    """
+    if fixture.get("finished"):
+        return True
+    if fixture.get("finished_provisional"):
+        return True
+    # Belt and braces: a full ninety with a score in the book is over, whatever
+    # the flags say.
+    return int(fixture.get("minutes") or 0) >= FULL_TIME_MINUTES and (fixture.get("team_h_score") is not None)
+
+
+def is_in_play(fixture: dict[str, Any]) -> bool:
+    """Kicked off and not yet over."""
+    return bool(fixture.get("started")) and not is_over(fixture)
+
+
+def has_result(fixture: dict[str, Any]) -> bool:
+    """Over, and with a score recorded -- the condition for counting it."""
+    return is_over(fixture) and fixture.get("team_h_score") is not None
+
+
 @dataclass(frozen=True, slots=True)
 class TableRow:
     """One row of the live table, computed from finished fixtures."""
@@ -171,7 +204,7 @@ def compute_table(fixture_rows: list[dict[str, Any]]) -> list[TableRow]:
         c.short_name: {"w": 0, "d": 0, "l": 0, "gf": 0, "ga": 0, "form": []} for c in CLUBS
     }
 
-    played = [f for f in fixture_rows if f.get("finished") and f.get("team_h_score") is not None]
+    played = [f for f in fixture_rows if has_result(f)]
     played.sort(key=lambda f: f.get("kickoff_time") or "")
 
     for fixture in played:
@@ -246,6 +279,38 @@ def current_gameweek(boot: dict[str, Any]) -> dict[str, Any] | None:
         if event.get("is_next"):
             return dict(event)
     return None
+
+
+POSITIONS: dict[int, str] = {1: "GK", 2: "DEF", 3: "MID", 4: "FWD", 5: "MNG"}
+
+
+def player_index(boot: dict[str, Any]) -> dict[int, dict[str, Any]]:
+    """FPL element id -> the bits of a player the UI actually shows."""
+    teams = {t["id"]: t["short_name"] for t in boot.get("teams", [])}
+    return {
+        int(e["id"]): {
+            "name": e["web_name"],
+            "club": teams.get(e["team"], "?"),
+            "position": POSITIONS.get(int(e["element_type"]), "?"),
+        }
+        for e in boot.get("elements", [])
+    }
+
+
+def live_stats(live: dict[str, Any]) -> dict[int, dict[str, Any]]:
+    """FPL element id -> this gameweek's live numbers."""
+    out: dict[int, dict[str, Any]] = {}
+    for row in live.get("elements", []) or []:
+        stats = row.get("stats", {}) or {}
+        out[int(row["id"])] = {
+            "points": int(stats.get("total_points", 0)),
+            "minutes": int(stats.get("minutes", 0)),
+            "goals": int(stats.get("goals_scored", 0)),
+            "assists": int(stats.get("assists", 0)),
+            "bonus": int(stats.get("bonus", 0)),
+            "played": bool(stats.get("played", False)) or int(stats.get("minutes", 0)) > 0,
+        }
+    return out
 
 
 def parse_kickoff(value: str | None) -> datetime | None:

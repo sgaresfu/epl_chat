@@ -664,3 +664,49 @@ class TestHeadToHead:
     async def test_an_unknown_person_is_a_404(self, client: AsyncClient) -> None:
         await sign_in(client)
         assert (await client.get("/api/h2h?a=coyg&b=nobody")).status_code == 404
+
+
+class TestFplSquads:
+    """Squads are readable the moment the deadline passes, not when scored.
+
+    FPL exposes picks immediately; withholding them until a round is "scored"
+    hid the whole page for the part of the week people care most about.
+    """
+
+    async def test_squads_report_the_wait_before_the_poller_has_them(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        body = (await client.get("/api/fpl/squads")).json()
+        # The test cache has no picks written, which is the honest empty state.
+        assert body["squads"] == []
+        assert body["empty_message"]
+
+    async def test_the_gameweek_is_reported(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        assert (await client.get("/api/fpl/squads")).json()["gameweek"] == 1
+
+    async def test_it_needs_a_session(self, client: AsyncClient) -> None:
+        assert (await client.get("/api/fpl/squads")).status_code == 401
+
+
+class TestBenchBoostArithmetic:
+    """Bench Boost makes the four bench players score for real.
+
+    A total that only sums the starting XI is wrong for exactly the weeks
+    somebody plays the chip — and two of the four had it active in gameweek one.
+    """
+
+    def test_bench_boost_is_recognised_by_its_fpl_code(self) -> None:
+        from services.api.routes.fpl import BENCH_BOOST
+
+        assert BENCH_BOOST == "bboost"
+
+    def test_the_squad_model_records_whether_the_bench_counts(self) -> None:
+        from shared.models import FplSquadOut
+
+        assert "bench_counts" in FplSquadOut.model_fields
+
+    def test_without_the_chip_the_bench_does_not_count(self) -> None:
+        from shared.models import FplSquadOut
+
+        squad = FplSquadOut(person="coyg", entry_id=1, entry_name="x")
+        assert squad.bench_counts is False

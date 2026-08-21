@@ -44,10 +44,12 @@ async def news(_: CurrentSession, state: State, settings: Config) -> NewsOut:
         freshness=views.freshness(entry, keys.NEWS_SKY),
         empty_message=(None if sky else "Headlines appear once the poller has read the Sky feed."),
         youtube_message=_youtube_message(settings),
+        sources=list(payload.get("sources", [])),
         athletic_message=(
-            "The Athletic has no public feed and its articles are paywalled, so "
-            "nothing is mirrored here. Headlines will appear if a licensed source "
-            "becomes available."
+            "Headlines come from Sky Sports, BBC Sport and the Guardian — all "
+            "free, public feeds. The Athletic is not included: it has no public "
+            "feed and its articles are paywalled, and scraping one to fill a "
+            "panel is not a trade worth making."
         ),
     )
 

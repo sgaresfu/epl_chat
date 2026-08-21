@@ -1405,3 +1405,114 @@
   color: var(--ink-3);
   white-space: nowrap;
 }
+
+/* ---------- fantasy squads ---------- */
+.squads {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+@media (max-width: 860px) {
+  .squads {
+    grid-template-columns: 1fr;
+  }
+}
+.squad {
+  background: var(--bg-2);
+  border-radius: var(--r-tile);
+  padding: 24px;
+}
+.squad__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.squad__who {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.squad__entry {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.squad__pts {
+  margin-left: auto;
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.squad__sub {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-bottom: 14px;
+}
+.squad__group {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+  margin: 16px 0 6px;
+}
+.pl {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 15px;
+}
+.pl:first-of-type {
+  border-top: 0;
+}
+.pl__pos {
+  flex: 0 0 30px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.pl__name {
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl__club {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.pl__badge {
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.pl__badge[data-kind='C'] {
+  background: var(--ink);
+  color: #fff;
+}
+.pl__badge[data-kind='V'] {
+  background: var(--line);
+  color: var(--ink-2);
+}
+.pl__badge[data-kind='D'] {
+  background: #eaf1fd;
+  color: var(--blue);
+}
+.pl__pts {
+  margin-left: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* A player who has not kicked off reads zero, greyed — not hidden. */
+.pl[data-played='false'] .pl__name,
+.pl[data-played='false'] .pl__pts {
+  color: var(--ink-3);
+}
+.squad__bench {
+  margin-top: 6px;
+  opacity: 0.72;
+}

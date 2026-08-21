@@ -26,6 +26,10 @@ def fpl_live(gameweek: int) -> str:
     return key("fpl", "live", gameweek)
 
 
+def fpl_picks(entry_id: int, gameweek: int) -> str:
+    return key("fpl", "picks", entry_id, gameweek)
+
+
 def lineups(fixture_id: int) -> str:
     return key("lineups", fixture_id)
 

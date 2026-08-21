@@ -271,6 +271,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fpl/squads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Squads
+         * @description Every squad, live, from the moment teams are picked.
+         *
+         *     FPL exposes picks as soon as the deadline passes -- long before the round is
+         *     "scored" -- so there is no reason to withhold them. Points simply read zero
+         *     until players take the pitch, which is the honest state rather than a
+         *     withheld one.
+         */
+        get: operations["squads_api_fpl_squads_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/watch": {
         parameters: {
             query?: never;
@@ -788,6 +813,135 @@ export interface components {
              */
             watch_open: boolean;
         };
+        /**
+         * FplPlayerOut
+         * @description One player in a squad, with whatever the live feed knows so far.
+         */
+        FplPlayerOut: {
+            /** Element */
+            element: number;
+            /** Name */
+            name: string;
+            /** Club */
+            club: string;
+            /** Position */
+            position: string;
+            /** Slot */
+            slot: number;
+            /**
+             * Is Captain
+             * @default false
+             */
+            is_captain: boolean;
+            /**
+             * Is Vice Captain
+             * @default false
+             */
+            is_vice_captain: boolean;
+            /**
+             * Multiplier
+             * @default 1
+             */
+            multiplier: number;
+            /**
+             * On Bench
+             * @default false
+             */
+            on_bench: boolean;
+            /**
+             * Points
+             * @default 0
+             */
+            points: number;
+            /**
+             * Minutes
+             * @default 0
+             */
+            minutes: number;
+            /**
+             * Goals
+             * @default 0
+             */
+            goals: number;
+            /**
+             * Assists
+             * @default 0
+             */
+            assists: number;
+            /**
+             * Bonus
+             * @default 0
+             */
+            bonus: number;
+            /**
+             * Played
+             * @default false
+             */
+            played: boolean;
+            /**
+             * Differential
+             * @default false
+             */
+            differential: boolean;
+        };
+        /** FplSquadOut */
+        FplSquadOut: {
+            /** Person */
+            person: string | null;
+            /** Entry Id */
+            entry_id: number;
+            /** Entry Name */
+            entry_name: string;
+            /** Starting */
+            starting: components["schemas"]["FplPlayerOut"][];
+            /** Bench */
+            bench: components["schemas"]["FplPlayerOut"][];
+            captain: components["schemas"]["FplPlayerOut"] | null;
+            vice_captain: components["schemas"]["FplPlayerOut"] | null;
+            /** Chip */
+            chip: string | null;
+            /**
+             * Live Points
+             * @default 0
+             */
+            live_points: number;
+            /**
+             * Bench Points
+             * @default 0
+             */
+            bench_points: number;
+            /**
+             * Bench Counts
+             * @default false
+             */
+            bench_counts: boolean;
+            /**
+             * Players Played
+             * @default 0
+             */
+            players_played: number;
+            /**
+             * Players To Play
+             * @default 0
+             */
+            players_to_play: number;
+        };
+        /** FplSquadsOut */
+        FplSquadsOut: {
+            /** Gameweek */
+            gameweek: number;
+            /** Squads */
+            squads: components["schemas"]["FplSquadOut"][];
+            /** Captains */
+            captains: {
+                [key: string]: string;
+            };
+            freshness: components["schemas"]["Freshness"];
+            /** Empty Message */
+            empty_message: string | null;
+            /** Note */
+            note: string | null;
+        };
         /** FplStandingRow */
         FplStandingRow: {
             /** Entry Id */
@@ -1029,6 +1183,8 @@ export interface components {
         NewsOut: {
             /** Sky */
             sky: components["schemas"]["NewsItemOut"][];
+            /** Sources */
+            sources: string[];
             /** Youtube */
             youtube: components["schemas"]["NewsItemOut"][];
             /** Athletic */
@@ -1903,6 +2059,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FplStandingsOut"];
+                };
+            };
+        };
+    };
+    squads_api_fpl_squads_get: {
+        parameters: {
+            query?: {
+                gw?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FplSquadsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

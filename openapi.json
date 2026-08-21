@@ -555,6 +555,56 @@
         }
       }
     },
+    "/api/fpl/squads": {
+      "get": {
+        "tags": [
+          "fpl"
+        ],
+        "summary": "Squads",
+        "description": "Every squad, live, from the moment teams are picked.\n\nFPL exposes picks as soon as the deadline passes -- long before the round is\n\"scored\" -- so there is no reason to withhold them. Points simply read zero\nuntil players take the pitch, which is the honest state rather than a\nwithheld one.",
+        "operationId": "squads_api_fpl_squads_get",
+        "parameters": [
+          {
+            "name": "gw",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Gw"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FplSquadsOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/watch": {
       "get": {
         "tags": [
@@ -1631,6 +1681,273 @@
         ],
         "title": "FixtureOut"
       },
+      "FplPlayerOut": {
+        "properties": {
+          "element": {
+            "type": "integer",
+            "title": "Element"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "club": {
+            "type": "string",
+            "title": "Club"
+          },
+          "position": {
+            "type": "string",
+            "title": "Position"
+          },
+          "slot": {
+            "type": "integer",
+            "title": "Slot"
+          },
+          "is_captain": {
+            "type": "boolean",
+            "title": "Is Captain",
+            "default": false
+          },
+          "is_vice_captain": {
+            "type": "boolean",
+            "title": "Is Vice Captain",
+            "default": false
+          },
+          "multiplier": {
+            "type": "integer",
+            "title": "Multiplier",
+            "default": 1
+          },
+          "on_bench": {
+            "type": "boolean",
+            "title": "On Bench",
+            "default": false
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points",
+            "default": 0
+          },
+          "minutes": {
+            "type": "integer",
+            "title": "Minutes",
+            "default": 0
+          },
+          "goals": {
+            "type": "integer",
+            "title": "Goals",
+            "default": 0
+          },
+          "assists": {
+            "type": "integer",
+            "title": "Assists",
+            "default": 0
+          },
+          "bonus": {
+            "type": "integer",
+            "title": "Bonus",
+            "default": 0
+          },
+          "played": {
+            "type": "boolean",
+            "title": "Played",
+            "default": false
+          },
+          "differential": {
+            "type": "boolean",
+            "title": "Differential",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "element",
+          "name",
+          "club",
+          "position",
+          "slot",
+          "is_captain",
+          "is_vice_captain",
+          "multiplier",
+          "on_bench",
+          "points",
+          "minutes",
+          "goals",
+          "assists",
+          "bonus",
+          "played",
+          "differential"
+        ],
+        "title": "FplPlayerOut",
+        "description": "One player in a squad, with whatever the live feed knows so far."
+      },
+      "FplSquadOut": {
+        "properties": {
+          "person": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Person"
+          },
+          "entry_id": {
+            "type": "integer",
+            "title": "Entry Id"
+          },
+          "entry_name": {
+            "type": "string",
+            "title": "Entry Name"
+          },
+          "starting": {
+            "items": {
+              "$ref": "#/components/schemas/FplPlayerOut"
+            },
+            "type": "array",
+            "title": "Starting"
+          },
+          "bench": {
+            "items": {
+              "$ref": "#/components/schemas/FplPlayerOut"
+            },
+            "type": "array",
+            "title": "Bench"
+          },
+          "captain": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FplPlayerOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "vice_captain": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FplPlayerOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "chip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chip"
+          },
+          "live_points": {
+            "type": "integer",
+            "title": "Live Points",
+            "default": 0
+          },
+          "bench_points": {
+            "type": "integer",
+            "title": "Bench Points",
+            "default": 0
+          },
+          "bench_counts": {
+            "type": "boolean",
+            "title": "Bench Counts",
+            "default": false
+          },
+          "players_played": {
+            "type": "integer",
+            "title": "Players Played",
+            "default": 0
+          },
+          "players_to_play": {
+            "type": "integer",
+            "title": "Players To Play",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "entry_id",
+          "entry_name",
+          "starting",
+          "bench",
+          "captain",
+          "vice_captain",
+          "chip",
+          "live_points",
+          "bench_points",
+          "bench_counts",
+          "players_played",
+          "players_to_play"
+        ],
+        "title": "FplSquadOut"
+      },
+      "FplSquadsOut": {
+        "properties": {
+          "gameweek": {
+            "type": "integer",
+            "title": "Gameweek"
+          },
+          "squads": {
+            "items": {
+              "$ref": "#/components/schemas/FplSquadOut"
+            },
+            "type": "array",
+            "title": "Squads"
+          },
+          "captains": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Captains"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gameweek",
+          "squads",
+          "captains",
+          "freshness",
+          "empty_message",
+          "note"
+        ],
+        "title": "FplSquadsOut"
+      },
       "FplStandingRow": {
         "properties": {
           "entry_id": {
@@ -2286,6 +2603,13 @@
             "type": "array",
             "title": "Sky"
           },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
           "youtube": {
             "items": {
               "$ref": "#/components/schemas/NewsItemOut"
@@ -2340,6 +2664,7 @@
         "type": "object",
         "required": [
           "sky",
+          "sources",
           "youtube",
           "athletic",
           "freshness",

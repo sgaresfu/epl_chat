@@ -22,6 +22,7 @@ from shared.models import (
 
 from services.api import views
 from services.api.deps import CurrentSession, Db, State
+from services.poller.fpl import is_in_play, is_over
 
 log = structlog.get_logger(__name__)
 router = APIRouter(tags=["football"])
@@ -164,17 +165,17 @@ async def home(session: CurrentSession, state: State) -> HomeOut:
     next_match = NextMatchOut(message="The fixture list has not loaded yet.")
     if rows:
         upcoming = sorted(
-            (r for r in rows if r.get("kickoff_time") and not r.get("finished")),
+            (r for r in rows if r.get("kickoff_time") and not is_over(r)),
             key=lambda r: r["kickoff_time"],
         )
-        in_play = [r for r in upcoming if r.get("started")]
+        in_play = [r for r in upcoming if is_in_play(r)]
         chosen = in_play[0] if in_play else (upcoming[0] if upcoming else None)
         if chosen is not None:
             kickoff = datetime.fromisoformat(chosen["kickoff_time"].replace("Z", "+00:00"))
             next_match = NextMatchOut(
                 fixture=views.build_fixture(chosen, now=now),
                 countdown_seconds=max(0.0, (kickoff - now).total_seconds()),
-                in_play=bool(chosen.get("started")),
+                in_play=is_in_play(chosen),
                 message=None,
             )
         else:
@@ -196,7 +197,7 @@ async def _line_of_the_day(state: State, now: datetime) -> str | None:
     rows, _ = await _fixtures(state)
     if not rows:
         return None
-    played = sum(1 for r in rows if r.get("finished"))
+    played = sum(1 for r in rows if is_over(r))
     if played == 0:
         upcoming = sorted((r for r in rows if r.get("kickoff_time")), key=lambda r: r["kickoff_time"])
         if not upcoming:

@@ -68,6 +68,50 @@ class TestParser:
         assert len(parse_rss(FEED, source="Sky Sports", limit=1)) == 1
 
 
+class TestSorting:
+    """RSS makes no ordering promise, and Sky's feed is not chronological.
+
+    It led with a live-match page from the afternoon and put a two-day-old
+    preview second, so the page inherited that order.
+    """
+
+    def test_items_come_back_newest_first(self) -> None:
+        from services.poller.news import newest_first
+
+        items = parse_rss(FEED, source="Sky Sports")
+        ordered = newest_first(items)
+        dates = [i.published or "" for i in ordered]
+        assert dates == sorted(dates, reverse=True)
+
+    def test_the_newest_story_leads(self) -> None:
+        from services.poller.news import newest_first
+
+        ordered = newest_first(parse_rss(FEED, source="Sky Sports"))
+        assert ordered[0].title.startswith("The Premier League is back")
+
+    def test_an_undated_item_sorts_last_not_first(self) -> None:
+        from services.poller.news import Item, newest_first
+
+        dated = Item(title="dated", url="a", source="s", published="2026-08-21T14:00:00+00:00")
+        undated = Item(title="undated", url="b", source="s", published=None)
+        assert [i.title for i in newest_first([undated, dated])] == ["dated", "undated"]
+
+
+class TestSources:
+    def test_three_free_outlets_are_configured(self) -> None:
+        from services.poller.news import FEEDS
+
+        names = {name for name, _, _ in FEEDS}
+        assert names == {"Sky Sports", "BBC Sport", "The Guardian"}
+
+    def test_none_of_them_need_a_key(self) -> None:
+        from services.poller.news import FEEDS
+
+        for _, base, path in FEEDS:
+            assert "key=" not in base + path
+            assert base.startswith("https://")
+
+
 class TestEndpoint:
     async def test_it_reports_the_wait_before_the_poller_has_run(self, client: AsyncClient) -> None:
         await sign_in(client)
@@ -86,6 +130,12 @@ class TestEndpoint:
         body = (await client.get("/api/news")).json()
         assert "paywalled" in body["athletic_message"]
         assert body["athletic"] == []
+
+    async def test_the_replacement_outlets_are_named(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        message = (await client.get("/api/news")).json()["athletic_message"]
+        assert "BBC Sport" in message
+        assert "Guardian" in message
 
     async def test_it_needs_a_session(self, client: AsyncClient) -> None:
         assert (await client.get("/api/news")).status_code == 401

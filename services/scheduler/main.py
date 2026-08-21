@@ -29,6 +29,7 @@ from shared.db import CronRun, TableSnapshot
 from shared.session import dispose, session
 
 from services.poller.fpl import compute_table, current_gameweek
+from services.poller.fpl import is_over as fpl_is_over
 
 log = structlog.get_logger(__name__)
 
@@ -170,8 +171,8 @@ async def daily(cache: Cache, settings: Settings) -> str:
     rows = await ensure_fixtures(cache, settings)
     if rows is None:
         return "no fixture data available"
-    played = sum(1 for r in rows if r.get("finished"))
-    upcoming = sum(1 for r in rows if not r.get("finished"))
+    played = sum(1 for r in rows if fpl_is_over(r))
+    upcoming = sum(1 for r in rows if not fpl_is_over(r))
     return f"line of the day computed; {played} played, {upcoming} to come"
 
 

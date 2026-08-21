@@ -24,8 +24,17 @@ from services.poller.http import Upstream, UpstreamError
 
 log = structlog.get_logger(__name__)
 
-# Sky Sports' Premier League feed. 12040 is the wider sports feed.
-SKY_PREMIER_LEAGUE = "https://www.skysports.com/rss/11661"
+# Free, public, key-less Premier League feeds.
+#
+# The Athletic is deliberately absent: it has no public feed, its articles are
+# paywalled, and the brief permits headlines and links only. Scraping a
+# paywalled site to fill a panel is not a trade worth making, so these three
+# take its place -- all of them full-text-free RSS from major outlets.
+FEEDS: tuple[tuple[str, str, str], ...] = (
+    ("Sky Sports", "https://www.skysports.com", "/rss/11661"),
+    ("BBC Sport", "https://feeds.bbci.co.uk", "/sport/football/premier-league/rss.xml"),
+    ("The Guardian", "https://www.theguardian.com", "/football/premierleague/rss"),
+)
 
 YOUTUBE_API = "https://www.googleapis.com/youtube/v3"
 
@@ -52,7 +61,13 @@ class Item:
 
 
 def sky_client() -> Upstream:
-    return Upstream(name="sky-rss", base_url="https://www.skysports.com")
+    """Kept for the poller's single shared client; base_url is per-request."""
+    return Upstream(name="rss", base_url="https://www.skysports.com")
+
+
+def feed_clients() -> list[tuple[str, Upstream, str]]:
+    """One client per outlet, since they are different hosts."""
+    return [(name, Upstream(name=f"rss:{name}", base_url=base), path) for name, base, path in FEEDS]
 
 
 _TAG = re.compile(r"<[^>]+>")
@@ -154,6 +169,16 @@ async def fetch_sky(up: Upstream) -> list[Item]:
     return items
 
 
+def newest_first(items: list[Item]) -> list[Item]:
+    """Sort by publication time, most recent first.
+
+    RSS makes no ordering promise and Sky's feed is not chronological -- it led
+    with a live-match page from the afternoon and put a two-day-old preview
+    second. Anything undated sorts last rather than jumping to the top.
+    """
+    return sorted(items, key=lambda i: i.published or "", reverse=True)
+
+
 def youtube_client(api_key: str) -> Upstream:
     return Upstream(name="youtube", base_url=YOUTUBE_API, headers={})
 
@@ -210,14 +235,46 @@ async def fetch_uploads(up: Upstream, api_key: str, channel_id: str, limit: int 
     return items
 
 
-async def poll_news(up: Upstream) -> dict[str, Any]:
-    """The whole news payload, degrading per source rather than as a whole."""
-    out: dict[str, Any] = {"sky": [], "youtube": [], "athletic": [], "errors": {}}
-    try:
-        # asdict, not __dict__: Item is a slots dataclass and has no __dict__.
-        out["sky"] = [asdict(item) for item in await fetch_sky(up)]
-    except UpstreamError as exc:
-        out["errors"]["sky"] = str(exc)
-        log.warning("news.sky_failed", error=str(exc))
-    out["fetched_at"] = datetime.now(UTC).isoformat()
-    return out
+async def poll_news(_: Upstream | None = None) -> dict[str, Any]:
+    """Every feed, merged and sorted, degrading one outlet at a time.
+
+    One outlet going down must cost only its own headlines, so each is fetched
+    and recorded separately and the failure is reported alongside the rest.
+    """
+    collected: list[Item] = []
+    errors: dict[str, str] = {}
+
+    for name, client, path in feed_clients():
+        try:
+            xml = await client.get_text(path)
+            found = parse_rss(xml, source=name)
+            collected.extend(found)
+            log.info("news.fetched", source=name, count=len(found))
+        except UpstreamError as exc:
+            errors[name] = str(exc)
+            log.warning("news.feed_failed", source=name, error=str(exc))
+        except Exception as exc:
+            errors[name] = str(exc)
+            log.warning("news.feed_error", source=name, error=str(exc))
+        finally:
+            await client.close()
+
+    # De-duplicate by URL: outlets syndicate, and the same story arriving twice
+    # reads as a bug.
+    seen: set[str] = set()
+    unique: list[Item] = []
+    for item in newest_first(collected):
+        if item.url in seen:
+            continue
+        seen.add(item.url)
+        unique.append(item)
+
+    # asdict, not __dict__: Item is a slots dataclass and has no __dict__.
+    return {
+        "sky": [asdict(item) for item in unique[:40]],
+        "youtube": [],
+        "athletic": [],
+        "errors": errors,
+        "sources": [name for name, _, _ in FEEDS],
+        "fetched_at": datetime.now(UTC).isoformat(),
+    }
