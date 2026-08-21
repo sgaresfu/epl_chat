@@ -150,6 +150,53 @@ class Settings(BaseSettings):
         return bool(getattr(self, key, ""))
 
 
+class ConfigurationError(RuntimeError):
+    """A deployment is misconfigured in a way that cannot be recovered from."""
+
+
+def validate_for_deployment(settings: Settings) -> None:
+    """Refuse to start a deployed service that would lose its data.
+
+    ``database_url`` defaults to SQLite so a clean clone runs with no setup. In
+    a container that default is a trap: the file lives on ephemeral storage and
+    disappears on every restart, and the async driver for it is not installed in
+    the production image -- so the failure surfaces as
+    ``ModuleNotFoundError: aiosqlite``, which says nothing whatsoever about the
+    actual problem, which is a missing DATABASE_URL.
+
+    Worse, Alembic runs before the app and *succeeds* against that throwaway
+    file, so the deploy looks half-healthy on the way down.
+
+    Failing here turns all of that into one sentence naming the variable.
+    """
+    if settings.environment == "local":
+        return
+
+    problems: list[str] = []
+
+    if "sqlite" in settings.database_url:
+        problems.append(
+            "DATABASE_URL is unset, so it fell back to SQLite on ephemeral disk. "
+            "Set it to a Postgres connection string — Render's own free tier is "
+            "deleted after 30 days, so use Neon or Supabase."
+        )
+
+    if not settings.codes:
+        problems.append(
+            "No code words are set. Set at least one of CODE_COYG, CODE_AURE, "
+            "CODE_TWZT, CODE_BULBA or nobody can sign in."
+        )
+
+    if len(settings.session_secret) < 32 or "dev-only" in settings.session_secret:
+        problems.append(
+            "SESSION_SECRET is missing or is the development placeholder. "
+            "Generate one with: openssl rand -hex 32"
+        )
+
+    if problems:
+        raise ConfigurationError(f"Cannot start in {settings.environment}:\n  - " + "\n  - ".join(problems))
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()

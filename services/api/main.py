@@ -20,7 +20,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from shared.cache import build_cache
-from shared.config import get_settings
+from shared.config import get_settings, validate_for_deployment
 
 from services.api.deps import AppState
 from services.api.routes import (
@@ -73,6 +73,11 @@ async def _run_poller(poller: Any) -> None:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     configure_logging(settings.log_level)
+
+    # Fail here, with a sentence naming the variable, rather than several
+    # frames deep inside a database driver.
+    validate_for_deployment(settings)
+
     cache = await build_cache(settings.redis_url)
 
     from shared.session import session_factory
