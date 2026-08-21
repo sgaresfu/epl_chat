@@ -96,3 +96,6 @@ jobs:
       - run: pip install -e ".[dev]"
       - name: Every club, prediction and broadcast listing is well-formed
         run: python scripts/check_data.py
+
+      - name: Deploy configuration is coherent
+        run: python scripts/preflight.py
