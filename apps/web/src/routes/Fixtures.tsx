@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { useFixtures, useMe } from '@/api/queries'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { api, ApiError } from '@/api/client'
+import { keys, useFixtures, useMe } from '@/api/queries'
 import { Crest } from '@/components/Crest'
 import { FourCities } from '@/components/FourCities'
 import { Empty, StaleNote, TableSkeleton } from '@/components/states'
@@ -13,6 +15,16 @@ function myKickoff(fixture: Fixture, me: string | undefined): string {
 
 function Row({ fixture, me }: { fixture: Fixture; me: string | undefined }) {
   const [open, setOpen] = useState(false)
+  const client = useQueryClient()
+  const watched = me !== undefined && fixture.watched_by.includes(me)
+
+  const toggle = useMutation({
+    mutationFn: () => api.post('/api/watch', { fixture_id: fixture.id }),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ['fixtures'] })
+      await client.invalidateQueries({ queryKey: keys.watch })
+    },
+  })
 
   return (
     <div className="fxr">
@@ -61,10 +73,28 @@ function Row({ fixture, me }: { fixture: Fixture; me: string | undefined }) {
         >
           {open ? 'Hide kick-off times' : 'Where to watch'}
         </button>
-        <button className="chip" type="button" disabled={!fixture.watch_open}>
-          {fixture.watch_open ? 'Mark as watched' : 'Opens at kick-off'}
+        <button
+          className={watched ? 'chip chip--done' : 'chip'}
+          type="button"
+          aria-pressed={watched}
+          disabled={!fixture.watch_open || toggle.isPending}
+          onClick={() => toggle.mutate()}
+        >
+          {watched
+            ? 'Watched'
+            : fixture.watch_open
+              ? 'Mark as watched'
+              : fixture.finished
+                ? 'Window closed'
+                : 'Opens at kick-off'}
         </button>
       </div>
+
+      {toggle.isError && (
+        <p className="picker__error" role="alert">
+          {toggle.error instanceof ApiError ? toggle.error.message : 'Could not save that.'}
+        </p>
+      )}
 
       {open && <FourCities times={fixture.local_times} me={me} />}
     </div>

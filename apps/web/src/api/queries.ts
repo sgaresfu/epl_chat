@@ -15,6 +15,7 @@ import type {
   Leaderboard,
   ProjectedTable,
   Season,
+  WatchStats,
 } from './types'
 
 export const keys = {
@@ -29,6 +30,7 @@ export const keys = {
   admin: ['admin'] as const,
   fplStandings: ['fpl', 'standings'] as const,
   leaderboard: ['leaderboard'] as const,
+  watch: ['watch'] as const,
   h2h: (a: string, b: string) => ['h2h', a, b] as const,
 }
 
@@ -107,6 +109,10 @@ export function useH2H(a: string, b: string): UseQueryResult<H2H> {
     queryFn: () => api.get<H2H>(`/api/h2h?a=${a}&b=${b}`),
     enabled: a !== b,
   })
+}
+
+export function useWatchStats(): UseQueryResult<WatchStats> {
+  return useQuery({ queryKey: keys.watch, queryFn: () => api.get<WatchStats>('/api/watch') })
 }
 
 export function useAdminStatus(): UseQueryResult<AdminStatus> {

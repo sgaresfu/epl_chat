@@ -20,6 +20,7 @@ import type {
   FplStandings,
   H2H,
   Leaderboard,
+  WatchStats,
   Freshness,
   Home,
   LeagueTable,
@@ -70,10 +71,11 @@ type _Admin = Assert<Exact<AdminStatus, Schemas['AdminStatusOut']>>
 type _Fpl = Assert<Exact<FplStandings, Schemas['FplStandingsOut']>>
 type _Lb = Assert<Exact<Leaderboard, Schemas['LeaderboardOut']>>
 type _H2H = Assert<Exact<H2H, Schemas['H2HOut']>>
+type _Watch = Assert<Exact<WatchStats, Schemas['WatchStatsOut']>>
 
 // Referenced so `noUnusedLocals` sees them as used. Every entry is `true` by
 // construction; a drifted type makes its `Assert` fail to satisfy the constraint.
 export type ContractHolds = [
   _Person, _Me, _Club, _Freshness, _LocalTime, _TableRow, _LeagueTable,
-  _Projected, _Fixture, _FixtureList, _Season, _Home, _Predictions, _Admin, _Fpl, _Lb, _H2H,
+  _Projected, _Fixture, _FixtureList, _Season, _Home, _Predictions, _Admin, _Fpl, _Lb, _H2H, _Watch,
 ]

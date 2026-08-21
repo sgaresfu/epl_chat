@@ -17,6 +17,7 @@ const Predictions = lazy(() =>
 )
 const Admin = lazy(() => import('@/routes/Admin').then((m) => ({ default: m.Admin })))
 const Fpl = lazy(() => import('@/routes/Fpl').then((m) => ({ default: m.Fpl })))
+const Watch = lazy(() => import('@/routes/Watch').then((m) => ({ default: m.Watch })))
 const Leaderboard = lazy(() =>
   import('@/routes/Leaderboard').then((m) => ({ default: m.Leaderboard })),
 )
@@ -62,15 +63,7 @@ export function App() {
             <Route path="/admin" element={<Admin />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/fpl" element={<Fpl />} />
-            <Route
-              path="/watch"
-              element={
-                <Placeholder
-                  title="Watch log"
-                  blurb="Marking a match watched opens at kick-off and closes twelve hours after full time. Nothing has kicked off yet."
-                />
-              }
-            />
+            <Route path="/watch" element={<Watch />} />
             <Route
               path="/news"
               element={

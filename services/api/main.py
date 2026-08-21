@@ -29,6 +29,7 @@ from services.api.routes import (
     session,
     stream,
     tables,
+    watch,
 )
 
 
@@ -123,7 +124,17 @@ def create_app() -> FastAPI:
         max_age=600,
     )
 
-    for module in (session, football, tables, predictions, leaderboard, fpl, stream, admin):
+    for module in (
+        session,
+        football,
+        tables,
+        predictions,
+        leaderboard,
+        fpl,
+        watch,
+        stream,
+        admin,
+    ):
         app.include_router(module.router)
 
     @app.get("/healthz", tags=["ops"])

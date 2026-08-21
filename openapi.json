@@ -555,6 +555,67 @@
         }
       }
     },
+    "/api/watch": {
+      "get": {
+        "tags": [
+          "watch"
+        ],
+        "summary": "Stats",
+        "operationId": "stats_api_watch_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchStatsOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "watch"
+        ],
+        "summary": "Toggle",
+        "description": "Mark a match watched, or un-mark it. Window checked server-side.",
+        "operationId": "toggle_api_watch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchToggleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchStatsOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stream": {
       "get": {
         "tags": [
@@ -2584,6 +2645,66 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WatchStatsOut": {
+        "properties": {
+          "person": {
+            "type": "string",
+            "title": "Person"
+          },
+          "watched": {
+            "type": "integer",
+            "title": "Watched"
+          },
+          "total_matches": {
+            "type": "integer",
+            "title": "Total Matches"
+          },
+          "percent": {
+            "type": "number",
+            "title": "Percent"
+          },
+          "hours": {
+            "type": "number",
+            "title": "Hours"
+          },
+          "night_medals": {
+            "type": "integer",
+            "title": "Night Medals"
+          },
+          "streak": {
+            "type": "integer",
+            "title": "Streak"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "watched",
+          "total_matches",
+          "percent",
+          "hours",
+          "night_medals",
+          "streak",
+          "freshness"
+        ],
+        "title": "WatchStatsOut"
+      },
+      "WatchToggleIn": {
+        "properties": {
+          "fixture_id": {
+            "type": "integer",
+            "title": "Fixture Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fixture_id"
+        ],
+        "title": "WatchToggleIn"
       }
     }
   }

@@ -271,6 +271,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/watch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stats */
+        get: operations["stats_api_watch_get"];
+        put?: never;
+        /**
+         * Toggle
+         * @description Mark a match watched, or un-mark it. Window checked server-side.
+         */
+        post: operations["toggle_api_watch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stream": {
         parameters: {
             query?: never;
@@ -1149,6 +1170,29 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** WatchStatsOut */
+        WatchStatsOut: {
+            /** Person */
+            person: string;
+            /** Watched */
+            watched: number;
+            /** Total Matches */
+            total_matches: number;
+            /** Percent */
+            percent: number;
+            /** Hours */
+            hours: number;
+            /** Night Medals */
+            night_medals: number;
+            /** Streak */
+            streak: number;
+            freshness: components["schemas"]["Freshness"];
+        };
+        /** WatchToggleIn */
+        WatchToggleIn: {
+            /** Fixture Id */
+            fixture_id: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -1583,6 +1627,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FplStandingsOut"];
+                };
+            };
+        };
+    };
+    stats_api_watch_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchStatsOut"];
+                };
+            };
+        };
+    };
+    toggle_api_watch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WatchToggleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchStatsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

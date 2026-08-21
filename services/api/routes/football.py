@@ -21,7 +21,7 @@ from shared.models import (
 )
 
 from services.api import views
-from services.api.deps import CurrentSession, State
+from services.api.deps import CurrentSession, Db, State
 
 log = structlog.get_logger(__name__)
 router = APIRouter(tags=["football"])
@@ -31,6 +31,26 @@ async def _fixtures(state: State) -> tuple[list[dict[str, Any]] | None, Any]:
     entry = await state.cache.get(keys.FPL_FIXTURES)
     rows = entry.value if entry else None
     return (rows if isinstance(rows, list) else None), entry
+
+
+async def _watched_by(db: Db) -> dict[int, list[str]]:
+    """fixture id -> the people who marked it watched.
+
+    One query for the whole page rather than one per fixture; with four people
+    and 380 rows the table is small enough to read whole.
+    """
+    from shared.db import Person, WatchLog
+    from sqlalchemy import select
+
+    rows = (
+        await db.execute(
+            select(WatchLog.fixture_id, Person.key).join(Person, Person.id == WatchLog.person_id)
+        )
+    ).all()
+    out: dict[int, list[str]] = {}
+    for fixture_id, key in rows:
+        out.setdefault(int(fixture_id), []).append(str(key))
+    return out
 
 
 async def _gameweek(state: State) -> int:
@@ -59,6 +79,7 @@ async def table(_: CurrentSession, state: State) -> TableOut:
 async def fixtures(
     _: CurrentSession,
     state: State,
+    db: Db,
     from_: datetime | None = Query(None, alias="from"),
     to: datetime | None = Query(None),
     gameweek: int | None = Query(None),
@@ -84,18 +105,20 @@ async def fixtures(
         selected = [r for r in selected if in_range(r)]
 
     selected = sorted(selected, key=lambda r: (r.get("kickoff_time") or "9999", r.get("id", 0)))
-    return views.build_fixture_list(selected, entry, keys.FPL_FIXTURES)
+    watched = await _watched_by(db)
+    return views.build_fixture_list(selected, entry, keys.FPL_FIXTURES, watched_by_fixture=watched)
 
 
 @router.get("/api/fixtures/{fixture_id}", response_model=FixtureOut)
-async def fixture(fixture_id: int, _: CurrentSession, state: State) -> FixtureOut:
+async def fixture(fixture_id: int, _: CurrentSession, state: State, db: Db) -> FixtureOut:
     from fastapi import HTTPException, status
 
     rows, _entry = await _fixtures(state)
     row = next((r for r in (rows or []) if int(r["id"]) == fixture_id), None)
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No such fixture.")
-    return views.build_fixture(row)
+    watched = await _watched_by(db)
+    return views.build_fixture(row, watched_by=watched.get(fixture_id, []))
 
 
 @router.get("/api/season", response_model=SeasonOut)

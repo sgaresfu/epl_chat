@@ -234,6 +234,17 @@ export interface CronRun {
   detail: string
 }
 
+export interface WatchStats {
+  person: string
+  watched: number
+  total_matches: number
+  percent: number
+  hours: number
+  night_medals: number
+  streak: number
+  freshness: Freshness
+}
+
 export interface LeaderboardRow {
   rank: number
   person: Person

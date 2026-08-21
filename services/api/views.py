@@ -239,6 +239,7 @@ def build_fixture_list(
     fixtures: list[dict[str, Any]] | None,
     entry: Entry | None,
     cache_key: str,
+    watched_by_fixture: dict[int, list[str]] | None = None,
     **kwargs: Any,
 ) -> FixtureListOut:
     if not fixtures:
@@ -247,8 +248,11 @@ def build_fixture_list(
             freshness=freshness(entry, cache_key),
             empty_message="Fixtures appear as soon as the poller has loaded the schedule.",
         )
+    watched = watched_by_fixture or {}
     return FixtureListOut(
-        fixtures=[build_fixture(row, **kwargs) for row in fixtures],
+        fixtures=[
+            build_fixture(row, watched_by=watched.get(int(row["id"]), []), **kwargs) for row in fixtures
+        ],
         freshness=freshness(entry, cache_key),
     )
 
