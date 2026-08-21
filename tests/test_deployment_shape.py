@@ -199,3 +199,47 @@ class TestFreeTierConstraints:
             capture_output=True,
         )
         assert result.returncode == 0, result.stderr.decode()
+
+
+class TestServiceReferencesThatDoNotWork:
+    """`fromService … property: host` is a trap, twice over.
+
+    For a *static site* it resolves to empty, which left the api with an empty
+    CORS allow-list rejecting every browser request. For a *web service* it
+    yields the service name rather than the hostname, so the frontend requested
+    `https://league-api/api/me` and died with ERR_NAME_NOT_RESOLVED.
+
+    Both failures are invisible to curl and to health checks — only a real
+    browser sees them — so the values are set explicitly instead.
+    """
+
+    CROSS_REFERENCES = ("VITE_API_BASE", "FRONTEND_ORIGIN")
+
+    def test_neither_url_is_wired_through_fromservice(self) -> None:
+        for name, service in SERVICES.items():
+            for entry in service.get("envVars", []):
+                if entry.get("key") in self.CROSS_REFERENCES:
+                    assert "fromService" not in entry, (
+                        f"{name}: {entry['key']} uses fromService, which yields a "
+                        "service name or an empty string, not a URL"
+                    )
+
+    def test_no_service_uses_property_host_at_all(self) -> None:
+        for name, service in SERVICES.items():
+            for entry in service.get("envVars", []):
+                ref = entry.get("fromService", {})
+                assert ref.get("property") != "host", (
+                    f"{name}: {entry.get('key')} uses property 'host', which is "
+                    "the service name, not a hostname"
+                )
+
+    def test_both_urls_are_declared_somewhere(self) -> None:
+        declared = {
+            entry["key"]
+            for service in SERVICES.values()
+            for entry in service.get("envVars", [])
+            if "key" in entry
+        }
+        declared |= {e["key"] for e in BLUEPRINT["envVarGroups"][0]["envVars"]}
+        for key in self.CROSS_REFERENCES:
+            assert key in declared, f"{key} is not declared anywhere"

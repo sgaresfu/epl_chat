@@ -23,12 +23,18 @@ services:
     buildCommand: cd apps/web && npm ci && npm run build
     staticPublishPath: apps/web/dist
     envVars:
-      # Render supplies the host only; the client prefixes https:// itself.
+      # Set by hand, to the api's full URL, e.g. https://league-api.onrender.com
+      #
+      # `fromService … property: host` does not do what its name suggests: it
+      # yields the service *name* ("league-api"), not the hostname. The frontend
+      # then requested https://league-api/api/me and every call died with
+      # ERR_NAME_NOT_RESOLVED — visible only in a browser, because the api
+      # itself was perfectly healthy.
+      #
+      # This is baked in at build time, so changing it needs a redeploy of this
+      # static site, not just a restart.
       - key: VITE_API_BASE
-        fromService:
-          name: league-api
-          type: web
-          property: host
+        sync: false
     routes:
       # A single-page app: every unknown path is the app shell, not a 404.
       - type: rewrite
