@@ -1,5 +1,5 @@
-import { usePredictions } from '@/api/queries'
-import { useClubs } from '@/api/queries'
+import { Link } from 'react-router-dom'
+import { useClubs, useMe, usePredictions } from '@/api/queries'
 import { Crest } from '@/components/Crest'
 import { Empty, TableSkeleton } from '@/components/states'
 import { countdownWords } from '@/lib/format'
@@ -53,6 +53,7 @@ function Filed({ prediction, clubs }: { prediction: Prediction; clubs: Map<strin
 export function Predictions() {
   const { data, isLoading } = usePredictions()
   const { data: clubList } = useClubs()
+  const { data: me } = useMe()
   const clubs = new Map((clubList ?? []).map((c) => [c.short_name, c]))
 
   if (isLoading || !data) return <TableSkeleton rows={10} />
@@ -62,10 +63,15 @@ export function Predictions() {
       <div className="wrap">
         <div className="shead">
           <h2>Predictions</h2>
-          <span className="shead__link" style={{ color: data.locked ? 'var(--ink-3)' : 'var(--blue)' }}>
-            {data.locked
-              ? 'Locked'
-              : `Locks in ${countdownWords(data.seconds_remaining)}`}
+          {!data.locked && (
+            <Link className="btn" to="/predictions/build" style={{ marginLeft: 'auto' }}>
+              {data.predictions.find((p) => p.person === me?.person.key)?.filed
+                ? 'Edit yours'
+                : 'File yours'}
+            </Link>
+          )}
+          <span className="shead__link" style={{ color: data.locked ? 'var(--ink-3)' : 'var(--blue)', marginLeft: data.locked ? 'auto' : 0 }}>
+            {data.locked ? 'Locked' : `Locks in ${countdownWords(data.seconds_remaining)}`}
           </span>
         </div>
 

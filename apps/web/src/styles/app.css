@@ -891,3 +891,336 @@
   font-size: 14px;
   min-height: 20px;
 }
+
+/* ---------- the picker ---------- */
+/* The most important screen at season start, and three of the four build it on
+   a phone. Touch targets stay at 44px, every action has a keyboard equivalent,
+   and nothing depends on hover. */
+
+.picker__head {
+  position: sticky;
+  top: var(--nav);
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--line-2);
+  padding: 14px 0;
+  margin-bottom: 8px;
+}
+.picker__bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.picker__count {
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.picker__count b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.picker__actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line-2);
+}
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--row);
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--line-2);
+  background: var(--bg);
+}
+.slot[data-over='true'] {
+  background: var(--bg-2);
+  box-shadow: inset 0 2px 0 var(--blue);
+}
+.slot[data-dragging='true'] {
+  opacity: 0.45;
+}
+.slot__pos {
+  width: 26px;
+  text-align: right;
+  font-size: 15px;
+  color: var(--ink-3);
+  font-weight: 500;
+  flex: 0 0 auto;
+}
+.slot__zone {
+  font-size: 11px;
+  color: var(--ink-3);
+  width: 46px;
+  flex: 0 0 auto;
+}
+.slot__zone[data-zone='ucl'] {
+  color: var(--blue);
+}
+.slot__zone[data-zone='rel'] {
+  color: var(--red);
+}
+.slot__club {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.slot__club b {
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.slot__empty {
+  color: var(--ink-3);
+  font-size: 15px;
+}
+.slot__grip {
+  cursor: grab;
+  color: var(--ink-3);
+  background: none;
+  border: 0;
+  padding: 10px 8px;
+  min-width: 40px;
+  min-height: 40px;
+  font-size: 15px;
+  line-height: 1;
+  border-radius: var(--r-control);
+  touch-action: none;
+}
+.slot__grip:hover {
+  background: var(--bg-2);
+  color: var(--ink);
+}
+.slot__grip:active {
+  cursor: grabbing;
+}
+.slot__grip:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.slot__x {
+  background: none;
+  border: 0;
+  color: var(--ink-3);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 10px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: var(--r-control);
+}
+.slot__x:hover {
+  background: var(--bg-2);
+  color: var(--ink);
+}
+
+/* ---------- the club chooser ---------- */
+.chooser {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.28);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+@media (min-width: 640px) {
+  .chooser {
+    align-items: center;
+  }
+}
+.chooser__panel {
+  background: var(--bg);
+  width: 100%;
+  max-width: 440px;
+  max-height: 82dvh;
+  border-radius: var(--r-panel) var(--r-panel) 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+@media (min-width: 640px) {
+  .chooser__panel {
+    border-radius: var(--r-panel);
+  }
+}
+.chooser__top {
+  padding: 20px 22px 14px;
+  border-bottom: 1px solid var(--line-2);
+}
+.chooser__title {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.chooser__search {
+  margin-top: 12px;
+  width: 100%;
+  height: 44px;
+  border-radius: var(--r-control);
+  border: 1px solid var(--line);
+  padding: 0 14px;
+  font: 17px var(--sys);
+  background: var(--bg-2);
+  color: var(--ink);
+}
+.chooser__search:focus {
+  border-color: var(--blue);
+  background: var(--bg);
+}
+.chooser__list {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 6px 0 14px;
+  margin: 0;
+  list-style: none;
+}
+.chooser__item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 22px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font: 17px var(--sys);
+  color: var(--ink);
+}
+.chooser__item:hover:not(:disabled),
+.chooser__item[data-active='true'] {
+  background: var(--bg-2);
+}
+.chooser__item:disabled {
+  cursor: not-allowed;
+  color: var(--ink-3);
+}
+.chooser__item:disabled .crest {
+  opacity: 0.35;
+}
+.chooser__taken {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.chooser__none {
+  padding: 26px 22px;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+.chooser__close {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  font-size: 15px;
+  color: var(--blue);
+  cursor: pointer;
+  padding: 4px 0;
+}
+.chooser__row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.picker__error {
+  color: var(--red);
+  font-size: 14px;
+  margin-top: 12px;
+}
+.picker__saved {
+  color: var(--green-ink);
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+/* ---------- picker: narrow screens ---------- */
+/* On a 390px phone the fixed furniture (position, zone, crest, three controls)
+   left about 90px for the club name, which truncated "Arsenal" to "Ars…".
+   The name is the content; everything else gives way to it.
+
+   Two changes: the zone label becomes a coloured rule on the row edge, and the
+   club renders under its short name — "Man Utd" rather than "Manchester
+   United", which is exactly what those short names are for. Touch targets stay
+   at 44px via padding, so nothing gets harder to hit. */
+
+.slot__long {
+  display: inline;
+}
+.slot__short {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .slot {
+    gap: 8px;
+    padding-left: 8px;
+    border-left: 3px solid transparent;
+  }
+  .slot[data-zone='ucl'] {
+    border-left-color: var(--blue);
+  }
+  .slot[data-zone='rel'] {
+    border-left-color: var(--red);
+  }
+  .slot__zone {
+    display: none;
+  }
+  .slot__pos {
+    width: 20px;
+  }
+  .slot__long {
+    display: none;
+  }
+  .slot__short {
+    display: inline;
+  }
+  .slot__grip,
+  .slot__x {
+    min-width: 34px;
+    padding: 12px 6px;
+  }
+}
+
+/* Below 360px there is no width left to take. Rather than shrink the name
+   further, the controls move to their own line: the club keeps the full row,
+   and the buttons keep their touch targets. */
+@media (max-width: 359px) {
+  .slot {
+    flex-wrap: wrap;
+    row-gap: 2px;
+    padding-top: 10px;
+    padding-bottom: 6px;
+  }
+  .slot__club {
+    flex: 1 1 60%;
+  }
+  .slot__grip,
+  .slot__x {
+    margin-left: 0;
+  }
+  .slot__grip:first-of-type {
+    margin-left: auto;
+  }
+}

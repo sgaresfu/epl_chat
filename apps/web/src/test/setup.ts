@@ -9,3 +9,9 @@ class MockEventSource {
   close(): void {}
 }
 globalThis.EventSource = MockEventSource as unknown as typeof EventSource
+
+// jsdom implements no layout, so scrollIntoView does not exist. Components must
+// not depend on it, but they may call it.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function scrollIntoView(): void {}
+}

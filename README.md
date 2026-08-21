@@ -144,7 +144,7 @@ The brief left three open, plus a fourth that emerged.
 ## Testing
 
 ```bash
-./.venv/bin/python -m pytest -q          # 180 tests
+./.venv/bin/python -m pytest -q          # 214 tests
 ./.venv/bin/mypy shared services         # strict
 ./.venv/bin/ruff check shared services tests scripts
 ./.venv/bin/python scripts/check_data.py # committed-data integrity
@@ -173,19 +173,21 @@ Honest status, rather than a claim of completeness.
 
 **Working end to end:** canonical clubs, scoring engine, timezone conversion,
 season timeline, auth with the cross-origin cookie, the cache and pub/sub layer,
-the FPL poller, SSE, `/`, `/table` (actual and projected), `/fixtures`,
-`/predictions` (seeded, redacted, server-locked), `/admin`.
+the FPL poller, SSE, the three cron jobs, `/`, `/table` (actual and projected),
+`/fixtures`, `/predictions` (seeded, redacted, server-locked), the picker at
+`/predictions/build`, `/fpl` standings, `/admin`.
 
-**Stubbed with honest empty states:** `/leaderboard`, `/fpl`, `/watch`, `/news`.
-Their routes render and explain what is missing. The scoring engine behind the
+**Stubbed with honest empty states:** `/leaderboard`, `/watch`, `/news`. Their
+routes render and explain what is missing. The scoring engine behind the
 leaderboard is complete and tested; it has nothing to score until matches are
 played.
 
 **Not started:** `/europe`, `/calendar`, `/chat`, `/archive`, web push, the PWA
-service worker, the shareable PNG export, odds and line-up clients, the
-manager photo tiles.
+service worker, the shareable PNG export, odds and line-up clients, the manager
+photo tiles, and the awards and Champions League halves of the picker (the 1-20
+table is built; award picks still come from the seed file).
 
-**Needs a decision:** the FPL entry→person mapping. The mini-league has four
-entries (`champ`, `HOBOurnemouth`, `Isak Teeties`, `Ionrunit`) and four people,
-but nothing in either dataset links them. The mapping table and admin editor are
-built; the mapping itself is unset rather than guessed.
+**Unverified:** the Docker images have never been built and `render.yaml` has
+never been applied — neither Docker nor a Render account was available here.
+Both are written against the current Render blueprint spec but should be treated
+as a first deploy, not a proven one.

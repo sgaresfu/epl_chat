@@ -17,6 +17,9 @@ const Predictions = lazy(() =>
 )
 const Admin = lazy(() => import('@/routes/Admin').then((m) => ({ default: m.Admin })))
 const Fpl = lazy(() => import('@/routes/Fpl').then((m) => ({ default: m.Fpl })))
+const PredictionPicker = lazy(() =>
+  import('@/routes/PredictionPicker').then((m) => ({ default: m.PredictionPicker })),
+)
 
 export function App() {
   const { data: me, isLoading, error } = useMe()
@@ -52,6 +55,7 @@ export function App() {
             <Route path="/table" element={<Table />} />
             <Route path="/fixtures" element={<Fixtures />} />
             <Route path="/predictions" element={<Predictions />} />
+            <Route path="/predictions/build" element={<PredictionPicker />} />
             <Route path="/admin" element={<Admin />} />
             <Route
               path="/leaderboard"
