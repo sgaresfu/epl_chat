@@ -173,7 +173,13 @@ async def daily(cache: Cache, settings: Settings) -> str:
         return "no fixture data available"
     played = sum(1 for r in rows if fpl_is_over(r))
     upcoming = sum(1 for r in rows if not fpl_is_over(r))
-    return f"line of the day computed; {played} played, {upcoming} to come"
+
+    # The weekly job opens a poll, but only on a Monday — so a season starting
+    # on a Friday would show an empty panel for three days. This runs daily and
+    # is idempotent, so it fills the gap without ever stacking two.
+    poll_note = await ensure_weekly_poll()
+
+    return f"line of the day computed; {played} played, {upcoming} to come; {poll_note}"
 
 
 async def hourly(cache: Cache, settings: Settings) -> str:

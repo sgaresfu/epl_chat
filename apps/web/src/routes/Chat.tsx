@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import { keys, useBets, useMe, usePoll, useQuotes, useTimeline } from '@/api/queries'
 import { Empty, TableSkeleton } from '@/components/states'
+import { plural } from '@/lib/plural'
 import type { Poll as PollType } from '@/api/types'
 
 const PEOPLE = ['coyg', 'aure', 'twzt', 'bulba'] as const
@@ -63,11 +64,11 @@ function Quotes() {
           </p>
         </Empty>
       ) : (
-        data.map((quote) => (
-          <div className="quote" key={quote.id}>
-            <p className="quote__body">&ldquo;{quote.body}&rdquo;</p>
-            <p className="quote__meta">
-              <b>{quote.person.toUpperCase()}</b>
+        data.slice(0, 8).map((quote) => (
+          <div className="quote-card" key={quote.id}>
+            <p className="quote-card__body">&ldquo;{quote.body}&rdquo;</p>
+            <p className="quote-card__meta">
+              <span className="quote-card__who">{quote.person.toUpperCase()}</span>
               <span>{ago(quote.created_at)}</span>
               {quote.subject_id && <span className="tag">{quote.subject_id}</span>}
             </p>
@@ -179,17 +180,6 @@ function BetsPanel() {
 
   return (
     <>
-      <div className="lb" style={{ marginTop: 0, marginBottom: 26 }}>
-        {Object.entries(data.scoreboard)
-          .sort((a, b) => b[1] - a[1])
-          .map(([person, wins]) => (
-            <div className="lb__row" key={person}>
-              <span className="lb__who">{person.toUpperCase()}</span>
-              <span className="lb__v">{wins}</span>
-            </div>
-          ))}
-      </div>
-
       <form
         className="composer"
         onSubmit={(e) => {
@@ -227,7 +217,7 @@ function BetsPanel() {
           <p>{data.empty_message}</p>
         </Empty>
       ) : (
-        data.bets.map((bet) => {
+        data.bets.slice(0, 6).map((bet) => {
           const mine = me?.person.key === bet.proposer || me?.person.key === bet.opponent
           return (
             <div className="bet" key={bet.id}>
@@ -278,7 +268,7 @@ function Feed() {
   }
   return (
     <div className="feed">
-      {data.entries.map((entry, index) => (
+      {data.entries.slice(0, 12).map((entry, index) => (
         <div className="feed__row" key={`${entry.kind}-${entry.at}-${index}`}>
           <span className="feed__kind">{entry.kind.replace('-', ' ')}</span>
           <span className="feed__body">
@@ -295,40 +285,77 @@ function Feed() {
   )
 }
 
-const TABS = [
-  ['quotes', 'Quotes'],
-  ['poll', 'Poll'],
-  ['bets', 'Bets'],
-  ['timeline', 'Timeline'],
-] as const
-
 export function Chat() {
-  const [tab, setTab] = useState<(typeof TABS)[number][0]>('quotes')
+  const { data: bets } = useBets()
+  const { data: poll } = usePoll()
+  const { data: quotes } = useQuotes()
+  const { data: timeline } = useTimeline()
+
+  const board = Object.entries(bets?.scoreboard ?? {})
+  const leader = Math.max(0, ...board.map(([, n]) => n))
 
   return (
     <section className="section">
       <div className="wrap">
         <div className="shead">
           <h2>The group</h2>
-          <span className="seg" role="tablist" aria-label="Section">
-            {TABS.map(([key, label]) => (
-              <button
-                key={key}
-                role="tab"
-                type="button"
-                aria-selected={tab === key}
-                onClick={() => setTab(key)}
-              >
-                {label}
-              </button>
-            ))}
+          <span className="shead__link" style={{ color: 'var(--ink-3)' }}>
+            {plural(quotes?.length ?? 0, 'quote')} ·{' '}
+            {plural(bets?.bets.length ?? 0, 'bet')} ·{' '}
+            {plural(timeline?.entries.length ?? 0, 'entry', 'entries')}
           </span>
         </div>
 
-        {tab === 'quotes' && <Quotes />}
-        {tab === 'poll' && <Polls />}
-        {tab === 'bets' && <BetsPanel />}
-        {tab === 'timeline' && <Feed />}
+        <div className="hub">
+          <div>
+            <div className="hub__panel">
+              <p className="hub__title">Quotes</p>
+              <Quotes />
+            </div>
+
+            <div className="hub__panel">
+              <p className="hub__title">
+                Timeline
+                <span>everything, newest first</span>
+              </p>
+              <Feed />
+            </div>
+          </div>
+
+          <aside>
+            <div className="hub__panel" style={{ marginTop: 0 }}>
+              <p className="hub__title">
+                This week&rsquo;s poll
+                {poll?.current && <span>{poll.current.total_votes} of 4 voted</span>}
+              </p>
+              <Polls />
+            </div>
+
+            <div className="hub__panel">
+              <p className="hub__title">
+                Settled bets
+                <span>no money, just a record</span>
+              </p>
+              {board.length > 0 && (
+                <div className="ledger">
+                  {board
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([person, wins]) => (
+                      <div
+                        className="ledger__cell"
+                        key={person}
+                        data-lead={wins > 0 && wins === leader}
+                      >
+                        <p className="ledger__who">{person.toUpperCase()}</p>
+                        <p className="ledger__wins">{wins}</p>
+                      </div>
+                    ))}
+                </div>
+              )}
+              <BetsPanel />
+            </div>
+          </aside>
+        </div>
       </div>
     </section>
   )
