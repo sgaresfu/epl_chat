@@ -43,6 +43,10 @@ const VIEWPORTS = [
 const LEAKS = [
   'undefined', 'NaN', '[object Object]', 'Internal Server Error',
   'Traceback', 'TypeError', 'Cannot read', 'null null',
+  // Escaped markup that got decoded back into visible tags. The Guardian
+  // escapes the HTML inside its feed descriptions, and a strip-then-decode
+  // ordering turned "&lt;p&gt;" into a literal <p> on the news page.
+  '<p>', '<br>', '<a href', '</a>', '&lt;', '&amp;', '&quot;', '&#39;',
 ]
 
 /**

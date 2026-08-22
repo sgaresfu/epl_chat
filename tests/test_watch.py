@@ -183,13 +183,24 @@ class TestWatchStateOnFixtures:
         self, settings: Settings, fixtures: list[dict[str, Any]], sessions: Any
     ) -> AsyncClient:
         cache = MemoryCache()
+        now = datetime.now(UTC)
         moved = [dict(row) for row in fixtures]
         for row in moved:
             if int(row["id"]) == OPENER:
-                row["kickoff_time"] = (
-                    (datetime.now(UTC) - timedelta(hours=1)).isoformat().replace("+00:00", "Z")
-                )
+                # An hour ago: kicked off, window open.
+                row["kickoff_time"] = (now - timedelta(hours=1)).isoformat().replace("+00:00", "Z")
                 row["started"] = True
+            else:
+                # Everything else is pushed firmly into the future.
+                #
+                # These carried their captured real kickoffs, which were in the
+                # future when the payload was recorded and are not any more --
+                # so "the rest of the round has not kicked off" quietly became
+                # false and the suite failed on a Saturday afternoon. Setting
+                # them relative to now tests the rule rather than the calendar.
+                row["kickoff_time"] = (now + timedelta(days=3)).isoformat().replace("+00:00", "Z")
+                row["started"] = False
+                row["finished"] = False
         from shared import keys
 
         await cache.set(keys.FPL_FIXTURES, moved, source="fpl")

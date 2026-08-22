@@ -66,9 +66,10 @@ async def news(_: CurrentSession, state: State, settings: Config) -> NewsOut:
 
 
 def _youtube_message(settings: Settings) -> str:
-    if not settings.youtube_api_key:
-        return (
-            "Video uploads need YOUTUBE_API_KEY. Set it and the six channels "
-            "resolve at next poll; nothing else on the site is affected."
-        )
-    return "No uploads fetched yet."
+    """Only ever shown when the rail is empty, so it explains the wait.
+
+    No longer mentions a credential: uploads come from each channel's public
+    Atom feed, which needs none. YOUTUBE_API_KEY is a setup-time tool for
+    resolving a new channel id, not a runtime dependency.
+    """
+    return "Videos appear once the poller has read the six channel feeds."

@@ -246,9 +246,22 @@ def get_settings() -> Settings:
     return Settings()
 
 
+# Shown on /admin as "what is not configured". Deliberately short now: three
+# of the four features these used to gate were rebuilt on keyless sources, so
+# an absent key costs a refinement rather than the whole panel.
 MISSING_KEY_MESSAGES: dict[str, str] = {
     "football_data_key": "Champions League data needs FOOTBALL_DATA_KEY.",
-    "api_football_key": "Line-ups need API_FOOTBALL_KEY.",
-    "odds_api_key": "bet365 prices need ODDS_API_KEY.",
-    "youtube_api_key": "Video uploads need YOUTUBE_API_KEY.",
+    "api_football_key": (
+        "API_FOOTBALL_KEY would upgrade line-ups from a predicted XI to the "
+        "confirmed team sheet. Without it the XI is inferred from FPL and "
+        "labelled as such."
+    ),
+    "odds_api_key": (
+        "ODDS_API_KEY would add in-play price moves. Pre-match bet365 prices "
+        "come from football-data.co.uk and need no key."
+    ),
+    "youtube_api_key": (
+        "YOUTUBE_API_KEY is only needed to resolve a new channel id. Uploads "
+        "come from each channel's public feed and need no key."
+    ),
 }

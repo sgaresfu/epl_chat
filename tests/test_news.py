@@ -119,11 +119,15 @@ class TestEndpoint:
         assert body["sky"] == []
         assert body["empty_message"]
 
-    async def test_a_missing_youtube_key_names_itself(self, client: AsyncClient) -> None:
-        # A missing key degrades one panel with a clear message, not the site.
+    async def test_the_video_rail_explains_the_wait_not_a_credential(self, client: AsyncClient) -> None:
+        """Uploads used to need YOUTUBE_API_KEY, which was never set on the
+        server, so the rail was permanently empty and said so. They now come
+        from each channel's public Atom feed, so an empty rail means the
+        poller has not run yet -- and the message says that instead."""
         await sign_in(client)
         body = (await client.get("/api/news")).json()
-        assert "YOUTUBE_API_KEY" in body["youtube_message"]
+        assert "YOUTUBE_API_KEY" not in body["youtube_message"]
+        assert body["youtube_message"]
 
     async def test_the_athletic_is_explained_not_scraped(self, client: AsyncClient) -> None:
         await sign_in(client)
@@ -250,6 +254,33 @@ class TestHtmlEntities:
 
         assert _text("<p>Everything you need.</p>") == "Everything you need."
 
+    def test_escaped_markup_is_stripped_not_revealed(self) -> None:
+        """A regression test for markup that reached the page.
+
+        The Guardian escapes the HTML inside its <description>, so the field
+        holds "&lt;p&gt;" rather than "<p>". Stripping tags before decoding
+        finds nothing to strip, and decoding afterwards *creates* the tags --
+        so a literal "<p>...<a href=...>" was rendered in the lead story.
+        """
+        from services.poller.news import _text
+
+        raw = '&lt;p&gt;Live updates&lt;br&gt; &lt;a href="https://x"&gt;Live scores&lt;/a&gt;'
+        out = _text(raw)
+        assert out == "Live updates Live scores"
+        for fragment in ("<p>", "<br>", "<a ", "href=", "</a>"):
+            assert fragment not in out, fragment
+
+    def test_doubly_escaped_markup_is_also_stripped(self) -> None:
+        from services.poller.news import _text
+
+        assert _text("&amp;lt;p&amp;gt;double&amp;lt;/p&amp;gt;") == "double"
+
+    def test_whitespace_is_collapsed(self) -> None:
+        """Feed descriptions carry newlines that render as ragged gaps."""
+        from services.poller.news import _text
+
+        assert _text("line one\n\n  line two") == "line one line two"
+
 
 class TestYouTubeChannels:
     def test_all_six_channels_from_the_brief_are_resolved(self) -> None:
@@ -352,3 +383,127 @@ class TestImages:
     def test_parsed_items_carry_their_image(self) -> None:
         items = parse_rss(f"<rss>{self.BBC}</rss>", source="BBC Sport")
         assert items[0].image == "https://ichef.bbci.co.uk/ace/standard/976/x.jpg"
+
+
+class TestYouTubeWithoutAKey:
+    """Uploads come from each channel's public Atom feed.
+
+    YOUTUBE_API_KEY was never set on the server, so the video rail shipped
+    empty. The Data API adds nothing for "what has this channel posted
+    lately" and spends quota to ask, so the key is now only a setup-time
+    tool for resolving a new channel id.
+    """
+
+    FEED = """<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"
+      xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+  <title>The Overlap</title>
+  <author><name>The Overlap</name><uri>https://www.youtube.com/channel/UC123</uri></author>
+  <entry>
+    <yt:videoId>abc123</yt:videoId>
+    <title>Wrighty SHUTS DOWN Lewis-Skelly to United! &#128075;</title>
+    <link rel="alternate" href="https://www.youtube.com/watch?v=abc123"/>
+    <published>2026-08-22T07:00:34+00:00</published>
+    <media:group>
+      <media:thumbnail url="https://i3.ytimg.com/vi/abc123/hqdefault.jpg" width="480" height="360"/>
+    </media:group>
+  </entry>
+  <entry>
+    <yt:videoId>def456</yt:videoId>
+    <title>A short</title>
+    <link rel="alternate" href="https://www.youtube.com/shorts/def456"/>
+    <published>2026-08-21T09:00:00+00:00</published>
+    <media:group>
+      <media:thumbnail url="https://i3.ytimg.com/vi/def456/hqdefault.jpg"/>
+    </media:group>
+  </entry>
+  <entry>
+    <yt:videoId>ghi789</yt:videoId>
+    <title>Broken entry with no link</title>
+    <published>2026-08-20T09:00:00+00:00</published>
+  </entry>
+</feed>"""
+
+    def test_well_formed_entries_are_read(self) -> None:
+        from services.poller.news import parse_channel_feed
+
+        items = parse_channel_feed(self.FEED)
+        assert len(items) == 2, "the entry with no link is dropped, not fatal"
+
+    def test_the_channel_name_becomes_the_source(self) -> None:
+        from services.poller.news import parse_channel_feed
+
+        assert {i.source for i in parse_channel_feed(self.FEED)} == {"The Overlap"}
+
+    def test_entities_are_decoded_in_titles(self) -> None:
+        from services.poller.news import parse_channel_feed
+
+        assert parse_channel_feed(self.FEED)[0].title.endswith("United! \U0001f44b")
+
+    def test_iso_timestamps_become_utc(self) -> None:
+        """Atom uses ISO 8601, not the RFC 2822 the headline feeds use, so the
+        RSS date parser cannot read these at all."""
+        from services.poller.news import parse_channel_feed
+
+        published = parse_channel_feed(self.FEED)[0].published
+        assert published is not None
+        assert published.startswith("2026-08-22T07:00:34")
+
+    def test_thumbnails_are_carried(self) -> None:
+        from services.poller.news import parse_channel_feed
+
+        assert all(i.image and i.image.startswith("https://") for i in parse_channel_feed(self.FEED))
+
+    def test_a_shorts_url_is_kept_as_a_short(self) -> None:
+        from services.poller.news import parse_channel_feed
+
+        assert parse_channel_feed(self.FEED)[1].url.endswith("/shorts/def456")
+
+    def test_the_limit_is_respected(self) -> None:
+        from services.poller.news import parse_channel_feed
+
+        assert len(parse_channel_feed(self.FEED, limit=1)) == 1
+
+    def test_an_empty_feed_yields_nothing_rather_than_raising(self) -> None:
+        from services.poller.news import parse_channel_feed
+
+        assert parse_channel_feed("<feed></feed>") == []
+        assert parse_channel_feed("") == []
+
+    def test_an_undated_entry_survives(self) -> None:
+        from services.poller.news import parse_channel_feed
+
+        feed = """<feed><author><name>X</name></author><entry>
+          <title>No date</title><link rel="alternate" href="https://www.youtube.com/watch?v=z"/>
+        </entry></feed>"""
+        items = parse_channel_feed(feed)
+        assert len(items) == 1
+        assert items[0].published is None
+
+    def test_an_unparseable_date_does_not_drop_the_video(self) -> None:
+        from services.poller.news import parse_channel_feed
+
+        feed = """<feed><author><name>X</name></author><entry>
+          <title>Bad date</title><link rel="alternate" href="https://www.youtube.com/watch?v=z"/>
+          <published>not-a-date</published>
+        </entry></feed>"""
+        items = parse_channel_feed(feed)
+        assert len(items) == 1
+        assert items[0].published is None
+
+    def test_the_payload_survives_a_json_round_trip(self) -> None:
+        import json
+        from dataclasses import asdict
+
+        from services.poller.news import parse_channel_feed
+
+        rows = [asdict(i) for i in parse_channel_feed(self.FEED)]
+        assert json.loads(json.dumps(rows)) == rows
+
+
+class TestYouTubeEndpointMessage:
+    async def test_the_empty_rail_no_longer_blames_a_missing_key(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        message = (await client.get("/api/news")).json()["youtube_message"]
+        assert "YOUTUBE_API_KEY" not in message, "uploads need no credential now"
+        assert "channel feeds" in message

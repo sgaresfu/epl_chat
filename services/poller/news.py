@@ -133,9 +133,23 @@ def _text(raw: str) -> str:
     YouTube returns titles HTML-escaped -- "Arteta&#39;s" and "&quot;Arsenal" --
     and RSS descriptions often carry entities too. Left alone they render
     literally, which looks like a broken encoding.
+
+    **Order matters, and getting it wrong is worse than doing nothing.** The
+    Guardian escapes the markup inside its ``<description>``, so the raw field
+    contains ``&lt;p&gt;`` rather than ``<p>``. Stripping tags first finds
+    nothing to strip; decoding afterwards then *creates* the tags, and a
+    literal ``<p>...<a href="...">`` lands on the page. So decode first, strip
+    second -- and loop, because one pass over doubly-escaped markup leaves a
+    second layer behind.
     """
     cleaned = raw.replace("<![CDATA[", "").replace("]]>", "")
-    return html.unescape(_TAG.sub("", cleaned)).strip()
+    for _ in range(3):
+        decoded = html.unescape(cleaned)
+        stripped = _TAG.sub("", decoded)
+        if stripped == cleaned:
+            break
+        cleaned = stripped
+    return " ".join(cleaned.split())
 
 
 # Each outlet publishes a thumbnail in its feed, at a size meant for a list.
@@ -248,6 +262,92 @@ def newest_first(items: list[Item]) -> list[Item]:
     second. Anything undated sorts last rather than jumping to the top.
     """
     return sorted(items, key=lambda i: i.published or "", reverse=True)
+
+
+# Every YouTube channel publishes an Atom feed of its recent uploads at this
+# address, with no key, no quota and no registration. The Data API adds nothing
+# for "what has this channel posted lately" and costs quota to ask, so the key
+# is only needed to *resolve* a channel id at setup -- a job already done, with
+# the results committed in youtube_channels.json.
+YOUTUBE_HOST = "https://www.youtube.com"
+CHANNEL_FEED_PATH = "/feeds/videos.xml"
+
+_ENTRY = re.compile(r"<entry>(.*?)</entry>", re.DOTALL)
+_LINK_HREF = re.compile(r'<link[^>]+rel="alternate"[^>]+href="([^"]+)"')
+_THUMB = re.compile(r'<media:thumbnail[^>]+url="([^"]+)"')
+
+
+def parse_channel_feed(xml: str, limit: int = 6) -> list[Item]:
+    """Parse a YouTube channel's Atom feed.
+
+    Atom, not RSS: entries are ``<entry>`` rather than ``<item>`` and the
+    timestamp is ISO 8601 rather than RFC 2822, so :func:`parse_rss` cannot
+    read it. Deliberately tolerant -- an entry missing a title or a link is
+    dropped rather than taking the rail down with it.
+    """
+    channel = ""
+    name_match = re.search(r"<author>\s*<name>(.*?)</name>", xml, re.DOTALL)
+    if name_match:
+        channel = _text(name_match.group(1))
+
+    items: list[Item] = []
+    for block in _ENTRY.findall(xml)[:limit]:
+
+        def field(name: str, text: str = block) -> str:
+            match = re.search(rf"<{name}[^>]*>(.*?)</{name}>", text, re.DOTALL)
+            return _text(match.group(1)) if match else ""
+
+        title = field("title")
+        link_match = _LINK_HREF.search(block)
+        if not title or not link_match:
+            continue
+
+        published = field("published")
+        moment = None
+        if published:
+            try:
+                moment = datetime.fromisoformat(published)
+            except ValueError:
+                moment = None
+
+        thumb = _THUMB.search(block)
+        items.append(
+            Item(
+                title=title,
+                url=html.unescape(link_match.group(1)),
+                source=channel or "YouTube",
+                published=moment.astimezone(UTC).isoformat() if moment else None,
+                image=html.unescape(thumb.group(1)) if thumb else None,
+            )
+        )
+    return items
+
+
+async def fetch_channel_uploads(channel_id: str, per_channel: int = 6) -> list[Item]:
+    """Recent uploads for one channel, keyless."""
+    up = Upstream(name="youtube-rss", base_url=YOUTUBE_HOST)
+    try:
+        xml = await up.get_text(CHANNEL_FEED_PATH, params={"channel_id": channel_id})
+    finally:
+        await up.close()
+    return parse_channel_feed(xml, limit=per_channel)
+
+
+async def fetch_uploads_free(per_channel: int = 6) -> tuple[list[Item], dict[str, str]]:
+    """Recent uploads across every stored channel, with no credential at all.
+
+    One channel failing costs only its own videos, the same rule the headline
+    feeds follow.
+    """
+    collected: list[Item] = []
+    errors: dict[str, str] = {}
+    for channel in channels():
+        try:
+            collected.extend(await fetch_channel_uploads(channel["channel_id"], per_channel))
+        except Exception as exc:
+            errors[channel["name"]] = str(exc)
+            log.warning("news.youtube_rss_failed", channel=channel["name"], error=str(exc))
+    return newest_first(collected), errors
 
 
 def youtube_client(api_key: str) -> Upstream:
@@ -368,7 +468,12 @@ async def poll_news(api_key: str = "") -> dict[str, Any]:
         seen.add(item.url)
         unique.append(item)
 
-    uploads, upload_errors = await fetch_all_uploads(api_key)
+    # Keyless by default. The Data API path still exists for a deployment that
+    # sets a key, but it buys nothing here and spends quota to do it.
+    if api_key:
+        uploads, upload_errors = await fetch_all_uploads(api_key)
+    else:
+        uploads, upload_errors = await fetch_uploads_free()
     errors.update(upload_errors)
 
     # asdict, not __dict__: Item is a slots dataclass and has no __dict__.
