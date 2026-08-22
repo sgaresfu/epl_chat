@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useFplSquads, useFplStandings, useMe } from '@/api/queries'
+import { useClubs, useFplSquads, useFplStandings, useMe } from '@/api/queries'
+import { Crest } from '@/components/Crest'
 import { Empty, StaleNote, TableSkeleton } from '@/components/states'
 import type { FplPlayer, FplSquad } from '@/api/types'
 
@@ -13,11 +14,19 @@ const CHIP_NAMES: Record<string, string> = {
 }
 
 function Player({ player }: { player: FplPlayer }) {
+  // A crest reads faster than three letters, and every other table on the
+  // site now shows one.
+  const { data: clubList } = useClubs()
+  const club = (clubList ?? []).find((c) => c.short_name === player.club)
+
   return (
     <div className="pl" data-played={player.played}>
       <span className="pl__pos">{player.position}</span>
       <span className="pl__name">{player.name}</span>
-      <span className="pl__club">{player.club}</span>
+      <span className="pl__club">
+        {club && <Crest club={club} size={15} />}
+        {player.club}
+      </span>
       {player.is_captain && (
         <span className="pl__badge" data-kind="C" title="Captain">
           C

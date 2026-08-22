@@ -45,7 +45,7 @@ export function App() {
   if (error || !me) return <Login />
 
   return (
-    <>
+    <div className="shell">
       <a className="skip-link" href="#main">
         Skip to content
       </a>
@@ -87,6 +87,6 @@ export function App() {
           Broadcast listings verified 21 August 2026.
         </div>
       </footer>
-    </>
+    </div>
   )
 }

@@ -304,9 +304,19 @@
 .btn:hover:not(:disabled) {
   background: var(--blue-solid-h);
 }
+/*
+ * Not a faded blue. Dropping the opacity of a filled button leaves a muddy
+ * navy with grey text -- on the sign-in screen, which is the first thing
+ * anybody sees, it reads as a broken button rather than a waiting one. A
+ * neutral ground says "not yet" unambiguously.
+ */
 .btn:disabled {
-  opacity: 0.4;
+  background: var(--bg-2);
+  color: var(--ink-3);
   cursor: not-allowed;
+}
+.btn--plain:disabled {
+  background: transparent;
 }
 .btn--plain {
   background: transparent;
@@ -1706,6 +1716,9 @@
   text-overflow: ellipsis;
 }
 .pl__club {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   color: var(--ink-3);
 }
@@ -3256,4 +3269,25 @@
 .table tbody tr:nth-child(-n + 3) .pos {
   color: var(--ink);
   font-weight: 600;
+}
+
+
+/* ---------- page shell ---------- */
+/*
+ * A short page should still put its footer at the bottom of the window. The
+ * group page ends two thirds of the way down an empty screen otherwise, and
+ * a footer floating in the middle of nothing reads as a broken render rather
+ * than a short page.
+ */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.shell > main {
+  flex: 1 0 auto;
+}
+.shell > .footer {
+  flex-shrink: 0;
 }
