@@ -12,6 +12,7 @@ import {
 } from '@/api/queries'
 import { Crest } from '@/components/Crest'
 import { FourCities } from '@/components/FourCities'
+import { ManagerPhotos } from '@/components/ManagerPhotos'
 import { SeasonTimeline } from '@/components/SeasonTimeline'
 import { Empty, StaleNote, TableSkeleton, TileSkeleton } from '@/components/states'
 import { countdown, countdownWords, signed } from '@/lib/format'
@@ -491,6 +492,15 @@ export function Home() {
       <Results />
 
       <Highlights />
+
+      <section className="section">
+        <div className="wrap">
+          <div className="shead">
+            <h2>The era</h2>
+          </div>
+          <ManagerPhotos />
+        </div>
+      </section>
 
       <hr className="rule" style={{ marginTop: 64 }} />
 
