@@ -49,6 +49,31 @@ export function redirectToCanonicalOrigin(): boolean {
   return true
 }
 
+/**
+ * Whether the last response came from the service worker's cache.
+ *
+ * A cached response is a *successful* response, so "did the request work?"
+ * cannot tell live data from a copy served while offline. The worker stamps
+ * `X-From-Cache` on anything it replays, which is the only honest signal.
+ */
+let servedFromCache = false
+const cacheListeners = new Set<(cached: boolean) => void>()
+
+export function onCacheStateChange(fn: (cached: boolean) => void): () => void {
+  cacheListeners.add(fn)
+  return () => cacheListeners.delete(fn)
+}
+
+export function isServedFromCache(): boolean {
+  return servedFromCache
+}
+
+function noteCacheState(cached: boolean): void {
+  if (cached === servedFromCache) return
+  servedFromCache = cached
+  for (const fn of cacheListeners) fn(cached)
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -93,6 +118,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     // A network failure is not an exception the user should read a stack for.
     throw new ApiError(0, 'Could not reach the server. Check your connection.')
   }
+
+  noteCacheState(response.headers.get('X-From-Cache') === '1')
 
   if (response.status === 204) return undefined as T
 

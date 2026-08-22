@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import { App } from './App'
 import { redirectToCanonicalOrigin } from './api/client'
+import { registerServiceWorker } from './lib/serviceWorker'
 import './styles/tokens.css'
 import './styles/app.css'
 
@@ -32,6 +33,8 @@ if (redirectToCanonicalOrigin()) {
 
 const root = document.getElementById('root')
 if (!root) throw new Error('#root is missing from index.html')
+
+registerServiceWorker()
 
 createRoot(root).render(
   <StrictMode>
