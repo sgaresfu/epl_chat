@@ -2135,3 +2135,197 @@
   padding: 2px 8px;
   white-space: nowrap;
 }
+
+/* ---------- fixtures, rebuilt ---------- */
+/* Grouped by day, time on the left, clubs meeting in the middle. Scanning a
+   round should take one pass, not seven screens of chips. */
+.day-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 26px 0 10px;
+  border-bottom: 1px solid var(--line-2);
+}
+.day-head__day {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.day-head__date {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.day-head__count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.match {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 8px;
+  border-bottom: 1px solid var(--line-2);
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+.match:hover {
+  background: var(--bg-2);
+}
+.match__time {
+  font-size: 14px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.match__time b {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.match__state {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+.match__state[data-live='true'] {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.match__tie {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  /* Capped, or on a wide screen the two clubs drift to opposite edges and the
+     score floats alone in the middle with nothing to hold it. */
+  max-width: 560px;
+}
+.match__side {
+  justify-content: flex-end;
+}
+.match__side--away {
+  justify-content: flex-end;
+}
+.match__side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.match__side--away {
+  flex-direction: row-reverse;
+}
+.match__club {
+  font-size: 16px;
+  letter-spacing: -0.012em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The winner reads solid, the loser recedes — the result is legible at a
+   glance without a badge saying so. */
+.match__side[data-result='won'] .match__club {
+  font-weight: 600;
+}
+.match__side[data-result='lost'] .match__club {
+  color: var(--ink-3);
+}
+.match__score {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 46px;
+  text-align: center;
+}
+.match__score[data-played='false'] {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+
+.match__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+/* Actions stay quiet until the row is approached, so a round reads as a list
+   of matches rather than a wall of buttons. On touch there is no hover, so
+   they are always visible there. */
+.match__actions .chip {
+  opacity: 0.32;
+  transition: opacity 0.15s ease;
+  min-height: 32px;
+  padding: 0 13px;
+  font-size: 13px;
+}
+.match:hover .match__actions .chip,
+.match__actions .chip:focus-visible,
+.match__actions .chip[aria-pressed='true'],
+.match__actions .chip--done {
+  opacity: 1;
+}
+@media (hover: none) {
+  .match__actions .chip {
+    opacity: 1;
+  }
+}
+
+.match__badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 2px 5px;
+  white-space: nowrap;
+}
+
+.match__watchers {
+  display: flex;
+  gap: 3px;
+}
+.watcher {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--green-tint);
+  color: var(--green-ink);
+  font-size: 9px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+@media (max-width: 760px) {
+  .match {
+    grid-template-columns: 48px 1fr;
+    grid-template-areas: 'time tie' 'time actions';
+    row-gap: 8px;
+  }
+  .match__time { grid-area: time; align-self: start; padding-top: 3px; }
+  .match__tie { grid-area: tie; }
+  .match__actions { grid-area: actions; }
+  .match__club { font-size: 15px; }
+}
+@media (max-width: 460px) {
+  .match__tie {
+    grid-template-columns: 1fr auto 1fr;
+    gap: 6px;
+  }
+  .match__club {
+    font-size: 13px;
+  }
+}
