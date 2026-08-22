@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  useClubs,
   useFixtures,
   useFplSquads,
   useHome,
+  useLeaderboard,
   useMe,
   useNews,
   usePlayerStats,
@@ -17,6 +19,7 @@ import { SeasonTimeline } from '@/components/SeasonTimeline'
 import { Empty, StaleNote, TableSkeleton, TileSkeleton } from '@/components/states'
 import { countdown, countdownWords, signed } from '@/lib/format'
 import { headline } from '@/lib/headline'
+import { annotate, widestSplit, type Filed } from '@/lib/annotate'
 
 /** Ticks once a second, but only while a countdown is actually running. */
 function useTick(active: boolean): number {
@@ -97,6 +100,7 @@ function NextMatch() {
 
 export function TablePreview() {
   const { data, isLoading, error } = useTable()
+  const { data: predictions } = usePredictions()
 
   if (isLoading) return <TableSkeleton rows={6} />
   if (error || !data) {
@@ -118,7 +122,50 @@ export function TablePreview() {
     )
   }
 
-  const rows = data.rows.slice(0, 5)
+  // Only tables that are actually readable: before the lock everyone else's
+  // is redacted, and annotating from a half-visible set would be wrong.
+  const filed: Filed[] = (predictions?.predictions ?? [])
+    .filter((p) => p.filed && !p.redacted && p.table.length > 0)
+    .map((p) => ({ person: p.person, table: p.table }))
+
+  // Top five and the relegation places, which is where a league table is
+  // actually decided. The middle is a link away and rarely the story.
+  const top = data.rows.slice(0, 5)
+  const bottom = data.rows.slice(-3)
+  const skipped = data.rows.length - top.length - bottom.length
+
+  const row = (r: (typeof data.rows)[number]) => {
+    const note = annotate(r.club.short_name, filed)
+    return (
+      <tr key={r.club.short_name}>
+        <td>
+          <span className="pos">{r.position}</span>
+        </td>
+        <td>
+          <span className="club">
+            <Crest club={r.club} />
+            <b>{r.club.full_name}</b>
+            {note && (
+              <span className="callout" data-kind={note.kind} title={note.detail}>
+                {note.label}
+              </span>
+            )}
+          </span>
+        </td>
+        <td className="sec">{r.played}</td>
+        <td className="sec">{signed(r.goal_difference)}</td>
+        <td className="pts">{r.points}</td>
+        <td className="form">
+          {r.form.length === 0 ? (
+            <span className="form--empty">—</span>
+          ) : (
+            r.form.map((f, i) => <i key={i} data-r={f} />)
+          )}
+        </td>
+      </tr>
+    )
+  }
+
   return (
     <>
       <div className="table-scroll">
@@ -134,29 +181,13 @@ export function TablePreview() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.club.short_name}>
-                <td>
-                  <span className="pos">{row.position}</span>
-                </td>
-                <td>
-                  <span className="club">
-                    <Crest club={row.club} />
-                    <b>{row.club.full_name}</b>
-                  </span>
-                </td>
-                <td className="sec">{row.played}</td>
-                <td className="sec">{signed(row.goal_difference)}</td>
-                <td className="pts">{row.points}</td>
-                <td className="form">
-                  {row.form.length === 0 ? (
-                    <span className="form--empty">—</span>
-                  ) : (
-                    row.form.map((r, i) => <i key={i} data-r={r} />)
-                  )}
-                </td>
+            {top.map(row)}
+            {skipped > 0 && (
+              <tr className="table__gap">
+                <td colSpan={6}>{skipped} places not shown</td>
               </tr>
-            ))}
+            )}
+            {bottom.map(row)}
           </tbody>
         </table>
       </div>
@@ -167,37 +198,75 @@ export function TablePreview() {
 
 function PredictionTile() {
   const { data, isLoading } = usePredictions()
+  const { data: board } = useLeaderboard()
+  const { data: clubList } = useClubs()
+
   if (isLoading || !data) return <TileSkeleton />
 
-  const filed = data.predictions.filter((p) => p.filed)
   const open = data.predictions.filter((p) => !p.filed)
+  const rows = board?.rows ?? []
+  const leader = rows[0]
+  const gap = rows.length > 1 ? (leader?.total ?? 0) - (rows[1]?.total ?? 0) : 0
+
+  const filed: Filed[] = data.predictions
+    .filter((p) => p.filed && !p.redacted && p.table.length > 0)
+    .map((p) => ({ person: p.person, table: p.table }))
+  const names = new Map((clubList ?? []).map((c) => [c.short_name, c.name]))
+  const insight = widestSplit(filed, (short) => names.get(short) ?? short)
+
+  // Before anything has been scored there is no leader to name, and the
+  // order is a tie-break rather than a standing -- so the tile falls back to
+  // who has filed, which is the only true thing to say.
+  const scored = rows.some((r) => r.total > 0)
 
   return (
     <div className="tile">
       <h3>Predictions</h3>
-      <p className="tile__big">
-        {filed.length}
-        <span> of {data.predictions.length} filed</span>
-      </p>
+      {scored && leader ? (
+        <p className="tile__big">
+          {leader.person.name}
+          <span>{gap > 0 ? ` leads by ${gap}` : ' leads on the tie-break'}</span>
+        </p>
+      ) : (
+        <p className="tile__big">
+          {data.predictions.filter((p) => p.filed).length}
+          <span> of {data.predictions.length} filed</span>
+        </p>
+      )}
+
       <div className="lb">
-        {data.predictions.map((p) => (
-          <div className="lb__row" key={p.person}>
-            <span className="lb__i">{p.person.slice(0, 1).toUpperCase()}</span>
-            <span className="lb__who">{p.person.toUpperCase()}</span>
-            {p.filed ? (
-              <span className="lb__open">{p.redacted ? 'Filed · sealed' : 'Filed'}</span>
-            ) : (
-              <span className="lb__open">{data.locked ? 'Did not file' : 'Still open'}</span>
-            )}
+        {(scored ? rows : []).map((r, i) => (
+          <div className="lb__row" key={r.person.key}>
+            <span className="lb__rank">{i + 1}</span>
+            <span className="lb__who">{r.person.name}</span>
+            <span className="lb__pts">{r.total}</span>
           </div>
         ))}
+        {!scored &&
+          data.predictions.map((p) => (
+            <div className="lb__row" key={p.person}>
+              <span className="lb__i">{p.person.slice(0, 1).toUpperCase()}</span>
+              <span className="lb__who">{p.person.toUpperCase()}</span>
+              <span className="lb__open">
+                {p.filed
+                  ? p.redacted
+                    ? 'Filed · sealed'
+                    : 'Filed'
+                  : data.locked
+                    ? 'Did not file'
+                    : 'Still open'}
+              </span>
+            </div>
+          ))}
       </div>
+
       <p>
-        {data.locked
-          ? 'Locked. Every table is now visible to everyone.'
-          : open.length > 0
-            ? `${open.length} still unfiled. Everything seals the moment Arsenal kick off.`
-            : 'All four are in. Everything seals at kick-off.'}
+        {insight ??
+          (data.locked
+            ? 'Locked. Every table is now visible to everyone.'
+            : open.length > 0
+              ? `${open.length} still unfiled. Everything seals the moment Arsenal kick off.`
+              : 'All four are in. Everything seals at kick-off.')}
       </p>
     </div>
   )

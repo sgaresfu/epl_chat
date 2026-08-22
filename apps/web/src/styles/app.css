@@ -3291,3 +3291,60 @@
 .shell > .footer {
   flex-shrink: 0;
 }
+
+/* ---------- prediction callouts ---------- */
+/*
+ * What the four of them said, on the row itself. A consensus is the quieter
+ * of the two: everyone agreeing is pleasant but not an argument. A split is
+ * the interesting one, so it carries the accent.
+ */
+.callout {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  white-space: nowrap;
+  border-radius: 5px;
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  cursor: help;
+}
+.callout[data-kind='split'] {
+  color: var(--blue-text);
+  border-color: var(--blue-text);
+}
+@media (max-width: 640px) {
+  /* On a phone the club name has to win. */
+  .callout {
+    display: none;
+  }
+}
+
+/* The elided middle of a truncated table. A row rather than a rule, so the
+   count is legible and the table stays one semantic table. */
+.table__gap td {
+  height: 34px;
+  text-align: center !important;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  background: var(--bg-2);
+}
+.table tbody tr.table__gap:hover td {
+  background: var(--bg-2);
+}
+
+/* A ranked row inside a standings tile: rank, name, total. */
+.lb__rank {
+  width: 16px;
+  font-size: 12px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.lb__pts {
+  margin-left: auto;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.015em;
+}
