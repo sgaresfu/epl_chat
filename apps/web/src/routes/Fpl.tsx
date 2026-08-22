@@ -75,6 +75,67 @@ function Chips({ squad }: { squad: FplSquad }) {
   )
 }
 
+/** Who is winning, without reading four cards. */
+function StandingsBar({ squads, me }: { squads: FplSquad[]; me: string | undefined }) {
+  if (squads.length === 0) return null
+  const lead = Math.max(...squads.map((s) => s.live_points))
+  return (
+    <div className="fpl-bar">
+      {squads.map((squad) => {
+        const total = squad.players_played + squad.players_to_play
+        const done = total ? (squad.players_played / total) * 100 : 0
+        return (
+          <div className="fpl-bar__cell" key={squad.entry_id} data-lead={squad.live_points === lead}>
+            <p className="fpl-bar__who">
+              {(squad.person ?? squad.entry_name).toUpperCase()}
+              {squad.person === me && <span className="tag">you</span>}
+            </p>
+            <p className="fpl-bar__pts">{squad.live_points}</p>
+            <p className="fpl-bar__sub">
+              {squad.players_played} of {total} played
+              {squad.bench_counts ? ' · bench counting' : ''}
+            </p>
+            <span className="fpl-bar__prog">
+              <i style={{ width: `${done}%` }} />
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/** The captain choice, which is where most of a round is decided. */
+function CaptainRow({ squads }: { squads: FplSquad[] }) {
+  const withCaptain = squads.filter((s) => s.captain)
+  if (withCaptain.length === 0) return null
+
+  const counts = new Map<number, number>()
+  for (const s of withCaptain) {
+    const id = s.captain!.element
+    counts.set(id, (counts.get(id) ?? 0) + 1)
+  }
+
+  return (
+    <div className="captains">
+      {withCaptain.map((squad) => {
+        const captain = squad.captain!
+        const unique = counts.get(captain.element) === 1
+        return (
+          <div className="captain" key={squad.entry_id} data-unique={unique}>
+            <p className="captain__who">{(squad.person ?? squad.entry_name).toUpperCase()} · captain</p>
+            <p className="captain__name">{captain.name}</p>
+            <p className="captain__pts">
+              {captain.points} pts · {captain.club}
+            </p>
+            {unique && <span className="captain__tag">ONLY ONE</span>}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function Squad({ squad, me }: { squad: FplSquad; me: string | undefined }) {
   const differentials = [...squad.starting, ...squad.bench].filter((p) => p.differential)
   return (
@@ -209,14 +270,8 @@ export function Fpl() {
           </Empty>
         ) : (
           <>
-            {Object.keys(data.captains).length > 0 && (
-              <p className="tnote" style={{ marginTop: 0, marginBottom: 22 }}>
-                <b style={{ color: 'var(--ink)' }}>Captains:</b>{' '}
-                {Object.entries(data.captains)
-                  .map(([who, name]) => `${who.toUpperCase()} ${name}`)
-                  .join(' · ')}
-              </p>
-            )}
+            <StandingsBar squads={data.squads} me={me?.person.key} />
+            <CaptainRow squads={data.squads} />
             <div className="squads">
               {data.squads.map((squad) => (
                 <Squad key={squad.entry_id} squad={squad} me={me?.person.key} />

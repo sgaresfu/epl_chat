@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   useFixtures,
+  useFplSquads,
   useHome,
   useMe,
   useNews,
@@ -301,6 +302,93 @@ function Highlights() {
   )
 }
 
+/** The mini-league as it stands right now, not once a round is settled. */
+function FantasyTile() {
+  const { data } = useFplSquads()
+  const { data: me } = useMe()
+  const squads = data?.squads ?? []
+
+  if (squads.length === 0) {
+    return (
+      <div className="tile">
+        <h3>Fantasy</h3>
+        <p className="tile__big">
+          —<span> squads not in yet</span>
+        </p>
+        <p>{data?.empty_message ?? 'They appear once the gameweek deadline passes.'}</p>
+      </div>
+    )
+  }
+
+  const lead = Math.max(...squads.map((s) => s.live_points))
+  const top = squads[0]
+
+  return (
+    <div className="tile">
+      <h3>Fantasy · Gameweek {data?.gameweek}</h3>
+      <p className="tile__big">
+        {lead}
+        <span> {top?.person?.toUpperCase() ?? ''}, live</span>
+      </p>
+      <div className="fpl-mini">
+        {squads.map((squad) => (
+          <div className="fpl-mini__row" key={squad.entry_id} data-lead={squad.live_points === lead}>
+            <span className="fpl-mini__who">
+              {(squad.person ?? squad.entry_name).toUpperCase()}
+              {squad.person === me?.person.key && (
+                <span className="tag" style={{ marginLeft: 7 }}>
+                  you
+                </span>
+              )}
+            </span>
+            {squad.captain && <span className="fpl-mini__cap">C {squad.captain.name}</span>}
+            <span className="fpl-mini__pts">{squad.live_points}</span>
+          </div>
+        ))}
+      </div>
+      <p>
+        {squads.reduce((n, s) => n + s.players_to_play, 0)} players still to come across the
+        four squads.
+      </p>
+    </div>
+  )
+}
+
+/** New uploads from the six channels. */
+function LatestVideo() {
+  const { data } = useNews()
+  const videos = (data?.youtube ?? []).slice(0, 4)
+  if (videos.length === 0) return null
+
+  return (
+    <section className="section" style={{ paddingTop: 0 }}>
+      <div className="wrap">
+        <div className="shead">
+          <h2>Watching</h2>
+          <Link className="shead__link" to="/news">
+            All video
+          </Link>
+        </div>
+        <div className="home-video">
+          {videos.map((item) => (
+            <a className="video" key={item.url} href={item.url} target="_blank" rel="noreferrer noopener">
+              {item.image && (
+                <div className="video__art">
+                  <img src={item.image} alt="" loading="lazy" />
+                </div>
+              )}
+              <p className="video__title">{item.title}</p>
+              <p className="video__channel">
+                {item.source} · {ago(item.published)}
+              </p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 /** Three headlines with their pictures. */
 function LatestNews() {
   const { data } = useNews()
@@ -395,16 +483,7 @@ export function Home() {
           </div>
           <div className="tiles">
             <PredictionTile />
-            <div className="tile">
-              <h3>Fantasy · Gameweek 1</h3>
-              <p className="tile__big">
-                —<span> not yet scored</span>
-              </p>
-              <p>
-                Live points appear once the first match kicks off. The mini-league orders
-                itself after gameweek one is scored.
-              </p>
-            </div>
+            <FantasyTile />
           </div>
         </div>
       </section>
@@ -422,6 +501,8 @@ export function Home() {
       <hr className="rule" />
 
       <LatestNews />
+
+      <LatestVideo />
     </>
   )
 }

@@ -2423,3 +2423,161 @@
   font-weight: 600;
   color: var(--ink-2);
 }
+
+/* ---------- home: video rail ---------- */
+.home-video {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .home-video {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 520px) {
+  .home-video {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- home: fantasy tile ---------- */
+.fpl-mini {
+  margin-top: 18px;
+}
+.fpl-mini__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+}
+.fpl-mini__row:first-child {
+  border-top: 0;
+}
+.fpl-mini__who {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.fpl-mini__cap {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.fpl-mini__pts {
+  margin-left: auto;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.fpl-mini__row[data-lead='true'] .fpl-mini__pts {
+  color: var(--blue);
+}
+
+/* ---------- fantasy: standings strip ---------- */
+/* Four managers, four totals, in one line above the squads — the answer to
+   "who's winning" should not require reading four cards. */
+.fpl-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line-2);
+  border-radius: var(--r-inset);
+  overflow: hidden;
+  margin-bottom: 26px;
+}
+@media (max-width: 620px) {
+  .fpl-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.fpl-bar__cell {
+  background: #fff;
+  padding: 16px 14px;
+}
+.fpl-bar__who {
+  font-size: 12px;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fpl-bar__pts {
+  margin-top: 7px;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.fpl-bar__cell[data-lead='true'] .fpl-bar__pts {
+  color: var(--blue);
+}
+.fpl-bar__sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+/* display:block matters: height and margin are ignored on an inline element,
+   so this rendered as a rounded blob rather than a progress bar. */
+.fpl-bar__prog {
+  display: block;
+  margin-top: 9px;
+  height: 3px;
+  border-radius: 99px;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.fpl-bar__prog i {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+  border-radius: 99px;
+}
+
+/* Captain comparison: where the round is actually decided. */
+.captains {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 26px;
+}
+@media (max-width: 620px) {
+  .captains {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.captain {
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-inset);
+  padding: 14px;
+}
+.captain__who {
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+}
+.captain__name {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.captain__pts {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+/* A captain nobody else picked is where a round is won or lost. */
+.captain[data-unique='true'] {
+  border-color: var(--blue);
+}
+.captain__tag {
+  display: inline-block;
+  margin-top: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--blue);
+}
