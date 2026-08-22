@@ -29,11 +29,13 @@ import type {
   Me,
   News,
   Person,
+  PlayerStats,
   Polls,
   Predictions,
   ProjectedTable,
   Season,
   TableRow,
+  TeamStats,
   Timeline,
   WatchStats,
 } from './types'
@@ -82,10 +84,12 @@ type _News = Assert<Exact<News, Schemas['NewsOut']>>
 type _Polls = Assert<Exact<Polls, Schemas['PollsOut']>>
 type _Bets = Assert<Exact<Bets, Schemas['BetsOut']>>
 type _Timeline = Assert<Exact<Timeline, Schemas['TimelineOut']>>
+type _PStats = Assert<Exact<PlayerStats, Schemas['PlayerStatsOut']>>
+type _TStats = Assert<Exact<TeamStats, Schemas['TeamStatsOut']>>
 
 // Referenced so `noUnusedLocals` sees them as used. Every entry is `true` by
 // construction; a drifted type makes its `Assert` fail to satisfy the constraint.
 export type ContractHolds = [
   _Person, _Me, _Club, _Freshness, _LocalTime, _TableRow, _LeagueTable,
-  _Projected, _Fixture, _FixtureList, _Season, _Home, _Predictions, _Admin, _Fpl, _Lb, _H2H, _Watch, _News, _Polls, _Bets, _Timeline, _Squads,
+  _Projected, _Fixture, _FixtureList, _Season, _Home, _Predictions, _Admin, _Fpl, _Lb, _H2H, _Watch, _News, _Polls, _Bets, _Timeline, _Squads, _PStats, _TStats,
 ]

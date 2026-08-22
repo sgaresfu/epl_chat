@@ -932,6 +932,48 @@
         }
       }
     },
+    "/api/stats/players": {
+      "get": {
+        "tags": [
+          "stats"
+        ],
+        "summary": "Players",
+        "operationId": "players_api_stats_players_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerStatsOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stats/teams": {
+      "get": {
+        "tags": [
+          "stats"
+        ],
+        "summary": "Teams",
+        "operationId": "teams_api_stats_teams_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamStatsOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stream": {
       "get": {
         "tags": [
@@ -2925,6 +2967,211 @@
         ],
         "title": "PersonOut"
       },
+      "PlayerStatOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "club": {
+            "type": "string",
+            "title": "Club"
+          },
+          "club_name": {
+            "type": "string",
+            "title": "Club Name"
+          },
+          "position": {
+            "type": "string",
+            "title": "Position"
+          },
+          "minutes": {
+            "type": "integer",
+            "title": "Minutes"
+          },
+          "starts": {
+            "type": "integer",
+            "title": "Starts"
+          },
+          "goals": {
+            "type": "integer",
+            "title": "Goals"
+          },
+          "assists": {
+            "type": "integer",
+            "title": "Assists"
+          },
+          "goal_involvements": {
+            "type": "integer",
+            "title": "Goal Involvements"
+          },
+          "clean_sheets": {
+            "type": "integer",
+            "title": "Clean Sheets"
+          },
+          "saves": {
+            "type": "integer",
+            "title": "Saves"
+          },
+          "yellow_cards": {
+            "type": "integer",
+            "title": "Yellow Cards"
+          },
+          "red_cards": {
+            "type": "integer",
+            "title": "Red Cards"
+          },
+          "bonus": {
+            "type": "integer",
+            "title": "Bonus"
+          },
+          "xg": {
+            "type": "number",
+            "title": "Xg"
+          },
+          "xa": {
+            "type": "number",
+            "title": "Xa"
+          },
+          "xgi": {
+            "type": "number",
+            "title": "Xgi"
+          },
+          "goals_minus_xg": {
+            "type": "number",
+            "title": "Goals Minus Xg"
+          },
+          "per_90_goals": {
+            "type": "number",
+            "title": "Per 90 Goals"
+          },
+          "per_90_assists": {
+            "type": "number",
+            "title": "Per 90 Assists"
+          },
+          "ict": {
+            "type": "number",
+            "title": "Ict"
+          },
+          "form": {
+            "type": "number",
+            "title": "Form"
+          },
+          "points": {
+            "type": "number",
+            "title": "Points"
+          },
+          "points_per_game": {
+            "type": "number",
+            "title": "Points Per Game"
+          },
+          "price": {
+            "type": "number",
+            "title": "Price"
+          },
+          "selected_by": {
+            "type": "number",
+            "title": "Selected By"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "a"
+          },
+          "news": {
+            "type": "string",
+            "title": "News",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "full_name",
+          "club",
+          "club_name",
+          "position",
+          "minutes",
+          "starts",
+          "goals",
+          "assists",
+          "goal_involvements",
+          "clean_sheets",
+          "saves",
+          "yellow_cards",
+          "red_cards",
+          "bonus",
+          "xg",
+          "xa",
+          "xgi",
+          "goals_minus_xg",
+          "per_90_goals",
+          "per_90_assists",
+          "ict",
+          "form",
+          "points",
+          "points_per_game",
+          "price",
+          "selected_by",
+          "status",
+          "news"
+        ],
+        "title": "PlayerStatOut",
+        "description": "One player's season to date, as the stats table shows them."
+      },
+      "PlayerStatsOut": {
+        "properties": {
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerStatOut"
+            },
+            "type": "array",
+            "title": "Players"
+          },
+          "gameweek": {
+            "type": "integer",
+            "title": "Gameweek",
+            "default": 0
+          },
+          "matches_played": {
+            "type": "integer",
+            "title": "Matches Played",
+            "default": 0
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "players",
+          "gameweek",
+          "matches_played",
+          "freshness",
+          "empty_message"
+        ],
+        "title": "PlayerStatsOut"
+      },
       "PollOptionOut": {
         "properties": {
           "choice": {
@@ -3702,6 +3949,141 @@
           "note"
         ],
         "title": "TableRowOut"
+      },
+      "TeamStatOut": {
+        "properties": {
+          "club": {
+            "$ref": "#/components/schemas/ClubOut"
+          },
+          "position": {
+            "type": "integer",
+            "title": "Position"
+          },
+          "played": {
+            "type": "integer",
+            "title": "Played"
+          },
+          "won": {
+            "type": "integer",
+            "title": "Won"
+          },
+          "drawn": {
+            "type": "integer",
+            "title": "Drawn"
+          },
+          "lost": {
+            "type": "integer",
+            "title": "Lost"
+          },
+          "goals_for": {
+            "type": "integer",
+            "title": "Goals For"
+          },
+          "goals_against": {
+            "type": "integer",
+            "title": "Goals Against"
+          },
+          "goal_difference": {
+            "type": "integer",
+            "title": "Goal Difference"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          },
+          "clean_sheets": {
+            "type": "integer",
+            "title": "Clean Sheets"
+          },
+          "failed_to_score": {
+            "type": "integer",
+            "title": "Failed To Score"
+          },
+          "goals_per_game": {
+            "type": "number",
+            "title": "Goals Per Game"
+          },
+          "conceded_per_game": {
+            "type": "number",
+            "title": "Conceded Per Game"
+          },
+          "form": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Form"
+          },
+          "squad_xg": {
+            "type": "number",
+            "title": "Squad Xg",
+            "default": 0.0
+          },
+          "squad_xga": {
+            "type": "number",
+            "title": "Squad Xga",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "club",
+          "position",
+          "played",
+          "won",
+          "drawn",
+          "lost",
+          "goals_for",
+          "goals_against",
+          "goal_difference",
+          "points",
+          "clean_sheets",
+          "failed_to_score",
+          "goals_per_game",
+          "conceded_per_game",
+          "form",
+          "squad_xg",
+          "squad_xga"
+        ],
+        "title": "TeamStatOut"
+      },
+      "TeamStatsOut": {
+        "properties": {
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamStatOut"
+            },
+            "type": "array",
+            "title": "Teams"
+          },
+          "matches_played": {
+            "type": "integer",
+            "title": "Matches Played",
+            "default": 0
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "teams",
+          "matches_played",
+          "freshness",
+          "empty_message"
+        ],
+        "title": "TeamStatsOut"
       },
       "TimelineEntryOut": {
         "properties": {

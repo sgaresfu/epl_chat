@@ -409,6 +409,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stats/players": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Players */
+        get: operations["players_api_stats_players_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stats/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Teams */
+        get: operations["teams_api_stats_teams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stream": {
         parameters: {
             query?: never;
@@ -1272,6 +1306,96 @@ export interface components {
             /** Fpl Entry Id */
             fpl_entry_id: number | null;
         };
+        /**
+         * PlayerStatOut
+         * @description One player's season to date, as the stats table shows them.
+         */
+        PlayerStatOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Full Name */
+            full_name: string;
+            /** Club */
+            club: string;
+            /** Club Name */
+            club_name: string;
+            /** Position */
+            position: string;
+            /** Minutes */
+            minutes: number;
+            /** Starts */
+            starts: number;
+            /** Goals */
+            goals: number;
+            /** Assists */
+            assists: number;
+            /** Goal Involvements */
+            goal_involvements: number;
+            /** Clean Sheets */
+            clean_sheets: number;
+            /** Saves */
+            saves: number;
+            /** Yellow Cards */
+            yellow_cards: number;
+            /** Red Cards */
+            red_cards: number;
+            /** Bonus */
+            bonus: number;
+            /** Xg */
+            xg: number;
+            /** Xa */
+            xa: number;
+            /** Xgi */
+            xgi: number;
+            /** Goals Minus Xg */
+            goals_minus_xg: number;
+            /** Per 90 Goals */
+            per_90_goals: number;
+            /** Per 90 Assists */
+            per_90_assists: number;
+            /** Ict */
+            ict: number;
+            /** Form */
+            form: number;
+            /** Points */
+            points: number;
+            /** Points Per Game */
+            points_per_game: number;
+            /** Price */
+            price: number;
+            /** Selected By */
+            selected_by: number;
+            /**
+             * Status
+             * @default a
+             */
+            status: string;
+            /**
+             * News
+             * @default
+             */
+            news: string;
+        };
+        /** PlayerStatsOut */
+        PlayerStatsOut: {
+            /** Players */
+            players: components["schemas"]["PlayerStatOut"][];
+            /**
+             * Gameweek
+             * @default 0
+             */
+            gameweek: number;
+            /**
+             * Matches Played
+             * @default 0
+             */
+            matches_played: number;
+            freshness: components["schemas"]["Freshness"];
+            /** Empty Message */
+            empty_message: string | null;
+        };
         /** PollOptionOut */
         PollOptionOut: {
             /** Choice */
@@ -1561,6 +1685,61 @@ export interface components {
             modelled: boolean;
             /** Note */
             note: string | null;
+        };
+        /** TeamStatOut */
+        TeamStatOut: {
+            club: components["schemas"]["ClubOut"];
+            /** Position */
+            position: number;
+            /** Played */
+            played: number;
+            /** Won */
+            won: number;
+            /** Drawn */
+            drawn: number;
+            /** Lost */
+            lost: number;
+            /** Goals For */
+            goals_for: number;
+            /** Goals Against */
+            goals_against: number;
+            /** Goal Difference */
+            goal_difference: number;
+            /** Points */
+            points: number;
+            /** Clean Sheets */
+            clean_sheets: number;
+            /** Failed To Score */
+            failed_to_score: number;
+            /** Goals Per Game */
+            goals_per_game: number;
+            /** Conceded Per Game */
+            conceded_per_game: number;
+            /** Form */
+            form: string[];
+            /**
+             * Squad Xg
+             * @default 0
+             */
+            squad_xg: number;
+            /**
+             * Squad Xga
+             * @default 0
+             */
+            squad_xga: number;
+        };
+        /** TeamStatsOut */
+        TeamStatsOut: {
+            /** Teams */
+            teams: components["schemas"]["TeamStatOut"][];
+            /**
+             * Matches Played
+             * @default 0
+             */
+            matches_played: number;
+            freshness: components["schemas"]["Freshness"];
+            /** Empty Message */
+            empty_message: string | null;
         };
         /** TimelineEntryOut */
         TimelineEntryOut: {
@@ -2395,6 +2574,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TimelineOut"];
+                };
+            };
+        };
+    };
+    players_api_stats_players_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayerStatsOut"];
+                };
+            };
+        };
+    };
+    teams_api_stats_teams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamStatsOut"];
                 };
             };
         };

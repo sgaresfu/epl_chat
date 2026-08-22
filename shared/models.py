@@ -384,6 +384,79 @@ class FplStandingsOut(Model):
     unmapped: list[int] = Field(default_factory=list)
 
 
+class PlayerStatOut(Model):
+    """One player's season to date, as the stats table shows them."""
+
+    id: int
+    name: str
+    full_name: str
+    club: str
+    club_name: str
+    position: str
+    minutes: int
+    starts: int
+    goals: int
+    assists: int
+    goal_involvements: int
+    clean_sheets: int
+    saves: int
+    yellow_cards: int
+    red_cards: int
+    bonus: int
+    # FPL exposes expected goals and assists, which is the closest thing to
+    # Opta's model available without a paid feed.
+    xg: float
+    xa: float
+    xgi: float
+    goals_minus_xg: float
+    per_90_goals: float
+    per_90_assists: float
+    ict: float
+    form: float
+    points: float
+    points_per_game: float
+    price: float
+    selected_by: float
+    status: str = "a"
+    news: str = ""
+
+
+class PlayerStatsOut(Model):
+    players: list[PlayerStatOut] = Field(default_factory=list)
+    gameweek: int = 0
+    matches_played: int = 0
+    freshness: Freshness
+    empty_message: str | None = None
+
+
+class TeamStatOut(Model):
+    club: ClubOut
+    position: int
+    played: int
+    won: int
+    drawn: int
+    lost: int
+    goals_for: int
+    goals_against: int
+    goal_difference: int
+    points: int
+    clean_sheets: int
+    failed_to_score: int
+    goals_per_game: float
+    conceded_per_game: float
+    form: list[str] = Field(default_factory=list)
+    # Aggregated from the squad, so it reflects who is actually playing.
+    squad_xg: float = 0.0
+    squad_xga: float = 0.0
+
+
+class TeamStatsOut(Model):
+    teams: list[TeamStatOut] = Field(default_factory=list)
+    matches_played: int = 0
+    freshness: Freshness
+    empty_message: str | None = None
+
+
 # --------------------------------------------------------------------------
 # Season timeline
 # --------------------------------------------------------------------------

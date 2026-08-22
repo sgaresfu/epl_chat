@@ -234,6 +234,74 @@ export interface CronRun {
   detail: string
 }
 
+export interface PlayerStat {
+  id: number
+  name: string
+  full_name: string
+  club: string
+  club_name: string
+  position: string
+  minutes: number
+  starts: number
+  goals: number
+  assists: number
+  goal_involvements: number
+  clean_sheets: number
+  saves: number
+  yellow_cards: number
+  red_cards: number
+  bonus: number
+  xg: number
+  xa: number
+  xgi: number
+  goals_minus_xg: number
+  per_90_goals: number
+  per_90_assists: number
+  ict: number
+  form: number
+  points: number
+  points_per_game: number
+  price: number
+  selected_by: number
+  status: string
+  news: string
+}
+
+export interface PlayerStats {
+  players: PlayerStat[]
+  gameweek: number
+  matches_played: number
+  freshness: Freshness
+  empty_message: string | null
+}
+
+export interface TeamStat {
+  club: Club
+  position: number
+  played: number
+  won: number
+  drawn: number
+  lost: number
+  goals_for: number
+  goals_against: number
+  goal_difference: number
+  points: number
+  clean_sheets: number
+  failed_to_score: number
+  goals_per_game: number
+  conceded_per_game: number
+  form: string[]
+  squad_xg: number
+  squad_xga: number
+}
+
+export interface TeamStats {
+  teams: TeamStat[]
+  matches_played: number
+  freshness: Freshness
+  empty_message: string | null
+}
+
 export interface Quote {
   id: number
   person: string

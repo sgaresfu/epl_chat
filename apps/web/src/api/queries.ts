@@ -16,8 +16,10 @@ import type {
   Bets,
   Leaderboard,
   News,
+  PlayerStats,
   Polls,
   Quote,
+  TeamStats,
   ProjectedTable,
   Season,
   Timeline,
@@ -39,6 +41,8 @@ export const keys = {
   leaderboard: ['leaderboard'] as const,
   watch: ['watch'] as const,
   news: ['news'] as const,
+  playerStats: ['stats', 'players'] as const,
+  teamStats: ['stats', 'teams'] as const,
   quotes: ['chat', 'quotes'] as const,
   poll: ['chat', 'poll'] as const,
   bets: ['chat', 'bets'] as const,
@@ -154,6 +158,20 @@ export function useFplSquads(): UseQueryResult<FplSquads> {
     // Live during a match; the stream also invalidates this on an fpl event.
     refetchInterval: 60_000,
   })
+}
+
+export function usePlayerStats(): UseQueryResult<PlayerStats> {
+  return useQuery({
+    queryKey: keys.playerStats,
+    queryFn: () => api.get<PlayerStats>('/api/stats/players'),
+    // The whole list, sorted in the browser: 600 trimmed rows is a small
+    // payload and makes sorting a column instant.
+    staleTime: 5 * 60_000,
+  })
+}
+
+export function useTeamStats(): UseQueryResult<TeamStats> {
+  return useQuery({ queryKey: keys.teamStats, queryFn: () => api.get<TeamStats>('/api/stats/teams') })
 }
 
 export function useAdminStatus(): UseQueryResult<AdminStatus> {

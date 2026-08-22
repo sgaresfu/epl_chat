@@ -32,6 +32,7 @@ from services.api.routes import (
     news,
     predictions,
     session,
+    stats,
     stream,
     tables,
     watch,
@@ -175,6 +176,7 @@ def create_app() -> FastAPI:
         watch,
         news,
         chat,
+        stats,
         stream,
         admin,
     ):

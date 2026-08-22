@@ -5,6 +5,7 @@ import type { Me } from '@/api/types'
 const LINKS = [
   ['/', 'Home'],
   ['/table', 'Table & matches'],
+  ['/stats', 'Stats'],
   ['/predictions', 'Predictions'],
   ['/fpl', 'Fantasy'],
   ['/watch', 'Watch log'],

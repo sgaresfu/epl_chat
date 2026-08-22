@@ -780,3 +780,65 @@ class TestFplChips:
 
         assert CHIP_NAMES["bboost"] == "Bench Boost"
         assert CHIP_NAMES["3xc"] == "Triple Captain"
+
+
+class TestStats:
+    async def test_every_player_is_returned(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        body = (await client.get("/api/stats/players")).json()
+        # The whole list goes to the browser so sorting a column is instant.
+        assert len(body["players"]) > 0
+
+    async def test_players_carry_expected_goals(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        players = (await client.get("/api/stats/players")).json()["players"]
+        assert all("xg" in p and "xa" in p for p in players)
+
+    async def test_goals_minus_xg_is_finishing_against_expectation(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        players = (await client.get("/api/stats/players")).json()["players"]
+        for p in players[:20]:
+            assert abs(p["goals_minus_xg"] - (p["goals"] - p["xg"])) < 0.02
+
+    async def test_per_90_rates_need_a_full_match_first(self, client: AsyncClient) -> None:
+        """Rates from a handful of minutes are noise, not signal."""
+        await sign_in(client)
+        players = (await client.get("/api/stats/players")).json()["players"]
+        for p in players:
+            if p["minutes"] < 90:
+                assert p["per_90_goals"] == 0.0
+
+    async def test_every_player_maps_to_a_canonical_club(self, client: AsyncClient) -> None:
+        from shared.clubs import BY_SHORT_NAME
+
+        await sign_in(client)
+        players = (await client.get("/api/stats/players")).json()["players"]
+        for p in players:
+            assert p["club"] in BY_SHORT_NAME
+
+    async def test_all_twenty_teams_appear(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        body = (await client.get("/api/stats/teams")).json()
+        assert len(body["teams"]) == 20
+
+    async def test_team_rows_agree_with_the_table(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        teams = (await client.get("/api/stats/teams")).json()["teams"]
+        table = (await client.get("/api/table")).json()["rows"]
+        by_club = {t["club"]["short_name"]: t for t in teams}
+        for row in table:
+            stat = by_club[row["club"]["short_name"]]
+            assert stat["points"] == row["points"]
+            assert stat["goal_difference"] == row["goal_difference"]
+
+    async def test_per_game_rates_do_not_divide_by_zero(self, client: AsyncClient) -> None:
+        await sign_in(client)
+        teams = (await client.get("/api/stats/teams")).json()["teams"]
+        for t in teams:
+            if t["played"] == 0:
+                assert t["goals_per_game"] == 0.0
+                assert t["conceded_per_game"] == 0.0
+
+    async def test_stats_need_a_session(self, client: AsyncClient) -> None:
+        assert (await client.get("/api/stats/players")).status_code == 401
+        assert (await client.get("/api/stats/teams")).status_code == 401
