@@ -159,6 +159,28 @@
   margin: 26px 0 30px;
   flex-wrap: wrap;
 }
+
+/* On a phone the two sides do not fit on one line, and wrapping left the "vs"
+   stranded at the end of the home team's row. Below this width it becomes a
+   three-row stack with the separator centred between the clubs. */
+@media (max-width: 600px) {
+  .tie {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .tie .side {
+    font-size: 24px;
+    gap: 11px;
+  }
+  /* The away side lists its crest first in the markup so the two badges face
+     each other on a wide screen; stacked, they should both lead. */
+  .tie .side:last-of-type {
+    flex-direction: row-reverse;
+  }
+  .tie__v {
+    order: 0;
+  }
+}
 .side {
   display: flex;
   align-items: center;
