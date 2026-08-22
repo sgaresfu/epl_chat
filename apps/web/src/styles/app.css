@@ -302,10 +302,22 @@
   cursor: pointer;
   font: 500 13px/1 var(--sys);
   color: var(--ink-2);
-  padding: 7px 14px;
+  /* 32px tall, which is the iOS segmented-control height and comfortably
+     tappable. At 7px padding these came out 27px and felt fiddly on a phone. */
+  min-height: 32px;
+  padding: 0 15px;
   border-radius: 7px;
   letter-spacing: -0.01em;
   transition: background 0.18s ease, color 0.18s ease;
+}
+@media (pointer: coarse) {
+  /* On a touch screen there is no cursor to aim with, so give every segment
+     the full 44px the rest of the controls use. */
+  .seg button {
+    min-height: 44px;
+    padding: 0 18px;
+    font-size: 15px;
+  }
 }
 .seg button[aria-selected='true'] {
   background: #fff;
@@ -589,13 +601,20 @@
   border: 1px solid var(--line);
   background: #fff;
   border-radius: var(--r-pill);
-  padding: 9px 17px;
+  padding: 0 17px;
   font: 400 14px/1 var(--sys);
   letter-spacing: -0.01em;
   cursor: pointer;
   color: var(--ink);
-  min-height: 36px;
+  min-height: 38px;
   transition: background 0.18s ease;
+}
+@media (pointer: coarse) {
+  .chip {
+    min-height: 44px;
+    padding: 0 20px;
+    font-size: 15px;
+  }
 }
 .chip:hover:not(:disabled) {
   background: var(--bg-2);
@@ -1861,6 +1880,10 @@
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
+  /* A header is a tap target on a phone; give it room without changing the
+     visual rhythm of the row. */
+  padding-top: 10px;
+  padding-bottom: 14px;
 }
 .table th[data-sortable]:hover {
   color: var(--ink);
