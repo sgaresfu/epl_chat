@@ -542,6 +542,9 @@ class NewsItemOut(Model):
     source: str
     published: datetime | None = None
     summary: str = ""
+    # The outlet's own syndication thumbnail, published in its feed for this
+    # purpose. Absent when a feed omits one.
+    image: str | None = None
 
 
 class NewsOut(Model):

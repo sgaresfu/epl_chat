@@ -1654,3 +1654,175 @@
   color: var(--ink-3);
   font-style: italic;
 }
+
+/* ---------- news ---------- */
+/* A lead story with its picture, then a dense list. The picture is what makes
+   a feed feel current; a wall of blue links does not. */
+.news-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 40px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .news-layout {
+    grid-template-columns: 1fr;
+    gap: 34px;
+  }
+}
+
+.lead-story {
+  display: block;
+  border-radius: var(--r-tile);
+  overflow: hidden;
+  background: var(--bg-2);
+  margin-bottom: 26px;
+}
+.lead-story__art {
+  aspect-ratio: 16 / 9;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.lead-story__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+.lead-story:hover .lead-story__art img {
+  transform: scale(1.02);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lead-story__art img,
+  .lead-story:hover .lead-story__art img {
+    transition: none;
+    transform: none;
+  }
+}
+.lead-story__body {
+  padding: 22px 24px 24px;
+}
+.lead-story h3 {
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.024em;
+}
+.lead-story p {
+  margin-top: 10px;
+  font-size: 15px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+
+.story {
+  display: flex;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line-2);
+  align-items: flex-start;
+}
+.story:first-of-type {
+  border-top: 1px solid var(--line-2);
+}
+.story__art {
+  flex: 0 0 108px;
+  aspect-ratio: 16 / 10;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-2);
+}
+.story__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.story__body {
+  min-width: 0;
+  flex: 1;
+}
+.story__title {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.34;
+  letter-spacing: -0.012em;
+}
+.story__meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-3);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.story__source {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+@media (max-width: 560px) {
+  .story__art {
+    flex-basis: 84px;
+  }
+}
+
+/* Video rail */
+.rail__head {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  margin-bottom: 14px;
+}
+.video {
+  display: block;
+  margin-bottom: 18px;
+}
+.video__art {
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-2);
+  position: relative;
+}
+.video__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* A play mark, drawn not imported — no emoji as iconography. */
+.video__art::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform: translate(-40%, -50%);
+  border-left: 15px solid rgba(255, 255, 255, 0.95);
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+}
+.video__title {
+  margin-top: 9px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.34;
+  letter-spacing: -0.01em;
+}
+.video__channel {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.source-filter {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}

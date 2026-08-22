@@ -2631,6 +2631,17 @@
             "type": "string",
             "title": "Summary",
             "default": ""
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
           }
         },
         "type": "object",
@@ -2639,7 +2650,8 @@
           "url",
           "source",
           "published",
-          "summary"
+          "summary",
+          "image"
         ],
         "title": "NewsItemOut"
       },

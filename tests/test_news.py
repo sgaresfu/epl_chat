@@ -285,3 +285,70 @@ class TestYouTubeChannels:
 
         ids = [c["channel_id"] for c in channels()]
         assert len(ids) == len(set(ids))
+
+
+class TestImages:
+    """Outlets publish several renditions; the first one listed is the smallest.
+
+    The Guardian lists 140, 460 and 700, each signed separately. Taking the
+    first got a 140px thumbnail; rewriting its width to something usable
+    invalidated the signature and the CDN answered 401 for every Guardian
+    story on the page.
+    """
+
+    GUARDIAN = """<item>
+      <media:content width="140" url="https://i.guim.co.uk/img/a/master/140.jpg?s=abc"/>
+      <media:content width="460" url="https://i.guim.co.uk/img/a/master/460.jpg?s=def"/>
+      <media:content width="700" url="https://i.guim.co.uk/img/a/master/700.jpg?s=ghi"/>
+      <title>x</title><link>https://example.com/a</link>
+    </item>"""
+
+    BBC = """<item>
+      <media:thumbnail width="240" height="134" url="https://ichef.bbci.co.uk/ace/standard/240/x.jpg"/>
+      <title>x</title><link>https://example.com/b</link>
+    </item>"""
+
+    SKY = """<item>
+      <enclosure type="image/jpg" url="https://e1.365dm.com/26/08/1920x1080/x.jpg"/>
+      <title>x</title><link>https://example.com/c</link>
+    </item>"""
+
+    def test_the_largest_published_variant_wins(self) -> None:
+        from services.poller.news import extract_image
+
+        assert extract_image(self.GUARDIAN) == "https://i.guim.co.uk/img/a/master/700.jpg?s=ghi"
+
+    def test_a_signed_url_is_never_rewritten(self) -> None:
+        """Changing a parameter breaks the signature and the CDN returns 401."""
+        from services.poller.news import extract_image
+
+        url = extract_image(self.GUARDIAN)
+        assert url is not None
+        assert "s=ghi" in url
+        assert "width=" not in url
+
+    def test_the_bbc_path_width_is_upgraded(self) -> None:
+        # The BBC's size sits in the path and is not signed, so it can be asked
+        # for larger without breaking anything.
+        from services.poller.news import extract_image
+
+        assert extract_image(self.BBC) == "https://ichef.bbci.co.uk/ace/standard/976/x.jpg"
+
+    def test_an_enclosure_is_used_when_there_is_no_media_tag(self) -> None:
+        from services.poller.news import extract_image
+
+        assert extract_image(self.SKY) == "https://e1.365dm.com/26/08/1920x1080/x.jpg"
+
+    def test_an_item_with_no_image_yields_none(self) -> None:
+        from services.poller.news import extract_image
+
+        assert extract_image("<item><title>x</title></item>") is None
+
+    def test_a_relative_url_is_ignored(self) -> None:
+        from services.poller.news import extract_image
+
+        assert extract_image('<item><media:content url="/local.jpg"/></item>') is None
+
+    def test_parsed_items_carry_their_image(self) -> None:
+        items = parse_rss(f"<rss>{self.BBC}</rss>", source="BBC Sport")
+        assert items[0].image == "https://ichef.bbci.co.uk/ace/standard/976/x.jpg"

@@ -302,6 +302,7 @@ export interface NewsItem {
   source: string
   published: string | null
   summary: string
+  image: string | null
 }
 
 export interface News {

@@ -61,6 +61,7 @@ class Item:
     source: str
     published: str | None = None
     summary: str = ""
+    image: str | None = None
 
 
 def sky_client() -> Upstream:
@@ -137,6 +138,67 @@ def _text(raw: str) -> str:
     return html.unescape(_TAG.sub("", cleaned)).strip()
 
 
+# Each outlet publishes a thumbnail in its feed, at a size meant for a list.
+# The URLs carry their own dimensions, so a larger one can be asked for --
+# these are the outlets' own syndication images, not press-agency photos
+# lifted from an article.
+def upgrade_image(url: str) -> str:
+    """Ask for a larger rendition, but only where the URL is not signed.
+
+    The BBC's path carries a plain width that can be swapped. The Guardian
+    signs its URLs, so changing a parameter invalidates the signature and the
+    CDN answers 401 -- their feed publishes several signed sizes instead, and
+    :func:`extract_image` picks the largest.
+    """
+    if "ichef.bbci.co.uk" in url:
+        # .../ace/standard/240/... -> .../ace/standard/976/...
+        return re.sub(r"/(standard|ace)/(\d+)/", r"/\1/976/", url)
+    return url
+
+
+_MEDIA_TAG = re.compile(r"<(?:media:content|media:thumbnail)[^>]*>")
+_URL_ATTR = re.compile(r'url="([^"]+)"')
+_WIDTH_ATTR = re.compile(r'width="(\d+)"')
+
+_FALLBACK_PATTERNS = (
+    r'<enclosure[^>]+url="([^"]+)"[^>]*type="image',
+    r'<enclosure[^>]+type="image[^"]*"[^>]*url="([^"]+)"',
+    r'<img[^>]+src="([^"]+)"',
+)
+
+
+def extract_image(block: str) -> str | None:
+    """Find the largest thumbnail this outlet publishes for the item.
+
+    Outlets list several renditions -- the Guardian publishes 140, 460 and 700
+    -- and taking the first match gets the smallest. Each is signed separately,
+    so the largest has to be chosen here rather than rewritten later.
+    """
+    best: tuple[int, str] | None = None
+    for tag in _MEDIA_TAG.findall(block):
+        url_match = _URL_ATTR.search(tag)
+        if not url_match:
+            continue
+        url = html.unescape(url_match.group(1))
+        if not url.startswith("http"):
+            continue
+        width_match = _WIDTH_ATTR.search(tag)
+        width = int(width_match.group(1)) if width_match else 0
+        if best is None or width > best[0]:
+            best = (width, url)
+
+    if best is not None:
+        return upgrade_image(best[1])
+
+    for pattern in _FALLBACK_PATTERNS:
+        match = re.search(pattern, block)
+        if match:
+            url = html.unescape(match.group(1))
+            if url.startswith("http"):
+                return upgrade_image(url)
+    return None
+
+
 def parse_rss(xml: str, source: str, limit: int = 20) -> list[Item]:
     """Parse an RSS 2.0 feed.
 
@@ -164,6 +226,7 @@ def parse_rss(xml: str, source: str, limit: int = 20) -> list[Item]:
                 source=source,
                 published=iso,
                 summary=field("description")[:280],
+                image=extract_image(block),
             )
         )
     return items
@@ -232,12 +295,15 @@ async def fetch_uploads(up: Upstream, api_key: str, channel_id: str, limit: int 
         if not video_id:
             continue
         snippet = row["snippet"]
+        thumbs = snippet.get("thumbnails", {}) or {}
+        best = thumbs.get("high") or thumbs.get("medium") or thumbs.get("default") or {}
         items.append(
             Item(
                 title=html.unescape(str(snippet["title"])),
                 url=f"https://www.youtube.com/watch?v={video_id}",
                 source=snippet.get("channelTitle", "YouTube"),
                 published=snippet.get("publishedAt"),
+                image=best.get("url"),
             )
         )
     return items

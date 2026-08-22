@@ -1196,6 +1196,8 @@ export interface components {
              * @default
              */
             summary: string;
+            /** Image */
+            image: string | null;
         };
         /** NewsOut */
         NewsOut: {

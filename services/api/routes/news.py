@@ -33,6 +33,7 @@ async def news(_: CurrentSession, state: State, settings: Config) -> NewsOut:
             source=str(row.get("source", "Sky Sports")),
             published=row.get("published"),
             summary=str(row.get("summary", "")),
+            image=row.get("image"),
         )
         for row in payload.get("sky", [])
     ]
@@ -46,6 +47,7 @@ async def news(_: CurrentSession, state: State, settings: Config) -> NewsOut:
                 source=str(row.get("source", "YouTube")),
                 published=row.get("published"),
                 summary=str(row.get("summary", "")),
+                image=row.get("image"),
             )
             for row in payload.get("youtube", [])
         ],
