@@ -15,9 +15,11 @@ import type { components } from './schema'
 import type {
   AdminStatus,
   Bets,
+  Calendar,
   Club,
   Fixture,
   FixtureList,
+  FixtureOdds,
   FplSquads,
   FplStandings,
   Freshness,
@@ -25,9 +27,14 @@ import type {
   Home,
   Leaderboard,
   LeagueTable,
+  Lineups,
+  LineupPlayer,
+  LineupSide,
   LocalTime,
   Me,
   News,
+  Odds,
+  OddsRound,
   Person,
   PlayerStats,
   Polls,
@@ -86,10 +93,17 @@ type _Bets = Assert<Exact<Bets, Schemas['BetsOut']>>
 type _Timeline = Assert<Exact<Timeline, Schemas['TimelineOut']>>
 type _PStats = Assert<Exact<PlayerStats, Schemas['PlayerStatsOut']>>
 type _TStats = Assert<Exact<TeamStats, Schemas['TeamStatsOut']>>
+type _Calendar = Assert<Exact<Calendar, Schemas['CalendarOut']>>
+type _Odds = Assert<Exact<Odds, Schemas['OddsPrice']>>
+type _FixtureOdds = Assert<Exact<FixtureOdds, Schemas['FixtureOddsOut']>>
+type _OddsRound = Assert<Exact<OddsRound, Schemas['OddsRoundOut']>>
+type _LineupPlayer = Assert<Exact<LineupPlayer, Schemas['LineupPlayerOut']>>
+type _LineupSide = Assert<Exact<LineupSide, Schemas['LineupSideOut']>>
+type _Lineups = Assert<Exact<Lineups, Schemas['LineupsOut']>>
 
 // Referenced so `noUnusedLocals` sees them as used. Every entry is `true` by
 // construction; a drifted type makes its `Assert` fail to satisfy the constraint.
 export type ContractHolds = [
   _Person, _Me, _Club, _Freshness, _LocalTime, _TableRow, _LeagueTable,
-  _Projected, _Fixture, _FixtureList, _Season, _Home, _Predictions, _Admin, _Fpl, _Lb, _H2H, _Watch, _News, _Polls, _Bets, _Timeline, _Squads, _PStats, _TStats,
+  _Projected, _Fixture, _FixtureList, _Season, _Home, _Predictions, _Admin, _Fpl, _Lb, _H2H, _Watch, _News, _Polls, _Bets, _Timeline, _Squads, _PStats, _TStats, _Calendar, _Odds, _FixtureOdds, _OddsRound, _LineupPlayer, _LineupSide, _Lineups,
 ]

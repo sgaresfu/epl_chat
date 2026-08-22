@@ -11,7 +11,9 @@ const LINKS = [
   ['/fpl', 'Fantasy'],
   ['/watch', 'Watch log'],
   ['/news', 'News'],
+  ['/calendar', 'Calendar'],
   ['/chat', 'The group'],
+  ['/archive', 'Archive'],
 ] as const
 
 const STREAM_LABEL: Record<StreamState, string> = {

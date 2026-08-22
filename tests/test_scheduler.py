@@ -157,6 +157,106 @@ class TestDailyAndWeekly:
         assert "no matches played yet" in detail
 
 
+class TestOddsSnapshot:
+    """The hourly job turns whatever the poller last cached into one more row
+    of drift history -- fixture id 1 in the captured payload is Arsenal
+    (team_h=1) v Coventry (team_a=7, canonical short_name "COV").
+    """
+
+    async def test_no_cached_odds_yet_says_so(self, cache: MemoryCache) -> None:
+        detail = await hourly(cache, Settings())
+        assert "no odds cached yet" in detail
+
+    async def test_an_unavailable_match_writes_nothing(self, cache: MemoryCache) -> None:
+        from shared.keys import ODDS_ROUND
+
+        await cache.set(
+            ODDS_ROUND,
+            {"ARS-COV": {"available": False, "reason": "bet365 has no listed price for this match."}},
+            source="the-odds-api",
+        )
+        detail = await hourly(cache, Settings())
+        assert "recorded odds for 0 fixtures" in detail
+
+    async def test_an_available_match_is_recorded_for_its_fixture(
+        self, cache: MemoryCache, sessions: Any
+    ) -> None:
+        from contextlib import asynccontextmanager
+
+        import services.scheduler.main as scheduler
+        from shared.db import OddsHistory
+        from shared.keys import ODDS_ROUND
+        from sqlalchemy import select
+
+        await cache.set(
+            ODDS_ROUND,
+            {
+                "ARS-COV": {
+                    "home": 1.40,
+                    "draw": 4.75,
+                    "away": 8.00,
+                    "bookmaker": "bet365",
+                    "available": True,
+                }
+            },
+            source="the-odds-api",
+        )
+
+        @asynccontextmanager
+        async def use_test_db() -> Any:
+            async with sessions() as db:
+                yield db
+                await db.commit()
+
+        original = scheduler.session
+        scheduler.session = use_test_db  # type: ignore[assignment]
+        try:
+            detail = await hourly(cache, Settings())
+            assert "recorded odds for 1 fixtures" in detail
+            async with sessions() as db:
+                rows = list(await db.scalars(select(OddsHistory)))
+            assert len(rows) == 1
+            assert rows[0].fixture_id == 1
+            assert rows[0].home == 1.40
+            assert rows[0].bookmaker == "bet365"
+        finally:
+            scheduler.session = original  # type: ignore[assignment]
+
+    async def test_running_it_twice_appends_a_second_row_not_a_replacement(
+        self, cache: MemoryCache, sessions: Any
+    ) -> None:
+        """Drift needs a history, so each hour must add a row, never overwrite one."""
+        from contextlib import asynccontextmanager
+
+        import services.scheduler.main as scheduler
+        from shared.db import OddsHistory
+        from shared.keys import ODDS_ROUND
+        from sqlalchemy import select
+
+        await cache.set(
+            ODDS_ROUND,
+            {"ARS-COV": {"home": 1.40, "draw": 4.75, "away": 8.00, "bookmaker": "bet365", "available": True}},
+            source="the-odds-api",
+        )
+
+        @asynccontextmanager
+        async def use_test_db() -> Any:
+            async with sessions() as db:
+                yield db
+                await db.commit()
+
+        original = scheduler.session
+        scheduler.session = use_test_db  # type: ignore[assignment]
+        try:
+            await hourly(cache, Settings())
+            await hourly(cache, Settings())
+            async with sessions() as db:
+                rows = list(await db.scalars(select(OddsHistory)))
+            assert len(rows) == 2
+        finally:
+            scheduler.session = original  # type: ignore[assignment]
+
+
 class TestWeeklyPoll:
     """The Monday job opens a poll, and can be retried without stacking them."""
 

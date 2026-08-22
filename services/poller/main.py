@@ -20,10 +20,10 @@ from typing import Any
 
 import structlog
 from shared import keys
-from shared.cache import CHANNEL_FPL, CHANNEL_SCORES, Cache, build_cache
+from shared.cache import CHANNEL_FPL, CHANNEL_ODDS, CHANNEL_SCORES, Cache, build_cache
 from shared.config import Settings, get_settings
 
-from services.poller import fpl, news
+from services.poller import fpl, news, odds, quota
 from services.poller.http import UpstreamError
 
 log = structlog.get_logger(__name__)
@@ -34,6 +34,10 @@ MATCHDAY_INTERVAL = 300  # on a matchday, nothing in play
 IDLE_INTERVAL = 3600  # no football today
 BOOTSTRAP_INTERVAL = 600
 NEWS_INTERVAL = 900  # every 15 minutes, per BRIEF section 15
+# The Odds API allows 500 calls/month; polling every 30 minutes as the brief's
+# general cadence would need ~1,440. Every 4 hours is ~180/month -- comfortably
+# under budget with headroom, while still giving real week-over-week drift.
+ODDS_INTERVAL = 4 * 3600
 
 # How close to kickoff counts as "a matchday" for the faster cadence.
 MATCHDAY_WINDOW = timedelta(hours=6)
@@ -50,11 +54,13 @@ class Poller:
         self.cache = cache
         self.fpl = fpl.client()
         self.sky = news.sky_client()
+        self.odds = odds.odds_client()
         self._digests: dict[str, str] = {}
 
     async def close(self) -> None:
         await self.fpl.close()
         await self.sky.close()
+        await self.odds.close()
 
     async def write(self, name: str, payload: Any, source: str, channel: str | None = None) -> bool:
         """Cache a payload and publish only if it differs from the last one."""
@@ -102,6 +108,7 @@ class Poller:
         await self.poll_fixtures()
         await self.poll_league()
         await self.poll_news()
+        await self.poll_odds()
 
     async def poll_news(self) -> None:
         """Sky's RSS needs no key, so this panel works with nothing configured."""
@@ -111,6 +118,25 @@ class Poller:
             log.warning("poller.news_failed", error=str(exc))
             return
         await self.write(keys.NEWS_SKY, payload, source="rss")
+
+    async def poll_odds(self) -> None:
+        """bet365 prices for the round. No key ⇒ a no-op, the panel says so itself."""
+        if not self.settings.odds_api_key:
+            return
+        verdict = await quota.check(self.cache, "the-odds-api", "month", self.settings.odds_monthly_budget)
+        if not verdict.allowed:
+            log.info("poller.odds_quota_exhausted", reason=verdict.reason)
+            return
+        try:
+            payload = await odds.fetch_odds(self.odds, self.settings.odds_api_key)
+        except UpstreamError as exc:
+            log.warning("poller.odds_failed", error=str(exc))
+            return
+        matches = odds.normalise(payload)
+        await self.write(
+            keys.ODDS_ROUND, odds.to_cache_payload(matches), source="the-odds-api", channel=CHANNEL_ODDS
+        )
+        await quota.spend(self.cache, "the-odds-api", "month")
 
     async def poll_bootstrap(self) -> None:
         try:
@@ -184,6 +210,7 @@ class Poller:
         log.info("poller.starting", league=self.settings.fpl_league_id)
         last_bootstrap = 0.0
         last_news = 0.0
+        last_odds = 0.0
         while True:
             started = asyncio.get_running_loop().time()
             try:
@@ -193,6 +220,9 @@ class Poller:
                 if started - last_news > NEWS_INTERVAL:
                     await self.poll_news()
                     last_news = started
+                if started - last_odds > ODDS_INTERVAL:
+                    await self.poll_odds()
+                    last_odds = started
                 await self.poll_fixtures()
                 await self.poll_league()
             except Exception as exc:

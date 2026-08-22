@@ -24,8 +24,9 @@ from typing import Any
 import structlog
 from shared import keys
 from shared.cache import Cache, build_cache
+from shared.clubs import UnknownClubError, by_fpl_id
 from shared.config import Settings, get_settings
-from shared.db import CronRun, TableSnapshot
+from shared.db import CronRun, OddsHistory, TableSnapshot
 from shared.session import dispose, session
 
 from services.poller.fpl import compute_table, current_gameweek
@@ -182,8 +183,53 @@ async def daily(cache: Cache, settings: Settings) -> str:
     return f"line of the day computed; {played} played, {upcoming} to come; {poll_note}"
 
 
+async def _record_odds_snapshot(cache: Cache, settings: Settings, now: datetime) -> str:
+    """Append one ``odds_history`` row per fixture with a known bet365 price.
+
+    Runs every hour regardless of whether the poller happened to fetch fresh
+    prices this hour: the poller writes the *latest* round to
+    ``keys.ODDS_ROUND`` every four hours to stay inside the monthly quota, and
+    recording that same cached snapshot hourly is what turns those few fetches
+    into a full hourly drift series without spending any extra calls.
+    """
+    odds_entry = await cache.get(keys.ODDS_ROUND)
+    if odds_entry is None or not isinstance(odds_entry.value, dict):
+        return "no odds cached yet"
+
+    rows = await ensure_fixtures(cache, settings)
+    if not rows:
+        return "no fixtures to match odds against"
+
+    written = 0
+    async with session() as db:
+        for row in rows:
+            try:
+                home = by_fpl_id(int(row["team_h"]))
+                away = by_fpl_id(int(row["team_a"]))
+            except (UnknownClubError, KeyError, TypeError, ValueError):
+                continue
+            match = odds_entry.value.get(f"{home.short_name}-{away.short_name}")
+            if not isinstance(match, dict) or not match.get("available"):
+                continue
+            home_price, draw_price, away_price = match.get("home"), match.get("draw"), match.get("away")
+            if home_price is None or draw_price is None or away_price is None:
+                continue
+            db.add(
+                OddsHistory(
+                    fixture_id=int(row["id"]),
+                    captured_at=now,
+                    home=float(home_price),
+                    draw=float(draw_price),
+                    away=float(away_price),
+                    bookmaker=str(match.get("bookmaker") or "bet365"),
+                )
+            )
+            written += 1
+    return f"recorded odds for {written} fixtures"
+
+
 async def hourly(cache: Cache, settings: Settings) -> str:
-    """Prune caches and record quota usage."""
+    """Prune caches, record quota usage, and log this hour's odds for drift."""
     now = datetime.now(UTC)
     checked = 0
     stale: list[str] = []
@@ -201,7 +247,9 @@ async def hourly(cache: Cache, settings: Settings) -> str:
         used = await cache.get(keys.quota(source, window))
         quotas.append(f"{source}={int(used.value) if used else 0}")
 
-    detail = f"checked {checked} cache entries; quotas {', '.join(quotas)}"
+    odds_note = await _record_odds_snapshot(cache, settings, now)
+
+    detail = f"checked {checked} cache entries; quotas {', '.join(quotas)}; {odds_note}"
     if stale:
         detail += f"; very stale: {', '.join(stale)}"
     return detail

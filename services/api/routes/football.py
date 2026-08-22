@@ -9,19 +9,26 @@ import structlog
 from fastapi import APIRouter, Query
 from shared import keys
 from shared import season as season_mod
+from shared.clubs import by_fpl_id
+from shared.config import MISSING_KEY_MESSAGES
 from shared.models import (
     ClubOut,
     FixtureListOut,
+    FixtureOddsOut,
     FixtureOut,
     HomeOut,
+    LineupsOut,
     NextMatchOut,
+    OddsPrice,
+    OddsRoundOut,
     SeasonOut,
     TableOut,
     TimelineMarker,
 )
 
-from services.api import views
-from services.api.deps import CurrentSession, Db, State
+from services.api import lineups as lineups_mod
+from services.api import repository, views
+from services.api.deps import Config, CurrentSession, Db, State
 from services.poller.fpl import is_in_play, is_over
 
 log = structlog.get_logger(__name__)
@@ -54,6 +61,24 @@ async def _watched_by(db: Db) -> dict[int, list[str]]:
     return out
 
 
+async def _odds_for_rows(
+    state: State, db: Db, settings: Config, rows: list[dict[str, Any]]
+) -> dict[int, OddsPrice]:
+    """One :class:`OddsPrice` per fixture id, missing key or all, per the brief."""
+    if not settings.has("odds_api_key"):
+        reason = MISSING_KEY_MESSAGES["odds_api_key"]
+        return {int(r["id"]): OddsPrice(available=False, reason=reason) for r in rows}
+
+    odds_entry = await state.cache.get(keys.ODDS_ROUND)
+    odds_cache = odds_entry.value if odds_entry and isinstance(odds_entry.value, dict) else None
+    history = await repository.odds_drift_bulk(db, (int(r["id"]) for r in rows))
+    now = datetime.now(UTC)
+    return {
+        int(row["id"]): views.build_odds_for_row(row, odds_cache, history.get(int(row["id"]), []), now, None)
+        for row in rows
+    }
+
+
 async def _gameweek(state: State) -> int:
     entry = await state.cache.get(keys.FPL_BOOTSTRAP)
     if not entry:
@@ -81,6 +106,7 @@ async def fixtures(
     _: CurrentSession,
     state: State,
     db: Db,
+    settings: Config,
     from_: datetime | None = Query(None, alias="from"),
     to: datetime | None = Query(None),
     gameweek: int | None = Query(None),
@@ -107,11 +133,14 @@ async def fixtures(
 
     selected = sorted(selected, key=lambda r: (r.get("kickoff_time") or "9999", r.get("id", 0)))
     watched = await _watched_by(db)
-    return views.build_fixture_list(selected, entry, keys.FPL_FIXTURES, watched_by_fixture=watched)
+    odds_map = await _odds_for_rows(state, db, settings, selected)
+    return views.build_fixture_list(
+        selected, entry, keys.FPL_FIXTURES, watched_by_fixture=watched, odds_by_fixture=odds_map
+    )
 
 
 @router.get("/api/fixtures/{fixture_id}", response_model=FixtureOut)
-async def fixture(fixture_id: int, _: CurrentSession, state: State, db: Db) -> FixtureOut:
+async def fixture(fixture_id: int, _: CurrentSession, state: State, db: Db, settings: Config) -> FixtureOut:
     from fastapi import HTTPException, status
 
     rows, _entry = await _fixtures(state)
@@ -119,7 +148,48 @@ async def fixture(fixture_id: int, _: CurrentSession, state: State, db: Db) -> F
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No such fixture.")
     watched = await _watched_by(db)
-    return views.build_fixture(row, watched_by=watched.get(fixture_id, []))
+    odds_map = await _odds_for_rows(state, db, settings, [row])
+    return views.build_fixture(row, odds=odds_map.get(fixture_id), watched_by=watched.get(fixture_id, []))
+
+
+@router.get("/api/fixtures/{fixture_id}/lineups", response_model=LineupsOut)
+async def fixture_lineups(fixture_id: int, _: CurrentSession, state: State, settings: Config) -> LineupsOut:
+    """On demand only -- opening a match is the one action allowed to reach an upstream."""
+    from fastapi import HTTPException, status
+
+    rows, _entry = await _fixtures(state)
+    row = next((r for r in (rows or []) if int(r["id"]) == fixture_id), None)
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="No such fixture.")
+    return await lineups_mod.get_lineups(fixture_id, row, rows or [], state.cache, settings)
+
+
+@router.get("/api/odds", response_model=OddsRoundOut)
+async def odds_round(_: CurrentSession, state: State, db: Db, settings: Config) -> OddsRoundOut:
+    """The whole current round, bet365 only, with each fixture's drift."""
+    rows, _entry = await _fixtures(state)
+    if not rows:
+        return OddsRoundOut(fixtures=[], freshness=views.freshness(None, keys.ODDS_ROUND))
+
+    gameweek = await _gameweek(state)
+    selected = [r for r in rows if r.get("event") == gameweek] if gameweek else rows
+    odds_map = await _odds_for_rows(state, db, settings, selected)
+
+    odds_entry = await state.cache.get(keys.ODDS_ROUND)
+    reason = None if settings.has("odds_api_key") else MISSING_KEY_MESSAGES["odds_api_key"]
+
+    return OddsRoundOut(
+        fixtures=[
+            FixtureOddsOut(
+                fixture_id=int(row["id"]),
+                home=views.club_out(by_fpl_id(int(row["team_h"]))),
+                away=views.club_out(by_fpl_id(int(row["team_a"]))),
+                odds=odds_map[int(row["id"])],
+            )
+            for row in selected
+        ],
+        freshness=views.freshness(odds_entry, keys.ODDS_ROUND, reason=reason),
+    )
 
 
 @router.get("/api/season", response_model=SeasonOut)

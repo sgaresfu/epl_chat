@@ -113,6 +113,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fixtures/{fixture_id}/lineups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fixture Lineups
+         * @description On demand only -- opening a match is the one action allowed to reach an upstream.
+         */
+        get: operations["fixture_lineups_api_fixtures__fixture_id__lineups_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/odds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Odds Round
+         * @description The whole current round, bet365 only, with each fixture's drift.
+         */
+        get: operations["odds_round_api_odds_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/season": {
         parameters: {
             query?: never;
@@ -497,6 +537,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Calendar */
+        get: operations["calendar_api_calendar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -688,6 +745,35 @@ export interface components {
             /** Stale */
             stale: boolean;
         };
+        /** CalendarEventOut */
+        CalendarEventOut: {
+            /** Title */
+            title: string;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "f1" | "boxing" | "ufc" | "other";
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /** Local Times */
+            local_times: components["schemas"]["LocalTimeOut"][];
+        };
+        /** CalendarOut */
+        CalendarOut: {
+            /** Events */
+            events: components["schemas"]["CalendarEventOut"][];
+            /** Empty Message */
+            empty_message: string | null;
+        };
         /** ChampionsLeaguePicks */
         "ChampionsLeaguePicks-Input": {
             /**
@@ -799,6 +885,14 @@ export interface components {
             freshness: components["schemas"]["Freshness"];
             /** Empty Message */
             empty_message: string | null;
+        };
+        /** FixtureOddsOut */
+        FixtureOddsOut: {
+            /** Fixture Id */
+            fixture_id: number;
+            home: components["schemas"]["ClubOut"];
+            away: components["schemas"]["ClubOut"];
+            odds: components["schemas"]["OddsPrice"];
         };
         /** FixtureOut */
         FixtureOut: {
@@ -1151,6 +1245,39 @@ export interface components {
             /** Form */
             form: number[];
         };
+        /** LineupPlayerOut */
+        LineupPlayerOut: {
+            /** Name */
+            name: string;
+            /** Number */
+            number: number | null;
+            /**
+             * Position
+             * @default
+             */
+            position: string;
+        };
+        /** LineupSideOut */
+        LineupSideOut: {
+            /**
+             * Formation
+             * @default
+             */
+            formation: string;
+            /** Starting */
+            starting: components["schemas"]["LineupPlayerOut"][];
+            /** Bench */
+            bench: components["schemas"]["LineupPlayerOut"][];
+        };
+        /** LineupsOut */
+        LineupsOut: {
+            /** Available */
+            available: boolean;
+            /** Reason */
+            reason: string | null;
+            home: components["schemas"]["LineupSideOut"] | null;
+            away: components["schemas"]["LineupSideOut"] | null;
+        };
         /**
          * LocalTimeOut
          * @description One kickoff rendered for one city.
@@ -1290,6 +1417,14 @@ export interface components {
             available: boolean;
             /** Reason */
             reason: string | null;
+        };
+        /** OddsRoundOut */
+        OddsRoundOut: {
+            /** Fixtures */
+            fixtures: components["schemas"]["FixtureOddsOut"][];
+            freshness: components["schemas"]["Freshness"];
+            /** Empty Message */
+            empty_message: string | null;
         };
         /** PersonOut */
         PersonOut: {
@@ -2035,6 +2170,57 @@ export interface operations {
             };
         };
     };
+    fixture_lineups_api_fixtures__fixture_id__lineups_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixture_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LineupsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    odds_round_api_odds_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OddsRoundOut"];
+                };
+            };
+        };
+    };
     season_api_season_get: {
         parameters: {
             query?: never;
@@ -2674,6 +2860,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BroadcasterOut"][];
+                };
+            };
+        };
+    };
+    calendar_api_calendar_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarOut"];
                 };
             };
         };

@@ -126,6 +126,19 @@ export interface FixtureList {
   empty_message: string | null
 }
 
+export interface FixtureOdds {
+  fixture_id: number
+  home: Club
+  away: Club
+  odds: Odds
+}
+
+export interface OddsRound {
+  fixtures: FixtureOdds[]
+  freshness: Freshness
+  empty_message: string | null
+}
+
 export interface TimelineMarker {
   label: string
   date: string
@@ -507,4 +520,36 @@ export interface AdminStatus {
   cron: CronRun[]
   missing_keys: string[]
   environment: string
+}
+
+export interface LineupPlayer {
+  name: string
+  number: number | null
+  position: string
+}
+
+export interface LineupSide {
+  formation: string
+  starting: LineupPlayer[]
+  bench: LineupPlayer[]
+}
+
+export interface Lineups {
+  available: boolean
+  reason: string | null
+  home: LineupSide | null
+  away: LineupSide | null
+}
+
+export interface CalendarEvent {
+  title: string
+  category: 'f1' | 'boxing' | 'ufc' | 'other'
+  starts_at: string
+  note: string
+  local_times: LocalTime[]
+}
+
+export interface Calendar {
+  events: CalendarEvent[]
+  empty_message: string | null
 }

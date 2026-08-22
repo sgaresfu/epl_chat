@@ -25,6 +25,7 @@ from shared.config import get_settings, validate_for_deployment
 from services.api.deps import AppState
 from services.api.routes import (
     admin,
+    calendar,
     chat,
     football,
     fpl,
@@ -179,6 +180,7 @@ def create_app() -> FastAPI:
         stats,
         stream,
         admin,
+        calendar,
     ):
         app.include_router(module.router)
 

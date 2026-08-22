@@ -4,7 +4,10 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { api } from './client'
 import type {
   AdminStatus,
+  Calendar,
   Club,
+  Lineups,
+  OddsRound,
   FixtureList,
   Home,
   LeagueTable,
@@ -48,6 +51,9 @@ export const keys = {
   bets: ['chat', 'bets'] as const,
   timeline: ['timeline'] as const,
   h2h: (a: string, b: string) => ['h2h', a, b] as const,
+  calendar: ['calendar'] as const,
+  odds: ['odds'] as const,
+  lineups: (fixtureId: number) => ['lineups', fixtureId] as const,
 }
 
 export function useMe(): UseQueryResult<Me> {
@@ -98,6 +104,21 @@ export function useFixtures(gameweek?: number): UseQueryResult<FixtureList> {
   })
 }
 
+export function useOdds(): UseQueryResult<OddsRound> {
+  return useQuery({ queryKey: keys.odds, queryFn: () => api.get<OddsRound>('/api/odds') })
+}
+
+/** Only fetched once the fixture's own line-ups panel is actually opened --
+ * this is the one endpoint that can trigger an upstream call, so it must
+ * never be prefetched alongside the rest of a match row. */
+export function useLineups(fixtureId: number, enabled: boolean): UseQueryResult<Lineups> {
+  return useQuery({
+    queryKey: keys.lineups(fixtureId),
+    queryFn: () => api.get<Lineups>(`/api/fixtures/${fixtureId}/lineups`),
+    enabled,
+  })
+}
+
 export function usePredictions(): UseQueryResult<Predictions> {
   return useQuery({
     queryKey: keys.predictions,
@@ -133,6 +154,10 @@ export function useWatchStats(): UseQueryResult<WatchStats> {
 
 export function useNews(): UseQueryResult<News> {
   return useQuery({ queryKey: keys.news, queryFn: () => api.get<News>('/api/news') })
+}
+
+export function useCalendar(): UseQueryResult<Calendar> {
+  return useQuery({ queryKey: keys.calendar, queryFn: () => api.get<Calendar>('/api/calendar') })
 }
 
 export function useQuotes(): UseQueryResult<Quote[]> {

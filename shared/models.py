@@ -182,6 +182,19 @@ class FixtureListOut(Model):
     empty_message: str | None = None
 
 
+class FixtureOddsOut(Model):
+    fixture_id: int
+    home: ClubOut
+    away: ClubOut
+    odds: OddsPrice
+
+
+class OddsRoundOut(Model):
+    fixtures: list[FixtureOddsOut] = Field(default_factory=list)
+    freshness: Freshness
+    empty_message: str | None = None
+
+
 # --------------------------------------------------------------------------
 # Predictions
 # --------------------------------------------------------------------------
@@ -629,6 +642,48 @@ class NewsOut(Model):
     empty_message: str | None = None
     youtube_message: str | None = None
     athletic_message: str | None = None
+
+
+# --------------------------------------------------------------------------
+# Line-ups
+# --------------------------------------------------------------------------
+
+
+class LineupPlayerOut(Model):
+    name: str
+    number: int | None = None
+    position: str = ""
+
+
+class LineupSideOut(Model):
+    formation: str = ""
+    starting: list[LineupPlayerOut] = Field(default_factory=list)
+    bench: list[LineupPlayerOut] = Field(default_factory=list)
+
+
+class LineupsOut(Model):
+    available: bool
+    reason: str | None = None
+    home: LineupSideOut | None = None
+    away: LineupSideOut | None = None
+
+
+# --------------------------------------------------------------------------
+# Calendar
+# --------------------------------------------------------------------------
+
+
+class CalendarEventOut(Model):
+    title: str
+    category: Literal["f1", "boxing", "ufc", "other"]
+    starts_at: datetime
+    note: str = ""
+    local_times: list[LocalTimeOut] = Field(default_factory=list)
+
+
+class CalendarOut(Model):
+    events: list[CalendarEventOut] = Field(default_factory=list)
+    empty_message: str | None = None
 
 
 # --------------------------------------------------------------------------

@@ -2166,6 +2166,37 @@
   text-underline-offset: 2px;
 }
 
+/* ---------- calendar ---------- */
+.calendar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.calendar-event {
+  padding-top: 28px;
+  border-top: 1px solid var(--line-2);
+}
+.calendar-event:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.calendar-event__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.calendar-event__badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
 /* Offline marker: the service worker is serving the last known data, and the
    user should know that rather than assume it is live. */
 .offline-tag {
@@ -2335,6 +2366,64 @@
   border-radius: 5px;
   padding: 2px 5px;
   white-space: nowrap;
+}
+
+.lineups {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  background: var(--bg-2);
+  border-radius: var(--r-inset);
+  padding: 16px 18px;
+}
+@media (max-width: 460px) {
+  .lineups {
+    grid-template-columns: 1fr;
+  }
+}
+.lineup-side__head {
+  font-size: 13px;
+  font-weight: 600;
+}
+.lineup-side__formation {
+  font-weight: 400;
+  color: var(--ink-3);
+}
+.lineup-side__players {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.lineup-side__players b {
+  display: inline-block;
+  min-width: 20px;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+.lineup-side__bench {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.match-odds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 0 8px 10px;
+  margin-top: -6px;
+  font-size: 12px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.match-odds__book {
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.match-odds__price {
+  color: var(--ink-2);
 }
 
 .match__watchers {

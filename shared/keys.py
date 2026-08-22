@@ -38,6 +38,15 @@ def lineups(fixture_id: int) -> str:
     return key("lineups", fixture_id)
 
 
+# On demand only, resolved once per matchday and kept for the fixture's whole
+# life -- an API-Football fixture id never changes once it exists.
+LINEUPS_TTL = 300  # 5 minutes, per BRIEF section 4
+
+
+def api_football_fixture_id(fpl_fixture_id: int) -> str:
+    return key("af", "fixture-id", fpl_fixture_id)
+
+
 def quota(source: str, window: str) -> str:
     return key("quota", source, window)
 

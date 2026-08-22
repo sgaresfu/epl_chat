@@ -12,12 +12,13 @@ left alone -- re-seeding on every boot would overwrite anything filed since.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import structlog
-from shared.db import Person, Prediction
+from shared.db import OddsHistory, Person, Prediction
 from shared.timezones import PLACES
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -145,3 +146,31 @@ async def save_prediction(
         "champions_league": champions_league,
         "submitted_at": now.isoformat(),
     }
+
+
+async def odds_drift(db: AsyncSession, fixture_id: int) -> list[OddsHistory]:
+    """Every recorded bet365 price for one fixture, oldest first."""
+    rows = await db.scalars(
+        select(OddsHistory).where(OddsHistory.fixture_id == fixture_id).order_by(OddsHistory.captured_at)
+    )
+    return list(rows.all())
+
+
+async def odds_drift_bulk(db: AsyncSession, fixture_ids: Iterable[int]) -> dict[int, list[OddsHistory]]:
+    """Recorded bet365 prices for several fixtures in one query, each oldest first.
+
+    One query for a page of fixtures rather than one per row, the same shape
+    as :func:`services.api.routes.football._watched_by`.
+    """
+    ids = list(fixture_ids)
+    if not ids:
+        return {}
+    rows = await db.scalars(
+        select(OddsHistory)
+        .where(OddsHistory.fixture_id.in_(ids))
+        .order_by(OddsHistory.fixture_id, OddsHistory.captured_at)
+    )
+    out: dict[int, list[OddsHistory]] = {}
+    for row in rows.all():
+        out.setdefault(row.fixture_id, []).append(row)
+    return out

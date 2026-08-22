@@ -8,13 +8,14 @@ This is where the brief's three states live. Every builder returns a
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from datetime import UTC, datetime
+from collections.abc import Iterable, Sequence
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from shared import broadcasters
 from shared.cache import Entry
 from shared.clubs import CLUBS, Club, by_fpl_id
+from shared.db import OddsHistory
 from shared.keys import TTL
 from shared.models import (
     ClubOut,
@@ -224,6 +225,57 @@ def build_fixture(
     )
 
 
+def build_odds_for_row(
+    row: dict[str, Any],
+    odds_cache: dict[str, Any] | None,
+    history: Sequence[OddsHistory],
+    now: datetime,
+    missing_key_reason: str | None,
+) -> OddsPrice:
+    """The live bet365 price for one fixture, with a week's drift where there's history for it.
+
+    ``drift`` carries each outcome's price from a week ago (or the earliest
+    record, if the history is younger than that); the frontend pairs it with
+    the live price above to render "1.40 → 1.65".
+    """
+    if missing_key_reason is not None:
+        return OddsPrice(available=False, reason=missing_key_reason)
+    if odds_cache is None:
+        return OddsPrice(available=False, reason="Odds have not been fetched yet.")
+
+    home = by_fpl_id(int(row["team_h"]))
+    away = by_fpl_id(int(row["team_a"]))
+    match = odds_cache.get(f"{home.short_name}-{away.short_name}")
+    if not isinstance(match, dict) or not match.get("available"):
+        reason = match.get("reason") if isinstance(match, dict) else None
+        return OddsPrice(available=False, reason=reason or "bet365 has no listed price for this match.")
+
+    drift: dict[str, float] | None = None
+    if len(history) >= 2:
+        # SQLite (used in dev and tests) hands back a naive datetime for a
+        # `DateTime(timezone=True)` column even though the value stored is
+        # always UTC; Postgres does not have this quirk. Same fix as
+        # services/api/routes/chat.py's poll open/close comparisons.
+        week_ago = now - timedelta(days=7)
+        captured_at = [
+            h.captured_at if h.captured_at.tzinfo else h.captured_at.replace(tzinfo=UTC) for h in history
+        ]
+        baseline_index = next((i for i, c in enumerate(captured_at) if c >= week_ago), 0)
+        baseline = history[baseline_index]
+        if baseline is not history[-1]:
+            drift = {"home": baseline.home, "draw": baseline.draw, "away": baseline.away}
+
+    return OddsPrice(
+        home=match.get("home"),
+        draw=match.get("draw"),
+        away=match.get("away"),
+        bookmaker=str(match.get("bookmaker") or "bet365"),
+        captured_at=history[-1].captured_at if history else None,
+        drift=drift,
+        available=True,
+    )
+
+
 def watch_window_open(kickoff: datetime | None, finished: bool, now: datetime) -> bool:
     """ "I watched this" opens at kickoff and closes 12 hours after full time.
 
@@ -242,6 +294,7 @@ def build_fixture_list(
     entry: Entry | None,
     cache_key: str,
     watched_by_fixture: dict[int, list[str]] | None = None,
+    odds_by_fixture: dict[int, OddsPrice] | None = None,
     **kwargs: Any,
 ) -> FixtureListOut:
     if not fixtures:
@@ -251,9 +304,16 @@ def build_fixture_list(
             empty_message="Fixtures appear as soon as the poller has loaded the schedule.",
         )
     watched = watched_by_fixture or {}
+    odds_map = odds_by_fixture or {}
     return FixtureListOut(
         fixtures=[
-            build_fixture(row, watched_by=watched.get(int(row["id"]), []), **kwargs) for row in fixtures
+            build_fixture(
+                row,
+                odds=odds_map.get(int(row["id"])),
+                watched_by=watched.get(int(row["id"]), []),
+                **kwargs,
+            )
+            for row in fixtures
         ],
         freshness=freshness(entry, cache_key),
     )

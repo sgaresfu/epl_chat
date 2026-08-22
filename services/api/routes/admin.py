@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from fastapi import APIRouter
 from shared import broadcasters, keys
 from shared.config import MISSING_KEY_MESSAGES
@@ -26,14 +28,15 @@ async def status(_: CurrentSession, state: State, settings: Config) -> AdminStat
             )
         )
 
+    now = datetime.now(UTC)
     quotas: list[QuotaOut] = []
-    for source, budget, window, note in (
+    for source, budget, scope, note in (
         (
             "the-odds-api",
             settings.odds_monthly_budget,
             "month",
             "Free tier allows 500/month. Polling every 30 minutes as briefed "
-            "would need about 1,440, so odds are fetched only around each round.",
+            "would need about 1,440, so odds are fetched every 4 hours instead.",
         ),
         (
             "api-football",
@@ -43,6 +46,9 @@ async def status(_: CurrentSession, state: State, settings: Config) -> AdminStat
             "one match, so scores come from FPL and this is kept for line-ups.",
         ),
     ):
+        # Must match services/poller/quota.py's own window string exactly --
+        # that is the key the poller actually writes to when it spends.
+        window = now.strftime("%Y-%m") if scope == "month" else now.strftime("%Y-%m-%d")
         entry = await state.cache.get(keys.quota(source, window))
         used = int(entry.value) if entry else 0
         quotas.append(
@@ -51,7 +57,7 @@ async def status(_: CurrentSession, state: State, settings: Config) -> AdminStat
                 used=used,
                 budget=budget,
                 remaining=max(0, budget - used),
-                window=window,
+                window=scope,
                 note=note,
             )
         )

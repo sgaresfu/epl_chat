@@ -95,7 +95,7 @@ function NextMatch() {
   )
 }
 
-function TablePreview() {
+export function TablePreview() {
   const { data, isLoading, error } = useTable()
 
   if (isLoading) return <TableSkeleton rows={6} />

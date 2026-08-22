@@ -1,0 +1,24 @@
+{
+  "$comment": "A maintained file, not a live API — F1's only free calendar API is community-run with no stability guarantee, and boxing/UFC have no free API at all. Dates checked against two independent sources where noted; 'note' flags anything worth re-verifying closer to the date. Re-check and extend each month: this file is only as good as the last time someone looked at it.",
+  "checked_on": "2026-08-22",
+  "events": [
+    { "title": "Dutch Grand Prix", "category": "f1", "starts_at": "2026-08-23T13:00:00Z", "note": "Zandvoort. Race start approximate (typical 15:00 local); confirm nearer the date." },
+    { "title": "Italian Grand Prix", "category": "f1", "starts_at": "2026-09-06T13:00:00Z", "note": "Monza. Race start approximate." },
+    { "title": "Ryan Garcia vs Conor Benn", "category": "boxing", "starts_at": "2026-09-12T03:00:00Z", "note": "Las Vegas, for Garcia's WBC welterweight title. Main-card start approximate — US PPV cards typically run late." },
+    { "title": "Spanish Grand Prix", "category": "f1", "starts_at": "2026-09-13T13:00:00Z", "note": "Madrid (Madring circuit), F1's Madrid debut. Race start approximate." },
+    { "title": "UFC 331", "category": "ufc", "starts_at": "2026-09-19T22:00:00Z", "note": "Crypto.com Arena, Los Angeles. Main-card start approximate." },
+    { "title": "Azerbaijan Grand Prix", "category": "f1", "starts_at": "2026-09-26T11:00:00Z", "note": "Baku. Race start approximate." },
+    { "title": "Bahrain Grand Prix", "category": "f1", "starts_at": "2026-10-04T15:00:00Z", "note": "Relocated for 2026; exact venue and local start time unconfirmed at time of writing — re-verify before the round." },
+    { "title": "Singapore Grand Prix", "category": "f1", "starts_at": "2026-10-11T12:00:00Z", "note": "Marina Bay, a night race. Race start approximate." },
+    { "title": "UFC Fight Night: Buckley vs Malott", "category": "ufc", "starts_at": "2026-10-17T21:00:00Z", "note": "Main-card start approximate." },
+    { "title": "United States Grand Prix", "category": "f1", "starts_at": "2026-10-25T19:00:00Z", "note": "Austin, Texas. Race start approximate." },
+    { "title": "UFC 333", "category": "ufc", "starts_at": "2026-10-24T22:00:00Z", "note": "Etihad Arena, Abu Dhabi. Volkanovski vs Evloev, featherweight title. Main-card start approximate." },
+    { "title": "Canelo Álvarez vs Christian Mbilli", "category": "boxing", "starts_at": "2026-10-31T03:00:00Z", "note": "Main-card start approximate." },
+    { "title": "Mexico City Grand Prix", "category": "f1", "starts_at": "2026-11-01T20:00:00Z", "note": "Race start approximate." },
+    { "title": "São Paulo Grand Prix", "category": "f1", "starts_at": "2026-11-08T17:00:00Z", "note": "Interlagos. Race start approximate." },
+    { "title": "Las Vegas Grand Prix", "category": "f1", "starts_at": "2026-11-22T06:00:00Z", "note": "Saturday night race, Las Vegas Strip Circuit. Race start approximate." },
+    { "title": "Qatar Grand Prix", "category": "f1", "starts_at": "2026-11-29T17:00:00Z", "note": "Lusail, a night race. Race start approximate." },
+    { "title": "Abu Dhabi Grand Prix", "category": "f1", "starts_at": "2026-12-06T13:00:00Z", "note": "Yas Marina, season finale. Race start approximate." },
+    { "title": "UEFA Champions League Final", "category": "other", "starts_at": "2027-06-05T20:00:00Z", "note": "Estadio Metropolitano, Madrid. Kick-off approximate (recent finals have started 21:00 CEST)." }
+  ]
+}

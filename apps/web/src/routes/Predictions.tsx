@@ -155,7 +155,7 @@ function ChampionsLeague({ filed }: { filed: Prediction[] }) {
   )
 }
 
-function Standings() {
+export function Standings() {
   const { data, isLoading } = useLeaderboard()
   const { data: me } = useMe()
   if (isLoading || !data) return <TableSkeleton rows={4} />

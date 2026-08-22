@@ -20,6 +20,8 @@ const Admin = lazy(() => import('@/routes/Admin').then((m) => ({ default: m.Admi
 const Fpl = lazy(() => import('@/routes/Fpl').then((m) => ({ default: m.Fpl })))
 const Watch = lazy(() => import('@/routes/Watch').then((m) => ({ default: m.Watch })))
 const News = lazy(() => import('@/routes/News').then((m) => ({ default: m.News })))
+const Calendar = lazy(() => import('@/routes/Calendar').then((m) => ({ default: m.Calendar })))
+const Archive = lazy(() => import('@/routes/Archive').then((m) => ({ default: m.Archive })))
 const Chat = lazy(() => import('@/routes/Chat').then((m) => ({ default: m.Chat })))
 const PredictionPicker = lazy(() =>
   import('@/routes/PredictionPicker').then((m) => ({ default: m.PredictionPicker })),
@@ -68,6 +70,8 @@ export function App() {
             <Route path="/fpl" element={<Fpl />} />
             <Route path="/watch" element={<Watch />} />
             <Route path="/news" element={<News />} />
+            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/archive" element={<Archive />} />
             <Route path="/chat" element={<Chat />} />
             <Route
               path="*"

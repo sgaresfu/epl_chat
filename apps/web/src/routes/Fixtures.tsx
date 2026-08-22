@@ -11,11 +11,11 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { keys, useFixtures, useMe } from '@/api/queries'
+import { keys, useFixtures, useLineups, useMe } from '@/api/queries'
 import { Crest } from '@/components/Crest'
 import { FourCities } from '@/components/FourCities'
 import { Empty, StaleNote, TableSkeleton } from '@/components/states'
-import type { Fixture } from '@/api/types'
+import type { Fixture, LineupSide } from '@/api/types'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -35,8 +35,75 @@ function dayLabel(key: string): { day: string; date: string } {
   }
 }
 
+/** bet365 1X2, with a week's drift when there's history to show it. Nothing
+ * renders when there's no price -- a missing key or an unlisted match reads
+ * as an ordinary match row, not an error. */
+function OddsLine({ fixture }: { fixture: Fixture }) {
+  const odds = fixture.odds
+  if (!odds || !odds.available) return null
+
+  const outcomes: [string, number | undefined, number | null][] = [
+    [fixture.home.short_name, odds.drift?.home, odds.home],
+    ['Draw', odds.drift?.draw, odds.draw],
+    [fixture.away.short_name, odds.drift?.away, odds.away],
+  ]
+
+  return (
+    <p className="match-odds">
+      <span className="match-odds__book">{odds.bookmaker}</span>
+      {outcomes.map(([label, from, to]) => (
+        <span className="match-odds__price" key={label}>
+          {label}{' '}
+          {from !== undefined && to !== null && from !== to
+            ? `${from.toFixed(2)} → ${to.toFixed(2)}`
+            : (to?.toFixed(2) ?? '—')}
+        </span>
+      ))}
+    </p>
+  )
+}
+
+/** One side's confirmed XI and bench, or nothing while waiting on a request. */
+function LineupSideList({ label, side }: { label: string; side: LineupSide }) {
+  return (
+    <div className="lineup-side">
+      <p className="lineup-side__head">
+        {label} <span className="lineup-side__formation">{side.formation}</span>
+      </p>
+      <ol className="lineup-side__players">
+        {side.starting.map((p) => (
+          <li key={`${p.number}-${p.name}`}>
+            {p.number != null && <b>{p.number}</b>} {p.name}
+          </li>
+        ))}
+      </ol>
+      {side.bench.length > 0 && (
+        <p className="lineup-side__bench">Bench: {side.bench.map((p) => p.name).join(', ')}</p>
+      )}
+    </div>
+  )
+}
+
+/** Fetched only while this panel is open -- confirmed line-ups is the one
+ * thing in the app allowed to trigger an upstream call on request. */
+function LineupsPanel({ fixture, open }: { fixture: Fixture; open: boolean }) {
+  const { data, isLoading } = useLineups(fixture.id, open)
+  if (!open) return null
+  if (isLoading) return <p className="tnote">Checking for confirmed line-ups…</p>
+  if (!data?.available || !data.home || !data.away) {
+    return <p className="tnote">{data?.reason ?? 'Line-ups are not available for this match.'}</p>
+  }
+  return (
+    <div className="lineups">
+      <LineupSideList label={fixture.home.name} side={data.home} />
+      <LineupSideList label={fixture.away.name} side={data.away} />
+    </div>
+  )
+}
+
 function Match({ fixture, me }: { fixture: Fixture; me: string | undefined }) {
   const [showTimes, setShowTimes] = useState(false)
+  const [showLineups, setShowLineups] = useState(false)
   const client = useQueryClient()
   const watched = me !== undefined && fixture.watched_by.includes(me)
   const slot = fixture.local_times.find((t) => t.place === me) ?? fixture.local_times[0]
@@ -103,6 +170,16 @@ function Match({ fixture, me }: { fixture: Fixture; me: string | undefined }) {
           >
             {showTimes ? 'Hide' : 'Where'}
           </button>
+          {!fixture.postponed && (
+            <button
+              className="chip"
+              type="button"
+              aria-pressed={showLineups}
+              onClick={() => setShowLineups((v) => !v)}
+            >
+              {showLineups ? 'Hide' : 'Line-ups'}
+            </button>
+          )}
           {(fixture.watch_open || watched) && (
             <button
               className={watched ? 'chip chip--done' : 'chip'}
@@ -117,6 +194,8 @@ function Match({ fixture, me }: { fixture: Fixture; me: string | undefined }) {
         </span>
       </div>
 
+      <OddsLine fixture={fixture} />
+
       {toggle.isError && (
         <p className="picker__error" role="alert">
           {toggle.error instanceof ApiError ? toggle.error.message : 'Could not save that.'}
@@ -125,6 +204,11 @@ function Match({ fixture, me }: { fixture: Fixture; me: string | undefined }) {
       {showTimes && (
         <div style={{ padding: '4px 8px 18px' }}>
           <FourCities times={fixture.local_times} me={me} />
+        </div>
+      )}
+      {showLineups && (
+        <div style={{ padding: '4px 8px 18px' }}>
+          <LineupsPanel fixture={fixture} open={showLineups} />
         </div>
       )}
     </>
