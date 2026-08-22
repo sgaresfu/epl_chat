@@ -3,7 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#FFFFFF" />
+    <!-- Two, so the browser chrome matches the page in either theme rather
+         than framing a black page in a white bar. -->
+    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
     <meta name="description" content="Premier League predictions, fantasy and a watch log for four friends." />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
@@ -15,6 +18,22 @@
     <title>Prediction League</title>
   </head>
   <body>
+    <!--
+      Runs before first paint, deliberately inline and un-bundled: read the
+      stored choice and stamp it on <html> now. Deferring this to React means
+      one frame of the wrong theme on every cold load — a white flash in a
+      dark room, which is the single most noticeable bug a theme can have.
+    -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme')
+          if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t
+        } catch (e) {
+          /* Private mode, or storage disabled: fall through to the system. */
+        }
+      })()
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

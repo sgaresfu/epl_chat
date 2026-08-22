@@ -233,7 +233,7 @@ export function Calendar() {
 
         {lead && <NextUp event={lead} me={me?.person.key} />}
 
-        <div className="source-filter" style={{ marginTop: 28 }}>
+        <div className="source-filter stagger" style={{ marginTop: 28 }}>
           <button
             type="button"
             className="chip"

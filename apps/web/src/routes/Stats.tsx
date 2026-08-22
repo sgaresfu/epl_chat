@@ -10,7 +10,7 @@
  */
 
 import { useMemo, useState } from 'react'
-import { usePlayerStats, useTeamStats } from '@/api/queries'
+import { useClubs, usePlayerStats, useTeamStats } from '@/api/queries'
 import { Crest } from '@/components/Crest'
 import { Empty, StaleNote, TableSkeleton } from '@/components/states'
 import { signed } from '@/lib/format'
@@ -37,6 +37,14 @@ const POSITIONS = ['All', 'GK', 'DEF', 'MID', 'FWD'] as const
 
 function Players() {
   const { data, isLoading } = usePlayerStats()
+  // A club is a crest, not three grey letters. Every reference table in the
+  // sport shows the badge, and it is what makes a long list scannable by
+  // shape rather than by reading.
+  const { data: clubList } = useClubs()
+  const clubs = useMemo(
+    () => new Map((clubList ?? []).map((c) => [c.short_name, c])),
+    [clubList],
+  )
   const [sort, setSort] = useState<PlayerKey>('goals')
   const [dir, setDir] = useState<Dir>('desc')
   const [pos, setPos] = useState<(typeof POSITIONS)[number]>('All')
@@ -154,7 +162,12 @@ function Players() {
                     )}
                     <b title={p.full_name}>{p.name}</b>
                     <span className="player-pos">{p.position}</span>
-                    <span className="sec">{p.club}</span>
+                    <span className="player-club" title={p.club_name}>
+                      {clubs.get(p.club) ? (
+                        <Crest club={clubs.get(p.club)!} size={18} />
+                      ) : null}
+                      <span className="sec">{p.club}</span>
+                    </span>
                   </span>
                 </td>
                 {PLAYER_COLUMNS.map(([key]) => {

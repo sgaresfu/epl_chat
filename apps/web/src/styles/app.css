@@ -6,21 +6,21 @@
   top: 0;
   z-index: 30;
   height: var(--nav);
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--nav-bg);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid var(--nav-line);
 }
 .nav .wrap {
   display: flex;
   align-items: center;
   gap: 2px;
   height: var(--nav);
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.nav .wrap::-webkit-scrollbar {
-  display: none;
+  /* Wider than the 980px content column on purpose. Eleven links, the mark
+     and the identity block measure 1053px, so inside the content width they
+     collide -- "The group" was overlapping "COYG · Lviv". The bar spans more
+     than the column it sits above, which is what Apple's own nav does. */
+  max-width: 1160px;
 }
 .nav__mark {
   font-size: 15px;
@@ -29,6 +29,12 @@
   margin-right: 16px;
   white-space: nowrap;
 }
+.nav__links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
 .nav a {
   flex: 0 0 auto;
   font-size: 12px;
@@ -36,6 +42,7 @@
   padding: 0 11px;
   line-height: var(--nav);
   white-space: nowrap;
+  transition: color var(--fast) var(--ease);
 }
 .nav a:hover {
   color: var(--ink);
@@ -52,7 +59,24 @@
   padding-left: 14px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+/* Below this the eleven links cannot fit honestly, so the bar keeps only its
+   identity and the live dot, and the tab bar takes over. */
+/* The nav content measures 1053px; with inter-item gaps and the identity
+   block's own padding it wants a little over 1100px of column, so the switch
+   happens at 1160 rather than at the bare arithmetic. Below that
+   the links cannot fit honestly, so the bar keeps only its identity and the
+   live dot, and the tab bar takes over. */
+@media (max-width: 1160px) {
+  .nav__links,
+  .nav__who {
+    display: none;
+  }
+  .nav .wrap {
+    justify-content: space-between;
+  }
 }
 
 /* Live-connection dot. Never a spinner -- it must not shift layout. */
@@ -70,6 +94,166 @@
   background: var(--line);
 }
 
+/* ---------- theme toggle ---------- */
+.theme {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px;
+  background: var(--bg-2);
+  border-radius: var(--r-pill);
+}
+.theme__opt {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 22px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.theme__opt:hover {
+  color: var(--ink);
+}
+.theme__opt[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+.theme__auto {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- phone tab bar ---------- */
+/*
+ * Fixed to the bottom, inside the safe area, translucent over the content it
+ * covers. Hidden entirely on a desktop, where the top bar carries everything.
+ */
+.tabbar {
+  display: none;
+}
+@media (max-width: 1160px) {
+  .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    height: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--nav-bg);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-top: 1px solid var(--nav-line);
+  }
+  /* Content has to clear the bar, or the last row sits under it for ever. */
+  body {
+    padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px));
+  }
+}
+.tabbar__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  /* The whole cell is the target, comfortably past the 44px minimum. */
+  min-height: var(--tabbar);
+  transition: color var(--fast) var(--ease);
+}
+.tabbar__item.on {
+  color: var(--blue-text);
+  font-weight: 600;
+}
+.tabbar__item:active {
+  /* A press should feel like it landed. */
+  transform: scale(0.94);
+}
+
+/* ---------- more sheet ---------- */
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+.sheet__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: var(--scrim);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  cursor: pointer;
+  animation: sheet-fade var(--med) var(--ease);
+}
+.sheet__panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg);
+  border-radius: var(--r-panel) var(--r-panel) 0 0;
+  padding: 10px var(--gutter) calc(20px + var(--tabbar) + env(safe-area-inset-bottom, 0px));
+  animation: sheet-rise var(--med) var(--ease);
+}
+.sheet__grip {
+  display: block;
+  width: 36px;
+  height: 4px;
+  margin: 0 auto 14px;
+  border-radius: 99px;
+  background: var(--line);
+}
+.sheet__links {
+  display: flex;
+  flex-direction: column;
+}
+.sheet__link {
+  padding: 15px 4px;
+  font-size: 17px;
+  border-bottom: 1px solid var(--line-2);
+  color: var(--ink);
+}
+.sheet__link:last-child {
+  border-bottom: 0;
+}
+.sheet__link.on {
+  font-weight: 600;
+  color: var(--blue-text);
+}
+.sheet__foot {
+  display: flex;
+  justify-content: center;
+  padding-top: 18px;
+}
+@keyframes sheet-rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 /* ---------- hero ---------- */
 .hero {
   padding: 76px 0 60px;
@@ -78,7 +262,7 @@
 .eyebrow {
   font-size: 19px;
   font-weight: 600;
-  color: var(--blue);
+  color: var(--blue-text);
   letter-spacing: -0.01em;
 }
 .hero h1 {
@@ -113,12 +297,12 @@
   cursor: pointer;
   font: 600 15px/44px var(--sys);
   letter-spacing: -0.01em;
-  background: var(--blue);
-  color: #fff;
+  background: var(--blue-solid);
+  color: var(--on-accent);
   transition: background 0.18s ease;
 }
 .btn:hover:not(:disabled) {
-  background: var(--blue-h);
+  background: var(--blue-solid-h);
 }
 .btn:disabled {
   opacity: 0.4;
@@ -126,7 +310,7 @@
 }
 .btn--plain {
   background: transparent;
-  color: var(--blue);
+  color: var(--blue-text);
   padding: 0;
 }
 .btn--plain:hover:not(:disabled) {
@@ -252,7 +436,7 @@
   }
 }
 .tv__cell {
-  background: #fff;
+  background: var(--surface);
   padding: 18px 12px;
 }
 .tv__time {
@@ -276,7 +460,7 @@
 }
 .tv__cell[data-mine='true'] .tv__time,
 .tv__cell[data-mine='true'] .tv__where {
-  color: var(--blue);
+  color: var(--blue-text);
 }
 .tv__day {
   font-size: 12px;
@@ -298,6 +482,7 @@
   flex-wrap: wrap;
 }
 .shead h2 {
+  line-height: 1.1;
   font-size: 32px;
   font-weight: 600;
   letter-spacing: -0.024em;
@@ -305,7 +490,7 @@
 .shead__link {
   margin-left: auto;
   font-size: 15px;
-  color: var(--blue);
+  color: var(--blue-text);
 }
 .shead__link::after {
   content: ' \203A';
@@ -342,9 +527,9 @@
   }
 }
 .seg button[aria-selected='true'] {
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-1);
 }
 
 /* ---------- table ---------- */
@@ -506,7 +691,7 @@
   align-items: center;
   gap: 14px;
   padding: 13px 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.07);
+  border-top: 1px solid var(--hairline);
 }
 .lb__row:first-child {
   border-top: 0;
@@ -526,10 +711,10 @@
 }
 .lb__d {
   font-size: 13px;
-  color: var(--green);
+  color: var(--green-text);
 }
 .lb__d[data-dir='down'] {
-  color: var(--red);
+  color: var(--red-text);
 }
 .lb__v {
   margin-left: auto;
@@ -606,10 +791,10 @@
   vertical-align: 3px;
 }
 .odds b[data-drift='down'] i {
-  color: var(--green);
+  color: var(--green-text);
 }
 .odds b[data-drift='up'] i {
-  color: var(--red);
+  color: var(--red-text);
 }
 
 /* ---------- chips ---------- */
@@ -621,7 +806,7 @@
 }
 .chip {
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--surface);
   border-radius: var(--r-pill);
   padding: 0 17px;
   font: 400 14px/1 var(--sys);
@@ -643,7 +828,7 @@
 }
 .chip[aria-pressed='true'] {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   border-color: var(--ink);
 }
 .chip--done {
@@ -687,7 +872,7 @@
   margin: 30px 0 0;
   height: 8px;
   border-radius: 99px;
-  background: #e3e3e8;
+  background: var(--skel);
   position: relative;
   overflow: hidden;
 }
@@ -721,7 +906,7 @@
   margin: 0 auto 6px;
 }
 .ticks b[data-now='true'] {
-  color: var(--blue);
+  color: var(--blue-text);
   font-weight: 600;
 }
 .ticks b[data-now='true']::before {
@@ -744,7 +929,7 @@
   }
 }
 .stats__cell {
-  background: #fff;
+  background: var(--surface);
   padding: 22px 16px;
 }
 .stats__cell b {
@@ -828,7 +1013,7 @@
 /* ---------- states ---------- */
 /* Skeletons sit at the real final dimensions so nothing shifts on arrival. */
 .skel {
-  background: linear-gradient(90deg, var(--bg-2) 25%, #eeeef1 37%, var(--bg-2) 63%);
+  background: linear-gradient(90deg, var(--bg-2) 25%, var(--skel-sheen) 37%, var(--bg-2) 63%);
   background-size: 400% 100%;
   animation: shimmer 1.4s ease infinite;
   border-radius: 6px;
@@ -936,14 +1121,14 @@
   font: 17px var(--sys);
   text-align: center;
   letter-spacing: -0.01em;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
 }
 .login input:focus {
   border-color: var(--blue);
 }
 .login__error {
-  color: var(--red);
+  color: var(--red-text);
   font-size: 14px;
   min-height: 20px;
 }
@@ -957,7 +1142,7 @@
   position: sticky;
   top: var(--nav);
   z-index: 20;
-  background: rgba(255, 255, 255, 0.86);
+  background: var(--nav-bg);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid var(--line-2);
@@ -1022,10 +1207,10 @@
   flex: 0 0 auto;
 }
 .slot__zone[data-zone='ucl'] {
-  color: var(--blue);
+  color: var(--blue-text);
 }
 .slot__zone[data-zone='rel'] {
-  color: var(--red);
+  color: var(--red-text);
 }
 .slot__club {
   display: flex;
@@ -1092,7 +1277,7 @@
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(0, 0, 0, 0.28);
+  background: var(--scrim);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -1190,7 +1375,7 @@
   background: none;
   border: 0;
   font-size: 15px;
-  color: var(--blue);
+  color: var(--blue-text);
   cursor: pointer;
   padding: 4px 0;
 }
@@ -1201,7 +1386,7 @@
 }
 
 .picker__error {
-  color: var(--red);
+  color: var(--red-text);
   font-size: 14px;
   margin-top: 12px;
 }
@@ -1503,7 +1688,7 @@
   align-items: center;
   gap: 9px;
   padding: 7px 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-top: 1px solid var(--hairline);
   font-size: 15px;
 }
 .pl:first-of-type {
@@ -1533,15 +1718,18 @@
 }
 .pl__badge[data-kind='C'] {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 .pl__badge[data-kind='V'] {
   background: var(--line);
-  color: var(--ink-2);
+  /* --ink-2 on --line is 3.55:1 in dark; the full ink is 8.4:1 and the badge
+     is two characters, so there is nothing to soften. */
+  color: var(--ink);
 }
 .pl__badge[data-kind='D'] {
-  background: #eaf1fd;
-  color: var(--blue);
+  background: var(--blue-tint);
+  /* Brand blue on its own dark tint is 4.26:1; --blue-h clears it. */
+  color: var(--blue-on-tint);
 }
 .pl__pts {
   margin-left: auto;
@@ -1571,7 +1759,7 @@
   border-radius: var(--r-pill);
   padding: 5px 10px;
   color: var(--ink-2);
-  background: #fff;
+  background: var(--surface);
   white-space: nowrap;
 }
 /* A used chip is spent, so it reads as struck through rather than merely dim. */
@@ -1848,10 +2036,10 @@
   width: 0;
   height: 0;
   transform: translate(-40%, -50%);
-  border-left: 15px solid rgba(255, 255, 255, 0.95);
+  border-left: 15px solid var(--play);
   border-top: 10px solid transparent;
   border-bottom: 10px solid transparent;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 1px 3px var(--scrim));
 }
 .video__title {
   margin-top: 9px;
@@ -1982,7 +2170,7 @@
   color: var(--green-ink);
 }
 .delta[data-dir='under'] {
-  color: var(--red);
+  color: var(--red-text);
 }
 .stat-num {
   font-variant-numeric: tabular-nums;
@@ -1998,7 +2186,7 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--red);
+  color: var(--red-text);
 }
 .live-badge::before {
   content: '';
@@ -2030,7 +2218,7 @@
   overflow: hidden;
 }
 .result {
-  background: #fff;
+  background: var(--surface);
   padding: 15px 16px;
   display: block;
 }
@@ -2078,7 +2266,7 @@
   overflow: hidden;
 }
 .highlight {
-  background: #fff;
+  background: var(--surface);
   padding: 20px 18px;
 }
 .highlight__label {
@@ -2343,7 +2531,7 @@
   color: var(--ink-3);
 }
 .cal-watch__cell a {
-  color: var(--blue);
+  color: var(--blue-text);
 }
 .cal-watch__cell a:hover {
   text-decoration: underline;
@@ -2354,8 +2542,8 @@
 }
 .cal-watch__flag {
   font-size: 10px;
-  color: var(--amber);
-  border: 1px solid var(--amber);
+  color: var(--amber-text);
+  border: 1px solid var(--amber-text);
   border-radius: 4px;
   padding: 0 3px;
   text-decoration: none;
@@ -2381,8 +2569,8 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--amber);
-  border: 1px solid var(--amber);
+  color: var(--amber-text);
+  border: 1px solid var(--amber-text);
   border-radius: var(--r-pill);
   padding: 2px 8px;
   white-space: nowrap;
@@ -2453,7 +2641,7 @@
   margin-top: 2px;
 }
 .match__state[data-live='true'] {
-  color: var(--red);
+  color: var(--red-text);
   font-weight: 700;
 }
 
@@ -2563,8 +2751,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--amber);
-  border: 1px solid var(--amber);
+  color: var(--amber-text);
+  border: 1px solid var(--amber-text);
   border-radius: 5px;
   padding: 2px 6px;
   white-space: nowrap;
@@ -2751,7 +2939,7 @@
   margin-bottom: 18px;
 }
 .ledger__cell {
-  background: #fff;
+  background: var(--surface);
   padding: 14px 10px;
   text-align: center;
 }
@@ -2768,7 +2956,7 @@
   line-height: 1;
 }
 .ledger__cell[data-lead='true'] .ledger__wins {
-  color: var(--blue);
+  color: var(--blue-text);
 }
 
 .quote-card {
@@ -2821,7 +3009,7 @@
   align-items: center;
   gap: 12px;
   padding: 11px 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.07);
+  border-top: 1px solid var(--hairline);
 }
 .fpl-mini__row:first-child {
   border-top: 0;
@@ -2843,7 +3031,7 @@
   font-variant-numeric: tabular-nums;
 }
 .fpl-mini__row[data-lead='true'] .fpl-mini__pts {
-  color: var(--blue);
+  color: var(--blue-text);
 }
 
 /* ---------- fantasy: standings strip ---------- */
@@ -2864,7 +3052,7 @@
   }
 }
 .fpl-bar__cell {
-  background: #fff;
+  background: var(--surface);
   padding: 16px 14px;
 }
 .fpl-bar__who {
@@ -2883,7 +3071,7 @@
   line-height: 1;
 }
 .fpl-bar__cell[data-lead='true'] .fpl-bar__pts {
-  color: var(--blue);
+  color: var(--blue-text);
 }
 .fpl-bar__sub {
   margin-top: 6px;
@@ -2950,5 +3138,122 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--blue);
+  color: var(--blue-text);
+}
+
+/* ---------- motion ---------- */
+/*
+ * Purposeful only. Everything here either explains a change of state or
+ * absorbs a transition the eye would otherwise read as a jump — and all of it
+ * is switched off wholesale by the prefers-reduced-motion block in tokens.css,
+ * which is why none of these need their own guard.
+ */
+
+/* A route change fades and lifts a few pixels. Enough to say "this is new",
+   not enough to make anyone wait for it. */
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.route {
+  animation: route-in var(--med) var(--ease);
+}
+
+/* Rows arrive in sequence rather than all at once. Capped at ten: past that
+   the last row waits noticeably, and a table is not a performance. */
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+.stagger > * {
+  animation: row-in var(--med) var(--ease) backwards;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 22ms; }
+.stagger > *:nth-child(3) { animation-delay: 44ms; }
+.stagger > *:nth-child(4) { animation-delay: 66ms; }
+.stagger > *:nth-child(5) { animation-delay: 88ms; }
+.stagger > *:nth-child(6) { animation-delay: 110ms; }
+.stagger > *:nth-child(7) { animation-delay: 132ms; }
+.stagger > *:nth-child(8) { animation-delay: 154ms; }
+.stagger > *:nth-child(9) { animation-delay: 176ms; }
+.stagger > *:nth-child(n + 10) { animation-delay: 198ms; }
+
+/* Pressable things give under the finger. */
+.btn:active,
+.chip:active {
+  transform: scale(0.97);
+}
+.btn,
+.chip {
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+/* A card that can be opened says so by lifting very slightly. */
+.home-news__item,
+.video,
+.result {
+  transition: transform var(--fast) var(--ease);
+}
+.home-news__item:hover,
+.video:hover,
+.result:hover {
+  transform: translateY(-2px);
+}
+
+/* A club inside a player row: crest first, then the three-letter code, so the
+   eye can find a club by colour before it reads anything. */
+.player-club {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- table refinements ---------- */
+/*
+ * The brief forbids zebra striping, gridlines and boxes, so a long table has
+ * to stay scannable on hairlines alone. Three things do that without adding
+ * ornament: a row responds to the cursor, the column being sorted by carries
+ * a faint ground so the eye knows which numbers it is comparing, and the
+ * leading rows keep their rank in solid ink.
+ */
+.table tbody tr {
+  transition: background var(--fast) var(--ease);
+}
+.table tbody tr:hover td {
+  background: var(--bg-2);
+}
+/* First and last cell round off, so the hover reads as a row rather than a
+   full-bleed band that fights the hairlines. */
+.table tbody tr:hover td:first-child {
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+.table tbody tr:hover td:last-child {
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+/* The sorted column, marked by the same faint ground rather than a rule. */
+.table td.pts,
+.table th[aria-sort] {
+  background: color-mix(in srgb, var(--bg-2) 55%, transparent);
+}
+.table tbody tr:hover td.pts {
+  background: var(--bg-2);
+}
+
+/* Top three keep their number in full ink; the rest recede. Positions are
+   the one number in the table you read as a rank rather than a quantity. */
+.table tbody tr:nth-child(-n + 3) .pos {
+  color: var(--ink);
+  font-weight: 600;
 }

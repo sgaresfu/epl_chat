@@ -67,7 +67,7 @@ export function Admin() {
                     <b>{c.name}</b>
                   </td>
                   <td className="sec">{c.source}</td>
-                  <td className="sec" style={{ color: c.stale ? 'var(--amber)' : undefined }}>
+                  <td className="sec" style={{ color: c.stale ? 'var(--amber-text)' : undefined }}>
                     {describeAge(c.age_seconds)}
                   </td>
                 </tr>

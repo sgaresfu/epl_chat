@@ -1,61 +1,233 @@
 /*
- * Design tokens, exactly as specified in BRIEF section 5.
+ * Design tokens.
  *
  * The reference is premierleague.com for structure and Apple for visual
  * language. There is no ornament to hide behind, so this lives or dies on
  * spacing and alignment precision.
  *
- * Club colours are the only other colour on the page, and they appear only in
- * crests -- they are injected per element from the API's canonical club table,
- * never hardcoded here.
+ * Every colour in the app resolves through a token here. That is not tidiness
+ * for its own sake -- it is what makes a second theme possible at all, and a
+ * hardcoded `#fff` deep in a rule is a light-mode bug waiting for the first
+ * person who reads the site at night.
+ *
+ * Club colours are the **only** exception, and the only other colour on the
+ * page. They are injected per element from the API's canonical club table and
+ * are identical in both themes: Arsenal red is Arsenal red at midnight.
  */
 
 :root {
-  /* Ink */
+  color-scheme: light;
+
+  /* --- Ink ------------------------------------------------------------- */
   --ink: #1d1d1f;
   --ink-2: #6e6e73;
-  --ink-3: #86868b;
+  /* The brief names #86868B here, which is Apple's own tertiary grey. It
+     measures 3.62:1 on white and 3.33:1 on --bg-2 -- below the 4.5:1 the same
+     brief's quality floor demands, and this token carries the small labels
+     where it matters most. Darkened until it clears on both grounds; the
+     intent (a third step down from --ink) is unchanged. */
+  --ink-3: #707075;
+  /* Text on a filled blue or club-coloured ground. Blue and club colours are
+     identical in both themes, so this stays white in both. */
+  --on-accent: #ffffff;
+  /* Text on a ground filled with --ink: a pressed chip, a captain badge.
+     Unlike --on-accent this must invert, because --ink itself does. White on
+     --ink is correct in light and invisible in dark. */
+  --on-ink: #ffffff;
 
-  /* Ground */
+  /* --- Ground ---------------------------------------------------------- */
   --bg: #ffffff;
+  /* Inset panels, tiles, the quiet band behind a section. */
   --bg-2: #f5f5f7;
+  /* A surface raised *above* --bg-2: a cell inside a panel, a card on a tile.
+     In light this is plain white; in dark it must go lighter, not darker --
+     exactly the mapping a literal #fff cannot express. */
+  --surface: #ffffff;
   --line: #d2d2d7;
   --line-2: #e8e8ed;
 
-  /* The only action colour */
+  /* --- The only action colour ------------------------------------------ */
   --blue: #0071e3;
   --blue-h: #0077ed;
+  --blue-tint: #eaf1fd;
+  /* The ground under white text on a filled button. Split from --blue because
+     dark mode's brighter iOS blue only reaches 3.65:1 against white, which
+     fails AA for body-sized text -- so the fill and the link colour cannot be
+     the same value in both themes. */
+  --blue-solid: #0071e3;
+  --blue-solid-h: #0077ed;
+  /* Blue readable on --blue-tint specifically. */
+  --blue-on-tint: #006bd5;
 
-  /* State */
+  /* --- State ----------------------------------------------------------- */
+  /* Two variants each, and the split is the point. The bright value is for
+     *marks* -- an 8px form dot, a filled bar, a 4px rule -- which WCAG does
+     not hold to a text ratio. The -text value is for words, where it must
+     clear 4.5:1: brand green as small type is 2.02:1 on white, effectively
+     unreadable, and amber is worse at 2.06:1. */
   --green: #30d158;
   --red: #ff3b30;
   --amber: #ff9f0a;
+  --green-text: #1d8136;
+  --red-text: #d13027;
+  --amber-text: #9e6206;
+  /* Judged against --bg-2 as well as white: brand blue is 4.31:1 on the
+     tinted panel, and half the links on the site sit on one. */
+  --blue-text: #0069d9;
 
   /* Tinted grounds for the "done" chip, kept at AA against their own text */
   --green-tint: #eaf9ee;
   --green-line: #b8ecc5;
   --green-ink: #146b2c;
 
-  /* Type. System stack only -- on the phones these people use it resolves to
-     SF Pro, and loading a webfont to imitate it would be slower and worse. */
+  /* --- Chrome ---------------------------------------------------------- */
+  --nav-bg: rgba(255, 255, 255, 0.72);
+  --nav-line: rgba(0, 0, 0, 0.08);
+  /* Hairlines over an image or tinted panel, where --line-2 is too heavy. */
+  --hairline: rgba(0, 0, 0, 0.07);
+  --scrim: rgba(0, 0, 0, 0.28);
+  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --shadow-lift: 0 8px 30px rgba(0, 0, 0, 0.09);
+  /* Skeletons shimmer between the panel ground and one step lighter. */
+  --skel: #e3e3e8;
+  --skel-sheen: #eeeef1;
+  /* The play triangle over a video thumbnail. */
+  --play: rgba(255, 255, 255, 0.95);
+
+  /* --- Type ------------------------------------------------------------ */
+  /* System stack only -- on the phones these people use it resolves to SF
+     Pro, and loading a webfont to imitate it would be slower and worse. */
   --sys: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
     "Helvetica Neue", Helvetica, Arial, sans-serif;
 
-  /* Radii: 9px controls, 14px inset blocks, 22px tiles, 28px large panels */
+  /* --- Radii: 9px controls, 14px inset, 22px tiles, 28px panels --------- */
   --r-control: 9px;
   --r-inset: 14px;
   --r-tile: 22px;
   --r-panel: 28px;
   --r-pill: 980px;
 
-  /* Used sparingly, and never as decoration */
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-
   --wrap: 980px;
   --gutter: 22px;
   --section: 64px;
   --row: 58px;
   --nav: 48px;
+  /* Phone tab bar, so content can clear it. */
+  --tabbar: 56px;
+
+  /* --- Motion ---------------------------------------------------------- */
+  /* One easing curve for everything that moves, so the site reads as one
+     object rather than a set of independently-animated parts. */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --fast: 0.18s;
+  --med: 0.32s;
+}
+
+/*
+ * Dark.
+ *
+ * The iOS system dark palette rather than an inverted light one: a true black
+ * ground so an OLED phone switches those pixels off, with surfaces stepping
+ * *up* in lightness to signal elevation. Blue and red move to their iOS dark
+ * variants, which are brighter -- the light values do not carry enough
+ * contrast against black to hold AA.
+ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ink: #f5f5f7;
+  --ink-2: #a1a1a6;
+  --ink-3: #939398;
+  --on-accent: #ffffff;
+  --on-ink: #000000;
+
+  --bg: #000000;
+  --bg-2: #1c1c1e;
+  --surface: #2c2c2e;
+  --line: #48484a;
+  --line-2: #38383a;
+
+  --blue: #0a84ff;
+  --blue-h: #409cff;
+  --blue-tint: #0a2540;
+  --blue-solid: #0a6ed6;
+  --blue-solid-h: #1f7fe0;
+  --blue-on-tint: #4da3ff;
+
+  --green: #30d158;
+  --red: #ff453a;
+  --amber: #ffd60a;
+  --green-text: #30d158;
+  --red-text: #ff5b51;
+  --amber-text: #ffd60a;
+  --blue-text: #2c95ff;
+
+  --green-tint: #12301c;
+  --green-line: #1f5c33;
+  --green-ink: #4ade80;
+
+  --nav-bg: rgba(20, 20, 22, 0.72);
+  --nav-line: rgba(255, 255, 255, 0.1);
+  --hairline: rgba(255, 255, 255, 0.08);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lift: 0 8px 30px rgba(0, 0, 0, 0.6);
+  --skel: #2c2c2e;
+  --skel-sheen: #3a3a3c;
+  --play: rgba(255, 255, 255, 0.92);
+}
+
+/* Nobody has chosen: follow the system. Written as its own block rather than
+   folded into the one above, because a manual choice has to beat the system
+   setting in *both* directions. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --ink: #f5f5f7;
+    --ink-2: #a1a1a6;
+    --ink-3: #939398;
+    --on-accent: #ffffff;
+    --on-ink: #000000;
+
+    --bg: #000000;
+    --bg-2: #1c1c1e;
+    --surface: #2c2c2e;
+    --line: #48484a;
+    --line-2: #38383a;
+
+    --blue: #0a84ff;
+    --blue-h: #409cff;
+    --blue-tint: #0a2540;
+    --blue-solid: #0a6ed6;
+    --blue-solid-h: #1f7fe0;
+    --blue-on-tint: #4da3ff;
+
+    --green: #30d158;
+    --red: #ff453a;
+    --amber: #ffd60a;
+    --green-text: #30d158;
+    --red-text: #ff5b51;
+    --amber-text: #ffd60a;
+    --blue-text: #2c95ff;
+
+    --green-tint: #12301c;
+    --green-line: #1f5c33;
+    --green-ink: #4ade80;
+
+    --nav-bg: rgba(20, 20, 22, 0.72);
+    --nav-line: rgba(255, 255, 255, 0.1);
+    --hairline: rgba(255, 255, 255, 0.08);
+    --scrim: rgba(0, 0, 0, 0.6);
+    --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lift: 0 8px 30px rgba(0, 0, 0, 0.6);
+    --skel: #2c2c2e;
+    --skel-sheen: #3a3a3c;
+    --play: rgba(255, 255, 255, 0.92);
+  }
 }
 
 *,
@@ -79,6 +251,11 @@ body {
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* A theme flip should not strobe. Only the ground and the ink transition;
+     animating every descendant would be a repaint storm. */
+  transition:
+    background-color var(--med) var(--ease),
+    color var(--med) var(--ease);
 }
 
 h1,

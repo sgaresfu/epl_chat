@@ -35,9 +35,13 @@ const ROUTES = [
 ]
 
 const VIEWPORTS = [
-  ['desktop', { width: 1200, height: 900 }],
+  ['desktop', { width: 1280, height: 900 }],
   ['phone', { width: 390, height: 844 }],
 ]
+
+/* Both themes. A colour token can be correct in one and unreadable in the
+   other, and only one of those gets looked at by eye. */
+const SCHEMES = has('--light-only') ? ['light'] : ['light', 'dark']
 
 // Strings that should never reach a user's screen.
 const LEAKS = [
@@ -92,10 +96,10 @@ async function signIn(page) {
   await page.waitForSelector('.nav', { timeout: 60000 })
 }
 
-async function sweep(engineName, engine, viewportName, viewport, round) {
-  const tag = `${engineName}/${viewportName} r${round}`
+async function sweep(engineName, engine, viewportName, viewport, round, scheme) {
+  const tag = `${engineName}/${viewportName}/${scheme} r${round}`
   const browser = await engine.launch()
-  const context = await browser.newContext({ viewport })
+  const context = await browser.newContext({ viewport, colorScheme: scheme })
   const page = await context.newPage()
 
   const consoleErrors = []
@@ -141,6 +145,53 @@ async function sweep(engineName, engine, viewportName, viewport, round) {
         [...document.images].filter((i) => i.complete && i.naturalWidth === 0).map((i) => i.src),
       )
       check(broken.length === 0, `${where}: broken image(s) ${broken.slice(0, 2).join(', ')}`)
+
+      // Every run of text must clear WCAG AA against whatever it actually sits
+      // on. Computed at runtime rather than reasoned about in the stylesheet,
+      // because the ground a token lands on depends on where it is used --
+      // brand blue passes on white and fails on the tinted panel.
+      const contrast = await page.evaluate(() => {
+        const bad = []
+        const lum = (r, g, b) => {
+          const f = (v) => {
+            v /= 255
+            return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
+          }
+          return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
+        }
+        const parse = (s) => {
+          const m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/)
+          return m ? { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] } : null
+        }
+        for (const el of document.querySelectorAll('main *, .tabbar *, .nav *')) {
+          if (!el.textContent?.trim() || el.children.length) continue
+          // Crests are club brand colours, aria-hidden, and the club name is
+          // always rendered beside them.
+          if (el.classList.contains('crest')) continue
+          const s = getComputedStyle(el)
+          const fg = parse(s.color)
+          if (!fg) continue
+          let bg = null
+          let n = el
+          while (n) {
+            const c = parse(getComputedStyle(n).backgroundColor)
+            if (c && c.a > 0.9) { bg = c; break }
+            n = n.parentElement
+          }
+          if (!bg) continue
+          const L1 = lum(fg.r, fg.g, fg.b)
+          const L2 = lum(bg.r, bg.g, bg.b)
+          const ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05)
+          const size = parseFloat(s.fontSize)
+          const bold = parseInt(s.fontWeight) >= 600
+          const min = size >= 24 || (size >= 18.66 && bold) ? 3 : 4.5
+          if (ratio < min) {
+            bad.push(`${(el.className || el.tagName).toString().slice(0, 26)} ${ratio.toFixed(2)}:1 needs ${min}`)
+          }
+        }
+        return [...new Set(bad)].slice(0, 3)
+      })
+      check(contrast.length === 0, `${where}: contrast ${contrast.join(' | ')}`)
 
       // Buttons need an accessible name, or a screen reader announces "button".
       const nameless = await page.evaluate(() =>
@@ -208,14 +259,16 @@ const started = Date.now()
 for (let round = 1; round <= ROUNDS; round++) {
   for (const [name, engine] of ENGINES) {
     for (const [vpName, vp] of VIEWPORTS) {
-      await sweep(name, engine, vpName, vp, round)
+      for (const scheme of SCHEMES) {
+        await sweep(name, engine, vpName, vp, round, scheme)
+      }
     }
   }
   console.log(`round ${round}/${ROUNDS} done — ${checks} checks, ${problems.length} problems so far`)
 }
 
 const seconds = ((Date.now() - started) / 1000).toFixed(0)
-console.log(`\n${checks} checks in ${seconds}s across ${ENGINES.length} engine(s) × ${VIEWPORTS.length} viewport(s) × ${ROUNDS} round(s)`)
+console.log(`\n${checks} checks in ${seconds}s across ${ENGINES.length} engine(s) × ${VIEWPORTS.length} viewport(s) × ${SCHEMES.length} theme(s) × ${ROUNDS} round(s)`)
 if (problems.length === 0) {
   console.log('QA CLEAN')
 } else {

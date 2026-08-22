@@ -231,7 +231,7 @@ function Results() {
             All matches
           </Link>
         </div>
-        <div className="results">
+        <div className="results stagger">
           {finished.map((f) => {
             const h = f.home_score ?? 0
             const a = f.away_score ?? 0
@@ -287,7 +287,7 @@ function Highlights() {
             All statistics
           </Link>
         </div>
-        <div className="highlights">
+        <div className="highlights stagger">
           {tiles.map(([label, player, value]) => (
             <div className="highlight" key={label}>
               <p className="highlight__label">{label}</p>
@@ -370,7 +370,7 @@ function LatestVideo() {
             All video
           </Link>
         </div>
-        <div className="home-video">
+        <div className="home-video stagger">
           {videos.map((item) => (
             <a className="video" key={item.url} href={item.url} target="_blank" rel="noreferrer noopener">
               {item.image && (
@@ -405,7 +405,7 @@ function LatestNews() {
             More news
           </Link>
         </div>
-        <div className="home-news">
+        <div className="home-news stagger">
           {items.map((item) => (
             <a
               className="home-news__item"
