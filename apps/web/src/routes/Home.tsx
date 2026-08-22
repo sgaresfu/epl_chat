@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useHome, useMe, usePredictions, useTable } from '@/api/queries'
+import {
+  useFixtures,
+  useHome,
+  useMe,
+  useNews,
+  usePlayerStats,
+  usePredictions,
+  useTable,
+} from '@/api/queries'
 import { Crest } from '@/components/Crest'
 import { FourCities } from '@/components/FourCities'
 import { SeasonTimeline } from '@/components/SeasonTimeline'
@@ -68,7 +76,9 @@ function NextMatch() {
       {next.in_play ? (
         <p className="score">
           {fixture.home_score ?? 0}–{fixture.away_score ?? 0}
-          <small>{fixture.minutes}&rsquo; · live</small>
+          <small>
+            <span className="live-badge">live</span> · {fixture.minutes}&rsquo;
+          </small>
         </p>
       ) : (
         <p className="countdown">
@@ -191,6 +201,147 @@ function PredictionTile() {
   )
 }
 
+function ago(iso: string | null): string {
+  if (!iso) return ''
+  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+  if (minutes < 60) return `${Math.max(1, minutes)}m ago`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.round(hours / 24)}d ago`
+}
+
+/** The last few results, so the front page shows what actually happened. */
+function Results() {
+  const { data } = useFixtures()
+  const finished = (data?.fixtures ?? [])
+    .filter((f) => f.finished && f.home_score !== null)
+    .sort((a, b) => (b.kickoff ?? '').localeCompare(a.kickoff ?? ''))
+    .slice(0, 6)
+
+  if (finished.length === 0) return null
+
+  return (
+    <section className="section" style={{ paddingBottom: 0 }}>
+      <div className="wrap">
+        <div className="shead">
+          <h2>Results</h2>
+          <Link className="shead__link" to="/table?view=matches">
+            All matches
+          </Link>
+        </div>
+        <div className="results">
+          {finished.map((f) => {
+            const h = f.home_score ?? 0
+            const a = f.away_score ?? 0
+            return (
+              <Link className="result" to="/table?view=matches" key={f.id}>
+                <div className="result__teams" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                  <span className="result__row" data-outcome={h < a ? 'lost' : 'won'}>
+                    <Crest club={f.home} size={18} />
+                    <span className="result__name">{f.home.name}</span>
+                    <span className="result__score">{h}</span>
+                  </span>
+                  <span className="result__row" data-outcome={a < h ? 'lost' : 'won'}>
+                    <Crest club={f.away} size={18} />
+                    <span className="result__name">{f.away.name}</span>
+                    <span className="result__score">{a}</span>
+                  </span>
+                </div>
+                <p className="result__when">{ago(f.kickoff)}</p>
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** Who is actually doing something this season. */
+function Highlights() {
+  const { data } = usePlayerStats()
+  const players = data?.players ?? []
+  if (players.length === 0 || (data?.matches_played ?? 0) === 0) return null
+
+  const best = (key: 'goals' | 'assists' | 'points' | 'bonus') =>
+    [...players].sort((a, b) => b[key] - a[key] || b.minutes - a.minutes)[0]
+
+  const scorer = best('goals')
+  const creator = best('assists')
+  const points = best('points')
+
+  const tiles = [
+    ['Top scorer', scorer, `${scorer?.goals ?? 0}`],
+    ['Most assists', creator, `${creator?.assists ?? 0}`],
+    ['Most points', points, `${points?.points ?? 0}`],
+  ] as const
+
+  return (
+    <section className="section" style={{ paddingBottom: 0 }}>
+      <div className="wrap">
+        <div className="shead">
+          <h2>Leading the way</h2>
+          <Link className="shead__link" to="/stats">
+            All statistics
+          </Link>
+        </div>
+        <div className="highlights">
+          {tiles.map(([label, player, value]) => (
+            <div className="highlight" key={label}>
+              <p className="highlight__label">{label}</p>
+              <p className="highlight__value">{value}</p>
+              <p className="highlight__who">
+                {player ? `${player.name} · ${player.club}` : '—'}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** Three headlines with their pictures. */
+function LatestNews() {
+  const { data } = useNews()
+  const items = (data?.sky ?? []).slice(0, 3)
+  if (items.length === 0) return null
+
+  return (
+    <section className="section">
+      <div className="wrap">
+        <div className="shead">
+          <h2>Latest</h2>
+          <Link className="shead__link" to="/news">
+            More news
+          </Link>
+        </div>
+        <div className="home-news">
+          {items.map((item) => (
+            <a
+              className="home-news__item"
+              key={item.url}
+              href={item.url}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {item.image && (
+                <div className="home-news__art">
+                  <img src={item.image} alt="" loading="lazy" />
+                </div>
+              )}
+              <p className="home-news__title">{item.title}</p>
+              <p className="home-news__meta">
+                {item.source} · {ago(item.published)}
+              </p>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export function Home() {
   const { data } = useHome()
   const { data: predictions } = usePredictions()
@@ -258,11 +409,19 @@ export function Home() {
         </div>
       </section>
 
-      <hr className="rule" />
+      <Results />
 
-      <section className="section" style={{ paddingTop: 0 }}>
+      <Highlights />
+
+      <hr className="rule" style={{ marginTop: 64 }} />
+
+      <section className="section" style={{ paddingTop: 0, marginTop: 64 }}>
         <div className="wrap">{data?.season ? <SeasonTimeline season={data.season} /> : <TileSkeleton height={280} />}</div>
       </section>
+
+      <hr className="rule" />
+
+      <LatestNews />
     </>
   )
 }

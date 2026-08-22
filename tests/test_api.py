@@ -842,3 +842,44 @@ class TestStats:
     async def test_stats_need_a_session(self, client: AsyncClient) -> None:
         assert (await client.get("/api/stats/players")).status_code == 401
         assert (await client.get("/api/stats/teams")).status_code == 401
+
+
+class TestLineOfTheDay:
+    """One sentence tying the table to the season. It has to read correctly."""
+
+    async def test_it_says_one_match_not_one_matches(self, client: AsyncClient) -> None:
+        # The live site read "1 matches played."
+        from datetime import UTC, datetime
+
+        from services.api.routes.football import _line_of_the_day
+        from shared import keys
+        from shared.cache import MemoryCache
+
+        cache = MemoryCache()
+        await cache.set(
+            keys.FPL_FIXTURES,
+            [
+                {
+                    "id": 1,
+                    "finished": True,
+                    "finished_provisional": True,
+                    "minutes": 90,
+                    "team_h": 1,
+                    "team_a": 7,
+                    "team_h_score": 3,
+                    "team_a_score": 0,
+                    "kickoff_time": "2026-08-21T19:00:00Z",
+                },
+                {"id": 2, "finished": False, "kickoff_time": "2026-08-22T14:00:00Z"},
+            ],
+            source="fpl",
+        )
+
+        class FakeState:
+            def __init__(self, c: MemoryCache) -> None:
+                self.cache = c
+
+        line = await _line_of_the_day(FakeState(cache), datetime.now(UTC))  # type: ignore[arg-type]
+        assert line is not None
+        assert "1 matches" not in line
+        assert "One match played" in line

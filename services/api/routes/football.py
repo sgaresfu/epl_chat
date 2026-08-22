@@ -209,4 +209,6 @@ async def _line_of_the_day(state: State, now: datetime) -> str | None:
         if hours < 24:
             return f"Nobody has a point yet, and in {int(hours)} hours nobody will have an excuse either."
         return f"{int(hours // 24)} days until the first ball. Two predictions still unfiled."
+    if played == 1:
+        return "One match played. The table already disagrees with somebody."
     return f"{played} matches played. The table is starting to disagree with everyone."
