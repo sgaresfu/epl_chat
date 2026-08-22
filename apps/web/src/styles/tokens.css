@@ -90,6 +90,13 @@ figure {
   margin: 0;
 }
 
+/* No image may be wider than the box it sits in. A safety net rather than a
+   layout rule: one unconstrained photo is enough to make a whole page scroll
+   sideways on a phone, and three of the four watch on one. */
+img {
+  max-width: 100%;
+}
+
 a {
   color: inherit;
   text-decoration: none;

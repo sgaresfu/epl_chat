@@ -1707,7 +1707,12 @@
 }
 @media (max-width: 900px) {
   .news-layout {
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr), not 1fr: a bare `1fr` is `minmax(auto, 1fr)`, and that
+       `auto` floor is min-content — which an <img> raises to its intrinsic
+       width even when it is set to width:100%. The lead photo pushed this
+       column to 492px inside a 390px phone and the whole page scrolled
+       sideways. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 34px;
   }
 }
