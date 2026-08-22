@@ -230,7 +230,6 @@ def build_odds_for_row(
     odds_cache: dict[str, Any] | None,
     history: Sequence[OddsHistory],
     now: datetime,
-    missing_key_reason: str | None,
 ) -> OddsPrice:
     """The live bet365 price for one fixture, with a week's drift where there's history for it.
 
@@ -238,8 +237,6 @@ def build_odds_for_row(
     record, if the history is younger than that); the frontend pairs it with
     the live price above to render "1.40 → 1.65".
     """
-    if missing_key_reason is not None:
-        return OddsPrice(available=False, reason=missing_key_reason)
     if odds_cache is None:
         return OddsPrice(available=False, reason="Odds have not been fetched yet.")
 
@@ -272,6 +269,7 @@ def build_odds_for_row(
         bookmaker=str(match.get("bookmaker") or "bet365"),
         captured_at=history[-1].captured_at if history else None,
         drift=drift,
+        market_max=match.get("market_max"),
         available=True,
     )
 

@@ -91,17 +91,10 @@ class TestBuildOddsForRow:
     ROW: ClassVar[dict[str, Any]] = {"id": 1, "team_h": 1, "team_a": 7}
     NOW = datetime(2026, 9, 1, tzinfo=UTC)
 
-    def test_a_missing_key_is_reported_by_name(self) -> None:
-        from services.api.views import build_odds_for_row
-
-        price = build_odds_for_row(self.ROW, None, [], self.NOW, "ODDS_API_KEY needed")
-        assert price.available is False
-        assert "ODDS_API_KEY" in (price.reason or "")
-
     def test_no_cache_yet_is_reported_distinctly(self) -> None:
         from services.api.views import build_odds_for_row
 
-        price = build_odds_for_row(self.ROW, None, [], self.NOW, None)
+        price = build_odds_for_row(self.ROW, None, [], self.NOW)
         assert price.available is False
         assert "not been fetched" in (price.reason or "")
 
@@ -109,7 +102,7 @@ class TestBuildOddsForRow:
         from services.api.views import build_odds_for_row
 
         cache = {"ARS-COV": {"available": False, "reason": "bet365 has no listed price for this match."}}
-        price = build_odds_for_row(self.ROW, cache, [], self.NOW, None)
+        price = build_odds_for_row(self.ROW, cache, [], self.NOW)
         assert price.available is False
         assert "bet365" in (price.reason or "")
 
@@ -126,7 +119,7 @@ class TestBuildOddsForRow:
                 "reason": "",
             }
         }
-        price = build_odds_for_row(self.ROW, cache, [], self.NOW, None)
+        price = build_odds_for_row(self.ROW, cache, [], self.NOW)
         assert price.available is True
         assert price.home == 1.40
         assert price.bookmaker == "bet365"
@@ -146,7 +139,7 @@ class TestBuildOddsForRow:
                 fixture_id=1, captured_at=self.NOW - timedelta(hours=1), home=1.65, draw=4.50, away=6.50
             ),
         ]
-        price = build_odds_for_row(self.ROW, cache, history, self.NOW, None)
+        price = build_odds_for_row(self.ROW, cache, history, self.NOW)
         assert price.drift == {"home": 1.40, "draw": 4.75, "away": 8.00}
         assert price.home == 1.65, "the live price is unchanged by drift, only the baseline is attached"
 
@@ -157,7 +150,7 @@ class TestBuildOddsForRow:
             "ARS-COV": {"home": 1.65, "draw": 4.50, "away": 6.50, "bookmaker": "bet365", "available": True}
         }
         history = [OddsHistory(fixture_id=1, captured_at=self.NOW, home=1.65, draw=4.50, away=6.50)]
-        price = build_odds_for_row(self.ROW, cache, history, self.NOW, None)
+        price = build_odds_for_row(self.ROW, cache, history, self.NOW)
         assert price.drift is None
 
     async def test_history_read_back_from_sqlite_still_compares(self, sessions: Any) -> None:
@@ -194,16 +187,130 @@ class TestBuildOddsForRow:
         cache = {
             "ARS-COV": {"home": 1.65, "draw": 4.50, "away": 6.50, "bookmaker": "bet365", "available": True}
         }
-        price = build_odds_for_row(self.ROW, cache, history, self.NOW, None)  # must not raise
+        price = build_odds_for_row(self.ROW, cache, history, self.NOW)  # must not raise
         assert price.drift == {"home": 1.40, "draw": 4.75, "away": 8.00}
 
 
-class TestPoller:
-    """The poller's quota gate and its no-key no-op."""
+class TestFreeSource:
+    """The default path: football-data.co.uk, no key, no quota.
 
-    async def test_no_key_is_a_silent_no_op(self) -> None:
+    The brief names The Odds API, but that credential was never issued and the
+    panel shipped dark because of it. This source publishes the same bet365
+    1X2 prices for free, so the panel works out of the box.
+    """
+
+    CSV = (
+        "Div,Date,Time,HomeTeam,AwayTeam,B365H,B365D,B365A,MaxH,MaxD,MaxA\n"
+        "E0,21/08/2026,20:00,Arsenal,Coventry,1.2,7,13,1.23,7.5,16.5\n"
+        "E0,22/08/2026,12:30,Hull,Man United,8.5,5,1.36,9,5.25,1.39\n"
+        "E1,22/08/2026,15:00,Millwall,Watford,2.1,3.4,3.5,2.2,3.5,3.6\n"
+        "E0,23/08/2026,14:00,Brighton,Aston Villa,,,,,,\n"
+        "E0,23/08/2026,16:30,Nowhere FC,Not A Club,2.0,3.0,4.0,2.1,3.1,4.1\n"
+    )
+
+    def test_only_the_premier_league_division_is_kept(self) -> None:
+        from services.poller.odds import parse_fixtures_csv
+
+        matches = parse_fixtures_csv(self.CSV)
+        assert "ARS-COV" in matches
+        assert not [k for k in matches if "MIL" in k], "E1 is the Championship, not this league"
+
+    def test_prices_are_read_for_a_priced_match(self) -> None:
+        from services.poller.odds import parse_fixtures_csv
+
+        m = parse_fixtures_csv(self.CSV)["ARS-COV"]
+        assert (m.home, m.draw, m.away) == (1.2, 7.0, 13.0)
+        assert m.available is True
+        assert m.bookmaker == "bet365"
+
+    def test_the_market_maximum_is_carried_alongside(self) -> None:
+        from services.poller.odds import parse_fixtures_csv
+
+        m = parse_fixtures_csv(self.CSV)["ARS-COV"]
+        assert m.market_max == {"home": 1.23, "draw": 7.5, "away": 16.5}
+
+    def test_a_row_with_no_prices_yet_is_unavailable_not_absent(self) -> None:
+        from services.poller.odds import parse_fixtures_csv
+
+        m = parse_fixtures_csv(self.CSV)["BHA-AVL"]
+        assert m.available is False
+        assert m.reason
+        assert m.home is None
+
+    def test_an_unmappable_club_is_skipped_not_fatal(self) -> None:
+        from services.poller.odds import parse_fixtures_csv
+
+        matches = parse_fixtures_csv(self.CSV)
+        assert len(matches) == 3, "Arsenal, Hull and Brighton map; the fake club does not"
+
+    def test_a_utf8_bom_does_not_void_the_division_filter(self) -> None:
+        """A regression test for a bug that returned zero matches, silently.
+
+        football-data.co.uk serves the file with a BOM. Left in place it
+        becomes part of the first column's name -- "\ufeffDiv" rather than
+        "Div" -- so ``row.get("Div")`` is None for every row, the division
+        filter matches nothing, and the whole league vanishes with no error.
+        """
+        from services.poller.odds import parse_fixtures_csv
+
+        assert parse_fixtures_csv("\ufeff" + self.CSV) == parse_fixtures_csv(self.CSV)
+        assert len(parse_fixtures_csv("\ufeff" + self.CSV)) == 3
+
+    def test_a_nonsense_price_is_dropped_rather_than_rendered(self) -> None:
+        """A decimal price at or below evens is impossible."""
+        from services.poller.odds import parse_fixtures_csv
+
+        bad = "Div,HomeTeam,AwayTeam,B365H,B365D,B365A\nE0,Arsenal,Coventry,0.5,x,13\n"
+        m = parse_fixtures_csv(bad)["ARS-COV"]
+        assert m.home is None
+        assert m.draw is None
+        assert m.available is False
+
+    def test_an_empty_file_yields_nothing_rather_than_raising(self) -> None:
+        from services.poller.odds import parse_fixtures_csv
+
+        assert parse_fixtures_csv("") == {}
+        assert parse_fixtures_csv("Div,HomeTeam\n") == {}
+
+
+class TestPoller:
+    """Quota only gates the optional paid feed; the free one is unmetered."""
+
+    async def test_an_exhausted_quota_falls_back_to_the_free_source(self, monkeypatch: Any) -> None:
+        """Running out of paid calls must not take the panel down with it."""
+        from services.poller import odds as odds_mod
         from services.poller.main import Poller
         from shared.cache import MemoryCache
+        from shared.keys import quota
+
+        async def fake_free(up: Any) -> dict[str, Any]:
+            return {"ARS-COV": odds_mod.MatchOdds("ARS", "COV", 1.4, 4.75, 8.0, "bet365", None, True)}
+
+        monkeypatch.setattr(odds_mod, "fetch_free_odds", fake_free)
+
+        settings = Settings(odds_api_key="test-key", odds_monthly_budget=1)
+        cache = MemoryCache()
+        await cache.set(quota("the-odds-api", datetime.now(UTC).strftime("%Y-%m")), 1, source="quota")
+
+        poller = Poller(settings, cache)
+        try:
+            await poller.poll_odds()
+        finally:
+            await poller.close()
+
+        entry = await cache.get("pl2627:odds:round")
+        assert entry is not None, "the free source must still fill the cache"
+        assert entry.source == "football-data"
+
+    async def test_the_free_source_runs_with_no_key_at_all(self, monkeypatch: Any) -> None:
+        from services.poller import odds as odds_mod
+        from services.poller.main import Poller
+        from shared.cache import MemoryCache
+
+        async def fake_free(up: Any) -> dict[str, Any]:
+            return {"ARS-COV": odds_mod.MatchOdds("ARS", "COV", 1.4, 4.75, 8.0, "bet365", None, True)}
+
+        monkeypatch.setattr(odds_mod, "fetch_free_odds", fake_free)
 
         cache = MemoryCache()
         poller = Poller(Settings(odds_api_key=""), cache)
@@ -211,42 +318,28 @@ class TestPoller:
             await poller.poll_odds()
         finally:
             await poller.close()
-        assert await cache.get("pl2627:odds:round") is None
 
-    async def test_an_exhausted_quota_is_a_silent_no_op(self) -> None:
-        from services.poller.main import Poller
-        from shared.cache import MemoryCache
-        from shared.keys import quota
-
-        settings = Settings(odds_api_key="test-key", odds_monthly_budget=1)
-        cache = MemoryCache()
-        window = datetime.now(UTC).strftime("%Y-%m")
-        await cache.set(quota("the-odds-api", window), 1, source="quota")
-
-        poller = Poller(settings, cache)
-        try:
-            await poller.poll_odds()
-        finally:
-            await poller.close()
-        assert await cache.get("pl2627:odds:round") is None
+        entry = await cache.get("pl2627:odds:round")
+        assert entry is not None
+        assert entry.value["ARS-COV"]["home"] == 1.4
 
 
 class TestEndpoint:
-    async def test_a_missing_key_names_itself_on_the_fixture(self, client: AsyncClient) -> None:
+    async def test_an_unpolled_cache_says_so_rather_than_blaming_a_key(self, client: AsyncClient) -> None:
         await sign_in(client)
         body = (await client.get("/api/fixtures/1")).json()
         assert body["odds"]["available"] is False
-        assert "ODDS_API_KEY" in body["odds"]["reason"]
+        assert "not been fetched" in body["odds"]["reason"]
+        assert "KEY" not in body["odds"]["reason"], "odds no longer need a credential"
 
     async def test_it_needs_a_session(self, client: AsyncClient) -> None:
         assert (await client.get("/api/odds")).status_code == 401
 
-    async def test_the_whole_round_reports_the_missing_key_too(self, client: AsyncClient) -> None:
+    async def test_the_whole_round_lists_fixtures_before_the_poller_runs(self, client: AsyncClient) -> None:
         await sign_in(client)
         body = (await client.get("/api/odds")).json()
         assert body["fixtures"], "gameweek 1 should list fixtures even with no odds yet"
         assert all(f["odds"]["available"] is False for f in body["fixtures"])
-        assert "ODDS_API_KEY" in body["freshness"]["reason"]
 
 
 class TestAdminQuotaReporting:

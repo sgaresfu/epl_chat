@@ -1112,6 +1112,36 @@
         ],
         "summary": "Calendar",
         "operationId": "calendar_api_calendar_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 730,
+              "minimum": 1,
+              "default": 120,
+              "title": "Days"
+            }
+          },
+          {
+            "name": "sport",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sport"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1119,6 +1149,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CalendarOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1485,20 +1525,64 @@
             "type": "string",
             "title": "Title"
           },
-          "category": {
+          "sport": {
             "type": "string",
-            "enum": [
-              "f1",
-              "boxing",
-              "ufc",
-              "other"
-            ],
-            "title": "Category"
+            "title": "Sport"
+          },
+          "sport_label": {
+            "type": "string",
+            "title": "Sport Label"
           },
           "starts_at": {
             "type": "string",
             "format": "date-time",
             "title": "Starts At"
+          },
+          "ends_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends At"
+          },
+          "time_known": {
+            "type": "boolean",
+            "title": "Time Known",
+            "default": false
+          },
+          "multi_day": {
+            "type": "boolean",
+            "title": "Multi Day",
+            "default": false
+          },
+          "in_progress": {
+            "type": "boolean",
+            "title": "In Progress",
+            "default": false
+          },
+          "days_until": {
+            "type": "integer",
+            "title": "Days Until",
+            "default": 0
+          },
+          "venue": {
+            "type": "string",
+            "title": "Venue",
+            "default": ""
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "major",
+              "notable"
+            ],
+            "title": "Tier",
+            "default": "notable"
           },
           "note": {
             "type": "string",
@@ -1511,15 +1595,31 @@
             },
             "type": "array",
             "title": "Local Times"
+          },
+          "watch": {
+            "items": {
+              "$ref": "#/components/schemas/WatchOn"
+            },
+            "type": "array",
+            "title": "Watch"
           }
         },
         "type": "object",
         "required": [
           "title",
-          "category",
+          "sport",
+          "sport_label",
           "starts_at",
+          "ends_at",
+          "time_known",
+          "multi_day",
+          "in_progress",
+          "days_until",
+          "venue",
+          "tier",
           "note",
-          "local_times"
+          "local_times",
+          "watch"
         ],
         "title": "CalendarEventOut"
       },
@@ -1531,6 +1631,18 @@
             },
             "type": "array",
             "title": "Events"
+          },
+          "sports": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sports"
+          },
+          "checked_on": {
+            "type": "string",
+            "title": "Checked On",
+            "default": ""
           },
           "empty_message": {
             "anyOf": [
@@ -1547,6 +1659,8 @@
         "type": "object",
         "required": [
           "events",
+          "sports",
+          "checked_on",
           "empty_message"
         ],
         "title": "CalendarOut"
@@ -2730,6 +2844,16 @@
             "type": "boolean",
             "title": "Available"
           },
+          "confirmed": {
+            "type": "boolean",
+            "title": "Confirmed",
+            "default": false
+          },
+          "basis": {
+            "type": "string",
+            "title": "Basis",
+            "default": ""
+          },
           "reason": {
             "anyOf": [
               {
@@ -2765,6 +2889,8 @@
         "type": "object",
         "required": [
           "available",
+          "confirmed",
+          "basis",
           "reason",
           "home",
           "away"
@@ -3183,6 +3309,20 @@
             ],
             "title": "Drift"
           },
+          "market_max": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Max"
+          },
           "available": {
             "type": "boolean",
             "title": "Available",
@@ -3208,6 +3348,7 @@
           "bookmaker",
           "captured_at",
           "drift",
+          "market_max",
           "available",
           "reason"
         ],
@@ -4573,6 +4714,52 @@
           "choice"
         ],
         "title": "VoteIn"
+      },
+      "WatchOn": {
+        "properties": {
+          "place": {
+            "type": "string",
+            "title": "Place"
+          },
+          "country": {
+            "type": "string",
+            "title": "Country"
+          },
+          "city": {
+            "type": "string",
+            "title": "City"
+          },
+          "person": {
+            "type": "string",
+            "title": "Person"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "default": ""
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence",
+            "default": "unverified"
+          }
+        },
+        "type": "object",
+        "required": [
+          "place",
+          "country",
+          "city",
+          "person",
+          "provider",
+          "url",
+          "confidence"
+        ],
+        "title": "WatchOn",
+        "description": "Where one of the four cities can watch one event.\n\nCarries both ``place`` (the stable key, e.g. \"coyg\") and ``person`` (the\ndisplay name, \"COYG\"), the same split ``LocalTimeOut`` uses -- the UI\ncompares against the key and renders the name, and conflating the two is\nhow \"your time\" ends up labelling somebody else's clock."
       },
       "WatchStatsOut": {
         "properties": {

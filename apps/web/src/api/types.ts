@@ -97,6 +97,7 @@ export interface Odds {
   bookmaker: string
   captured_at: string | null
   drift: Record<string, number> | null
+  market_max: Record<string, number> | null
   available: boolean
   reason: string | null
 }
@@ -536,20 +537,43 @@ export interface LineupSide {
 
 export interface Lineups {
   available: boolean
+  confirmed: boolean
+  basis: string
   reason: string | null
   home: LineupSide | null
   away: LineupSide | null
 }
 
+export interface WatchOn {
+  place: string
+  country: string
+  city: string
+  person: string
+  provider: string
+  url: string
+  confidence: string
+}
+
 export interface CalendarEvent {
   title: string
-  category: 'f1' | 'boxing' | 'ufc' | 'other'
+  sport: string
+  sport_label: string
   starts_at: string
+  ends_at: string | null
+  time_known: boolean
+  multi_day: boolean
+  in_progress: boolean
+  days_until: number
+  venue: string
+  tier: 'major' | 'notable'
   note: string
   local_times: LocalTime[]
+  watch: WatchOn[]
 }
 
 export interface Calendar {
   events: CalendarEvent[]
+  sports: string[]
+  checked_on: string
   empty_message: string | null
 }

@@ -15,11 +15,11 @@ import structlog
 from shared import keys
 from shared.cache import Cache
 from shared.clubs import UnknownClubError, by_fpl_id
-from shared.config import MISSING_KEY_MESSAGES, Settings
+from shared.config import Settings
 from shared.models import LineupPlayerOut, LineupSideOut, LineupsOut
 
 from services.poller import api_football, quota
-from services.poller.api_football import LineupSide
+from services.poller.api_football import LineupPlayer, LineupSide
 from services.poller.http import UpstreamError
 
 log = structlog.get_logger(__name__)
@@ -85,7 +85,10 @@ async def get_lineups(
 ) -> LineupsOut:
     """Confirmed line-ups for one fixture, fetching only if the cache is cold."""
     if not settings.has("api_football_key"):
-        return LineupsOut(available=False, reason=MISSING_KEY_MESSAGES["api_football_key"])
+        # No credential was ever issued for API-Football, and a permanently
+        # empty panel is worse than an honest inference. FPL knows who has
+        # been starting, so predict the XI and label it as a prediction.
+        return await predicted_lineups(row, cache)
 
     cached = await cache.get(keys.lineups(fixture_id))
     if cached is not None and not cached.is_stale(keys.LINEUPS_TTL):
@@ -119,9 +122,7 @@ async def get_lineups(
         af_fixture_id = mapping.get(f"{home.short_name}-{away.short_name}")
 
     if af_fixture_id is None:
-        result = LineupsOut(available=False, reason=NOT_OUT_YET)
-        await cache.set(keys.lineups(fixture_id), result.model_dump(mode="json"), source="api-football")
-        return result
+        return await predicted_lineups(row, cache)
 
     verdict = await quota.check(cache, "api-football", "day", settings.api_football_daily_budget)
     if not verdict.allowed:
@@ -139,9 +140,101 @@ async def get_lineups(
 
     home_side, away_side = api_football.normalise(payload, home.short_name, away.short_name)
     if home_side is None or away_side is None:
-        result = LineupsOut(available=False, reason=NOT_OUT_YET)
+        # Sheets land about an hour before kickoff; until then, predict.
+        return await predicted_lineups(row, cache)
     else:
-        result = LineupsOut(available=True, home=_side_out(home_side), away=_side_out(away_side))
+        result = LineupsOut(
+            available=True,
+            confirmed=True,
+            basis="Confirmed team sheet.",
+            home=_side_out(home_side),
+            away=_side_out(away_side),
+        )
 
     await cache.set(keys.lineups(fixture_id), result.model_dump(mode="json"), source="api-football")
     return result
+
+
+# --------------------------------------------------------------------------
+# Predicted XI -- the keyless default
+# --------------------------------------------------------------------------
+
+# 1 GK, 4 DEF, 4 MID, 2 FWD: the shape most Premier League sides line up in,
+# and the one to fall back on when we are inferring rather than reading a sheet.
+SHAPE: dict[int, int] = {1: 1, 2: 4, 3: 4, 4: 2}
+POSITION_LABEL: dict[int, str] = {1: "G", 2: "D", 3: "M", 4: "F"}
+
+
+def _available(player: dict[str, Any]) -> bool:
+    """Whether a player is fit and eligible, as far as FPL knows.
+
+    ``status`` is "a" for available; injured, suspended and departed players
+    carry other codes. ``chance_of_playing_next_round`` is FPL's own doubt
+    percentage and is null when there is no doubt at all.
+    """
+    if str(player.get("status", "a")) != "a":
+        return False
+    chance = player.get("chance_of_playing_next_round")
+    return not (chance is not None and int(chance) < 50)
+
+
+def predict_side(bootstrap: dict[str, Any], fpl_team_id: int) -> LineupSide | None:
+    """The XI this club is most likely to field, inferred from who has started.
+
+    Ranked by starts, then minutes, then ownership -- ownership is the
+    tie-break rather than the signal, because it reflects what the FPL playing
+    public expects rather than what the manager has actually done.
+
+    At the very start of a season the counts are last season's, which is the
+    best available predictor and considerably better than nothing.
+    """
+    squad = [
+        p for p in bootstrap.get("elements", []) if int(p.get("team", 0)) == fpl_team_id and _available(p)
+    ]
+    if len(squad) < 11:
+        return None
+
+    def rank(player: dict[str, Any]) -> tuple[int, int, float]:
+        return (
+            int(player.get("starts") or 0),
+            int(player.get("minutes") or 0),
+            float(player.get("selected_by_percent") or 0.0),
+        )
+
+    starting: list[LineupPlayer] = []
+    bench: list[LineupPlayer] = []
+    for position, needed in SHAPE.items():
+        ranked = sorted(
+            (p for p in squad if int(p.get("element_type", 0)) == position), key=rank, reverse=True
+        )
+        label = POSITION_LABEL[position]
+        for index, player in enumerate(ranked):
+            entry = LineupPlayer(name=str(player.get("web_name", "")), number=None, position=label)
+            if index < needed:
+                starting.append(entry)
+            elif len(bench) < 7:
+                bench.append(entry)
+
+    if len(starting) < 11:
+        return None
+    return LineupSide(formation="4-4-2", starting=starting, bench=bench)
+
+
+async def predicted_lineups(row: dict[str, Any], cache: Cache) -> LineupsOut:
+    """A likely XI for both sides, from FPL data alone -- no key, no quota."""
+    entry = await cache.get(keys.FPL_BOOTSTRAP)
+    if entry is None or not isinstance(entry.value, dict):
+        return LineupsOut(available=False, reason="Squad data has not loaded yet.")
+
+    home = predict_side(entry.value, int(row["team_h"]))
+    away = predict_side(entry.value, int(row["team_a"]))
+    if home is None or away is None:
+        return LineupsOut(available=False, reason="Not enough squad data to predict an XI yet.")
+
+    return LineupsOut(
+        available=True,
+        confirmed=False,
+        basis="Likely XI, from who has been starting this season. Not the confirmed team sheet.",
+        home=_side_out(home),
+        away=_side_out(away),
+    )

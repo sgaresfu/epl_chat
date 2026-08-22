@@ -16,6 +16,8 @@ import type {
   AdminStatus,
   Bets,
   Calendar,
+  CalendarEvent,
+  WatchOn,
   Club,
   Fixture,
   FixtureList,
@@ -94,6 +96,8 @@ type _Timeline = Assert<Exact<Timeline, Schemas['TimelineOut']>>
 type _PStats = Assert<Exact<PlayerStats, Schemas['PlayerStatsOut']>>
 type _TStats = Assert<Exact<TeamStats, Schemas['TeamStatsOut']>>
 type _Calendar = Assert<Exact<Calendar, Schemas['CalendarOut']>>
+type _CalendarEvent = Assert<Exact<CalendarEvent, Schemas['CalendarEventOut']>>
+type _WatchOn = Assert<Exact<WatchOn, Schemas['WatchOn']>>
 type _Odds = Assert<Exact<Odds, Schemas['OddsPrice']>>
 type _FixtureOdds = Assert<Exact<FixtureOdds, Schemas['FixtureOddsOut']>>
 type _OddsRound = Assert<Exact<OddsRound, Schemas['OddsRoundOut']>>
@@ -105,5 +109,5 @@ type _Lineups = Assert<Exact<Lineups, Schemas['LineupsOut']>>
 // construction; a drifted type makes its `Assert` fail to satisfy the constraint.
 export type ContractHolds = [
   _Person, _Me, _Club, _Freshness, _LocalTime, _TableRow, _LeagueTable,
-  _Projected, _Fixture, _FixtureList, _Season, _Home, _Predictions, _Admin, _Fpl, _Lb, _H2H, _Watch, _News, _Polls, _Bets, _Timeline, _Squads, _PStats, _TStats, _Calendar, _Odds, _FixtureOdds, _OddsRound, _LineupPlayer, _LineupSide, _Lineups,
+  _Projected, _Fixture, _FixtureList, _Season, _Home, _Predictions, _Admin, _Fpl, _Lb, _H2H, _Watch, _News, _Polls, _Bets, _Timeline, _Squads, _PStats, _TStats, _Calendar, _CalendarEvent, _WatchOn, _Odds, _FixtureOdds, _OddsRound, _LineupPlayer, _LineupSide, _Lineups,
 ]

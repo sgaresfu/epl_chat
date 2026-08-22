@@ -1861,6 +1861,18 @@
   color: var(--ink-3);
 }
 
+/* The count is a footnote to the label, not part of it — "Formula 1 11" is
+   unreadable otherwise. */
+.chip i {
+  font-style: normal;
+  color: var(--ink-3);
+  margin-left: 3px;
+}
+.chip[aria-pressed='true'] i {
+  color: inherit;
+  opacity: 0.65;
+}
+
 .source-filter {
   display: flex;
   gap: 8px;
@@ -2167,34 +2179,194 @@
 }
 
 /* ---------- calendar ---------- */
-.calendar-list {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
+.cal-next {
+  margin-top: 20px;
+  padding: 24px 26px;
+  background: var(--bg-2);
+  border-radius: var(--r-tile);
 }
-.calendar-event {
-  padding-top: 28px;
-  border-top: 1px solid var(--line-2);
+.cal-next h3 {
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.024em;
+  line-height: 1.12;
 }
-.calendar-event:first-child {
-  padding-top: 0;
-  border-top: 0;
+.cal-next__when {
+  margin-top: 12px;
+  font-size: 17px;
+  color: var(--ink-2);
 }
-.calendar-event__head {
+.cal-next__when b {
+  font-size: 21px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+.cal-next__rel {
+  margin-left: 10px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.cal-next__venue {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--ink-3);
+}
+
+.cal-row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 16px;
+  align-items: start;
+  padding: 15px 8px;
+  border-bottom: 1px solid var(--line-2);
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+.cal-row:hover {
+  background: var(--bg-2);
+}
+.cal-row__date {
+  text-align: center;
+  padding-top: 1px;
+}
+.cal-row__date b {
+  display: block;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.cal-row__date span {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-3);
+}
+.cal-row__body {
+  min-width: 0;
+}
+.cal-row__head {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 9px;
 }
-.calendar-event__badge {
-  font-size: 11px;
+.cal-row__sport {
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.02em;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--ink-3);
   border: 1px solid var(--line);
   border-radius: 5px;
   padding: 2px 6px;
   white-space: nowrap;
+}
+.cal-row__title {
+  font-size: 16px;
+  letter-spacing: -0.012em;
+}
+/* A major reads solid, everything else recedes — the same trick the match rows
+   use for won/lost, so importance is legible without a badge announcing it. */
+.cal-row[data-tier='major'] .cal-row__title {
+  font-weight: 600;
+}
+.cal-row__live {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--green-ink);
+  background: var(--green-tint);
+  border: 1px solid var(--green-line);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+.cal-row__meta {
+  margin-top: 5px;
+  font-size: 13px;
+  color: var(--ink-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+/* Separators live here rather than in the markup: a wrapped line that begins
+   with a stray middot reads as a typo. */
+.cal-row__meta > span + span::before {
+  content: '·';
+  color: var(--ink-3);
+  margin-right: 5px;
+}
+.cal-row__rel {
+  color: var(--ink-3);
+}
+.cal-row__more {
+  min-height: 32px;
+  padding: 0 13px;
+  font-size: 13px;
+  opacity: 0.32;
+  transition: opacity 0.15s ease;
+}
+.cal-row:hover .cal-row__more,
+.cal-row__more:focus-visible,
+.cal-row__more[aria-expanded='true'] {
+  opacity: 1;
+}
+@media (hover: none) {
+  .cal-row__more {
+    opacity: 1;
+  }
+}
+
+.cal-watch {
+  margin-top: 9px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 12.5px;
+}
+.cal-watch__cell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.cal-watch__city {
+  color: var(--ink-3);
+}
+.cal-watch__cell a {
+  color: var(--blue);
+}
+.cal-watch__cell a:hover {
+  text-decoration: underline;
+}
+.cal-watch__cell[data-mine='true'] .cal-watch__city {
+  color: var(--ink);
+  font-weight: 600;
+}
+.cal-watch__flag {
+  font-size: 10px;
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  border-radius: 4px;
+  padding: 0 3px;
+  text-decoration: none;
+  cursor: help;
+}
+
+@media (max-width: 620px) {
+  .cal-row {
+    grid-template-columns: 44px 1fr;
+    grid-template-areas: 'date body' 'date more';
+    row-gap: 8px;
+  }
+  .cal-row__date { grid-area: date; }
+  .cal-row__body { grid-area: body; }
+  .cal-row__more { grid-area: more; justify-self: start; }
+  .cal-next h3 { font-size: 24px; }
 }
 
 /* Offline marker: the service worker is serving the last known data, and the
@@ -2236,18 +2408,23 @@
   color: var(--ink-3);
 }
 
+/* Row, odds and any expanded panel are one block, so the separator sits
+   under the whole thing. With the border on the score line itself, a match's
+   own odds rendered below the rule and read as belonging to the next match. */
+.match-block {
+  border-bottom: 1px solid var(--line-2);
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+.match-block:hover {
+  background: var(--bg-2);
+}
 .match {
   display: grid;
   grid-template-columns: 56px 1fr auto;
   align-items: center;
   gap: 14px;
   padding: 13px 8px;
-  border-bottom: 1px solid var(--line-2);
-  border-radius: 10px;
-  transition: background 0.15s ease;
-}
-.match:hover {
-  background: var(--bg-2);
 }
 .match__time {
   font-size: 14px;
@@ -2345,7 +2522,7 @@
   padding: 0 13px;
   font-size: 13px;
 }
-.match:hover .match__actions .chip,
+.match-block:hover .match__actions .chip,
 .match__actions .chip:focus-visible,
 .match__actions .chip[aria-pressed='true'],
 .match__actions .chip--done {
@@ -2366,6 +2543,31 @@
   border-radius: 5px;
   padding: 2px 5px;
   white-space: nowrap;
+}
+
+.lineups__basis {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.lineups__basis span {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  border-radius: 5px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+.lineups__basis[data-confirmed='true'] span {
+  color: var(--green-ink);
+  background: var(--green-tint);
+  border-color: var(--green-line);
 }
 
 .lineups {
@@ -2409,22 +2611,53 @@
 }
 
 .match-odds {
+  padding: 0 8px 12px;
+  margin-top: -4px;
+}
+/* Three segments summing to 100%: the market's own view of the match, read
+   in one glance rather than three decimals. Club colour would fight the
+   crests, so this stays in ink. */
+.match-odds__bar {
+  display: flex;
+  height: 4px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--line-2);
+  max-width: 560px;
+}
+.match-odds__bar span[data-leg='home'] { background: var(--ink); }
+.match-odds__bar span[data-leg='draw'] { background: var(--line); }
+.match-odds__bar span[data-leg='away'] { background: var(--ink-2); }
+
+.match-odds__legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
-  padding: 0 8px 10px;
-  margin-top: -6px;
+  align-items: baseline;
+  gap: 3px 14px;
+  margin-top: 7px;
   font-size: 12px;
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
 .match-odds__book {
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
 }
-.match-odds__price {
+.match-odds__leg {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
   color: var(--ink-2);
 }
+.match-odds__leg b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.match-odds__price {
+  color: var(--ink-3);
+}
+.match-odds__drift[data-dir='in'] { color: var(--green-ink); }
+.match-odds__drift[data-dir='out'] { color: var(--red); }
 
 .match__watchers {
   display: flex;

@@ -124,12 +124,18 @@ class TestResolveFixtureIds:
 
 
 class TestGetLineups:
-    async def test_a_missing_key_is_reported_by_name(self) -> None:
+    async def test_no_key_falls_back_to_a_predicted_xi(self, cache: MemoryCache) -> None:
+        """No API-Football credential was ever issued, so a permanently empty
+        panel was the old behaviour. FPL knows who has been starting; predict
+        from that and label it, rather than showing nothing for ever.
+        """
         from services.api.lineups import get_lineups
 
-        result = await get_lineups(1, ROW, [ROW], MemoryCache(), Settings(api_football_key=""))
-        assert result.available is False
-        assert "API_FOOTBALL_KEY" in (result.reason or "")
+        result = await get_lineups(1, ROW, [ROW], cache, Settings(api_football_key=""))
+        # The slim test bootstrap carries only nine players, too few for an XI,
+        # so this asserts the honest refusal rather than a fabricated team.
+        assert result.confirmed is False
+        assert "API_FOOTBALL_KEY" not in (result.reason or ""), "no longer a credential problem"
 
     async def test_a_cached_answer_within_ttl_is_served_without_any_upstream_call(self) -> None:
         from services.api.lineups import get_lineups
@@ -185,6 +191,7 @@ class TestGetLineups:
         result = await lineups_mod.get_lineups(1, ROW, [ROW], cache, settings)
 
         assert result.available is True
+        assert result.confirmed is True, "a real team sheet is confirmed, not predicted"
         assert result.home is not None
         assert result.home.formation == "4-3-3"
         assert [p.name for p in result.home.starting] == ["David Raya", "William Saliba"]
@@ -263,8 +270,109 @@ class TestEndpoint:
         await sign_in(client)
         assert (await client.get("/api/fixtures/999999/lineups")).status_code == 404
 
-    async def test_a_missing_key_names_itself(self, client: AsyncClient) -> None:
+    async def test_with_no_key_the_endpoint_still_answers(self, client: AsyncClient) -> None:
         await sign_in(client)
         body = (await client.get("/api/fixtures/1/lineups")).json()
-        assert body["available"] is False
-        assert "API_FOOTBALL_KEY" in body["reason"]
+        assert body["confirmed"] is False
+        assert "API_FOOTBALL_KEY" not in (body["reason"] or "")
+
+
+class TestPredictedXI:
+    """The keyless path. Built from a bootstrap with a full enough squad."""
+
+    @staticmethod
+    def squad(team: int, n: int = 20) -> list[dict[str, Any]]:
+        # 3 keepers, 7 defenders, 7 midfielders, 3 forwards, descending starts.
+        plan = [(1, 3), (2, 7), (3, 7), (4, 3)]
+        out: list[dict[str, Any]] = []
+        pid = team * 1000
+        for element_type, count in plan:
+            for i in range(count):
+                pid += 1
+                out.append(
+                    {
+                        "id": pid,
+                        "team": team,
+                        "element_type": element_type,
+                        "web_name": f"T{team}-{element_type}-{i}",
+                        "starts": count - i,
+                        "minutes": (count - i) * 90,
+                        "selected_by_percent": "1.0",
+                        "status": "a",
+                        "chance_of_playing_next_round": None,
+                    }
+                )
+        return out[:n] if n < len(out) else out
+
+    def test_it_picks_a_full_eleven_in_the_expected_shape(self) -> None:
+        from services.api.lineups import predict_side
+
+        boot = {"elements": self.squad(1) + self.squad(7)}
+        side = predict_side(boot, 1)
+        assert side is not None
+        assert len(side.starting) == 11
+        counts = {
+            p.position: sum(1 for q in side.starting if q.position == p.position) for p in side.starting
+        }
+        assert counts == {"G": 1, "D": 4, "M": 4, "F": 2}
+
+    def test_the_most_frequent_starters_are_picked_first(self) -> None:
+        from services.api.lineups import predict_side
+
+        side = predict_side({"elements": self.squad(1)}, 1)
+        assert side is not None
+        assert side.starting[0].name == "T1-1-0", "the keeper with the most starts"
+
+    def test_an_injured_player_is_excluded(self) -> None:
+        from services.api.lineups import predict_side
+
+        squad = self.squad(1)
+        top_keeper = next(p for p in squad if p["web_name"] == "T1-1-0")
+        top_keeper["status"] = "i"
+        side = predict_side({"elements": squad}, 1)
+        assert side is not None
+        assert side.starting[0].name != "T1-1-0", "the injured keeper must not start"
+
+    def test_a_major_doubt_is_excluded(self) -> None:
+        from services.api.lineups import predict_side
+
+        squad = self.squad(1)
+        next(p for p in squad if p["web_name"] == "T1-1-0")["chance_of_playing_next_round"] = 25
+        side = predict_side({"elements": squad}, 1)
+        assert side is not None
+        assert side.starting[0].name != "T1-1-0"
+
+    def test_too_thin_a_squad_refuses_rather_than_inventing(self) -> None:
+        from services.api.lineups import predict_side
+
+        assert predict_side({"elements": self.squad(1, n=5)}, 1) is None
+
+    def test_the_other_club_is_not_borrowed_from(self) -> None:
+        from services.api.lineups import predict_side
+
+        side = predict_side({"elements": self.squad(1) + self.squad(7)}, 1)
+        assert side is not None
+        assert all(p.name.startswith("T1-") for p in side.starting)
+
+    async def test_the_endpoint_returns_a_labelled_prediction(self) -> None:
+        from services.api.lineups import predicted_lineups
+        from shared.cache import MemoryCache
+        from shared.keys import FPL_BOOTSTRAP
+
+        cache = MemoryCache()
+        await cache.set(FPL_BOOTSTRAP, {"elements": self.squad(1) + self.squad(7)}, source="fpl")
+        result = await predicted_lineups(ROW, cache)
+
+        assert result.available is True
+        assert result.confirmed is False
+        assert "Not the confirmed team sheet" in result.basis
+        assert result.home is not None
+        assert len(result.home.starting) == 11
+
+    async def test_no_bootstrap_yet_says_so(self) -> None:
+        from services.api.lineups import predicted_lineups
+        from shared.cache import MemoryCache
+
+        result = await predicted_lineups(ROW, MemoryCache())
+        assert result.available is False
+        assert "not loaded yet" in (result.reason or "")

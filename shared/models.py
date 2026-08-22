@@ -153,6 +153,10 @@ class OddsPrice(Model):
     bookmaker: str = "bet365"
     captured_at: datetime | None = None
     drift: dict[str, float] | None = None
+    # Best price anywhere in the market, where the source publishes it. A
+    # bet365 price well under the market max is a short one, and saying so is
+    # more useful than the bare number.
+    market_max: dict[str, float] | None = None
     available: bool = True
     reason: str | None = None
 
@@ -663,6 +667,12 @@ class LineupSideOut(Model):
 
 class LineupsOut(Model):
     available: bool
+    # False for a predicted XI. The distinction matters: a confirmed sheet is
+    # fact, a prediction is an inference from who has been starting, and
+    # presenting the second as the first would be a lie.
+    confirmed: bool = False
+    # Plain-English description of where the XI came from, rendered as-is.
+    basis: str = ""
     reason: str | None = None
     home: LineupSideOut | None = None
     away: LineupSideOut | None = None
@@ -673,16 +683,49 @@ class LineupsOut(Model):
 # --------------------------------------------------------------------------
 
 
+class WatchOn(Model):
+    """Where one of the four cities can watch one event.
+
+    Carries both ``place`` (the stable key, e.g. "coyg") and ``person`` (the
+    display name, "COYG"), the same split ``LocalTimeOut`` uses -- the UI
+    compares against the key and renders the name, and conflating the two is
+    how "your time" ends up labelling somebody else's clock.
+    """
+
+    place: str
+    country: str
+    city: str
+    person: str
+    provider: str
+    url: str = ""
+    # "verified" was checked against the rights holder's own announcement;
+    # "unverified" is the best available answer and the UI says so.
+    confidence: str = "unverified"
+
+
 class CalendarEventOut(Model):
     title: str
-    category: Literal["f1", "boxing", "ufc", "other"]
+    sport: str
+    sport_label: str
     starts_at: datetime
+    ends_at: datetime | None = None
+    # False when only the day is fixed: a four-day major has no single kickoff,
+    # so the UI shows a date range rather than a converted clock time.
+    time_known: bool = False
+    multi_day: bool = False
+    in_progress: bool = False
+    days_until: int = 0
+    venue: str = ""
+    tier: Literal["major", "notable"] = "notable"
     note: str = ""
     local_times: list[LocalTimeOut] = Field(default_factory=list)
+    watch: list[WatchOn] = Field(default_factory=list)
 
 
 class CalendarOut(Model):
     events: list[CalendarEventOut] = Field(default_factory=list)
+    sports: list[str] = Field(default_factory=list)
+    checked_on: str = ""
     empty_message: str | None = None
 
 

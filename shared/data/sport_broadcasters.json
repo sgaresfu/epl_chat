@@ -1,0 +1,445 @@
+{
+  "$comment": "Where to watch each sport, per market — the same three markets the football listings cover (UA/Lviv, US/Michigan+Alaska, CA/Alberta). Rights are per-sport rather than per-event, so this is keyed by sport with per-event overrides where a single fixture differs (the Super Bowl, for instance, rotates networks). 'confidence: verified' means it was checked against the rights holder's or league's own announcement on the date shown; 'unverified' means it is the best available answer and the UI says so rather than pretending. A confidently wrong channel is worse than an honestly flagged one.",
+  "verified_on": "2026-08-22",
+  "sports": {
+    "f1": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "verified",
+        "source": "Setanta Ukraine lists Formula 1 among its rights"
+      },
+      "US": {
+        "provider": "Apple TV",
+        "url": "https://tv.apple.com/channel/formula-1",
+        "confidence": "verified",
+        "source": "Apple newsroom, exclusive US F1 rights from 2026 (5-year deal)"
+      },
+      "CA": {
+        "provider": "TSN / RDS",
+        "url": "https://www.tsn.ca/motorsports",
+        "confidence": "verified",
+        "source": "TSN 2026 F1 agreement, all races plus practice and qualifying"
+      }
+    },
+    "tennis": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "verified",
+        "source": "Setanta Ukraine carries ATP, WTA and Wimbledon"
+      },
+      "US": {
+        "provider": "ESPN",
+        "url": "https://www.espn.com/tennis/",
+        "confidence": "verified",
+        "source": "ESPN exclusive US rights to the US Open through 2037; also carries the Australian Open. The French Open is on TNT/HBO Max — see the per-event override."
+      },
+      "CA": {
+        "provider": "TSN / RDS",
+        "url": "https://www.tsn.ca/tennis",
+        "confidence": "verified",
+        "source": "USTA lists TSN/RDS as Canadian partners"
+      }
+    },
+    "ufc": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "verified",
+        "source": "Setanta Ukraine carries UFC"
+      },
+      "US": {
+        "provider": "Paramount+",
+        "url": "https://www.paramountplus.com/",
+        "confidence": "verified",
+        "source": "Paramount exclusive US UFC rights from 2026; select numbered cards simulcast on CBS"
+      },
+      "CA": {
+        "provider": "Pay-per-view",
+        "url": "https://www.ufc.com/",
+        "confidence": "verified",
+        "source": "Paramount+ becomes the Canadian home of numbered main cards only from 2027; 2026 cards remain pay-per-view"
+      }
+    },
+    "nfl": {
+      "UA": {
+        "provider": "Megogo",
+        "url": "https://megogo.net/",
+        "confidence": "unverified",
+        "source": "Ukrainian NFL rights not confirmed for this season"
+      },
+      "US": {
+        "provider": "ESPN / ABC / CBS / Fox / NBC",
+        "url": "https://www.nfl.com/ways-to-watch/",
+        "confidence": "verified",
+        "source": "NFL 11-year contract; networks rotate by window"
+      },
+      "CA": {
+        "provider": "CTV / TSN",
+        "url": "https://www.tsn.ca/nfl",
+        "confidence": "unverified",
+        "source": "Bell Media has historically held Canadian NFL rights"
+      }
+    },
+    "nba": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "verified",
+        "source": "Setanta Ukraine carries the NBA"
+      },
+      "US": {
+        "provider": "ESPN / ABC, NBC, Prime Video",
+        "url": "https://www.nba.com/watch",
+        "confidence": "verified",
+        "source": "New US rights cycle from 2025-26 splits across three partners"
+      },
+      "CA": {
+        "provider": "TSN / Sportsnet",
+        "url": "https://www.tsn.ca/nba",
+        "confidence": "unverified",
+        "source": "Canadian NBA rights split between Bell and Rogers"
+      }
+    },
+    "nhl": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "verified",
+        "source": "Setanta Ukraine carries the NHL"
+      },
+      "US": {
+        "provider": "ESPN / TNT",
+        "url": "https://www.nhl.com/",
+        "confidence": "unverified",
+        "source": "US NHL rights split ESPN/TNT in the current cycle"
+      },
+      "CA": {
+        "provider": "Sportsnet / CBC",
+        "url": "https://www.sportsnet.ca/hockey/nhl/",
+        "confidence": "unverified",
+        "source": "Rogers holds national Canadian rights; Hockey Night in Canada simulcasts on CBC"
+      }
+    },
+    "mlb": {
+      "UA": {
+        "provider": "Megogo",
+        "url": "https://megogo.net/",
+        "confidence": "unverified",
+        "source": "Ukrainian MLB rights not confirmed"
+      },
+      "US": {
+        "provider": "Fox",
+        "url": "https://www.mlb.com/live-stream-games",
+        "confidence": "unverified",
+        "source": "Fox has carried the World Series through the current cycle"
+      },
+      "CA": {
+        "provider": "Sportsnet",
+        "url": "https://www.sportsnet.ca/baseball/",
+        "confidence": "unverified",
+        "source": "Rogers-owned Sportsnet is the Canadian MLB home"
+      }
+    },
+    "golf": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "unverified",
+        "source": "Ukrainian golf rights not confirmed"
+      },
+      "US": {
+        "provider": "NBC / Peacock",
+        "url": "https://www.nbcsports.com/golf",
+        "confidence": "unverified",
+        "source": "USGA/NBC deal runs through 2032 for the US Open; the Masters and PGA are on CBS — see per-event overrides"
+      },
+      "CA": {
+        "provider": "TSN",
+        "url": "https://www.tsn.ca/golf",
+        "confidence": "unverified",
+        "source": "TSN carries most majors in Canada"
+      }
+    },
+    "boxing": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "unverified",
+        "source": "Varies by promoter"
+      },
+      "US": {
+        "provider": "Varies by promoter",
+        "url": "https://www.dazn.com/",
+        "confidence": "unverified",
+        "source": "Major cards split between DAZN, Prime Video PPV and ESPN depending on the promoter"
+      },
+      "CA": {
+        "provider": "Varies by promoter",
+        "url": "https://www.dazn.com/",
+        "confidence": "unverified",
+        "source": "Usually mirrors the US pay-per-view arrangement"
+      }
+    },
+    "rugby": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "unverified",
+        "source": "Ukrainian Six Nations rights not confirmed"
+      },
+      "US": {
+        "provider": "Peacock / CNBC",
+        "url": "https://www.peacocktv.com/sports/rugby",
+        "confidence": "unverified",
+        "source": "NBCUniversal has carried the Six Nations in the US"
+      },
+      "CA": {
+        "provider": "TSN",
+        "url": "https://www.tsn.ca/rugby",
+        "confidence": "unverified",
+        "source": "TSN has carried Six Nations in Canada"
+      }
+    },
+    "cricket": {
+      "UA": {
+        "provider": "Not broadcast",
+        "url": "",
+        "confidence": "unverified",
+        "source": "No known Ukrainian cricket rights"
+      },
+      "US": {
+        "provider": "Willow TV",
+        "url": "https://www.willow.tv/",
+        "confidence": "unverified",
+        "source": "Willow is the established US home of international cricket"
+      },
+      "CA": {
+        "provider": "Willow TV",
+        "url": "https://www.willow.tv/",
+        "confidence": "unverified",
+        "source": "Willow also serves Canada"
+      }
+    },
+    "darts": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "unverified",
+        "source": "Ukrainian PDC rights not confirmed"
+      },
+      "US": {
+        "provider": "DAZN",
+        "url": "https://www.dazn.com/",
+        "confidence": "unverified",
+        "source": "DAZN has carried PDC events in the US"
+      },
+      "CA": {
+        "provider": "DAZN",
+        "url": "https://www.dazn.com/",
+        "confidence": "unverified",
+        "source": "DAZN has carried PDC events in Canada"
+      }
+    },
+    "snooker": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "unverified",
+        "source": "Ukrainian snooker rights not confirmed"
+      },
+      "US": {
+        "provider": "DAZN",
+        "url": "https://www.dazn.com/",
+        "confidence": "unverified",
+        "source": "World Snooker's international feed is carried by DAZN in several markets"
+      },
+      "CA": {
+        "provider": "DAZN",
+        "url": "https://www.dazn.com/",
+        "confidence": "unverified",
+        "source": "As above"
+      }
+    },
+    "horse-racing": {
+      "UA": {
+        "provider": "Not broadcast",
+        "url": "",
+        "confidence": "unverified",
+        "source": "No known Ukrainian rights"
+      },
+      "US": {
+        "provider": "NBC / Peacock",
+        "url": "https://www.nbcsports.com/horse-racing",
+        "confidence": "unverified",
+        "source": "NBC carries the Kentucky Derby; other meetings vary"
+      },
+      "CA": {
+        "provider": "TSN",
+        "url": "https://www.tsn.ca/",
+        "confidence": "unverified",
+        "source": "Coverage varies by meeting"
+      }
+    },
+    "cycling": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "unverified",
+        "source": "Ukrainian cycling rights not confirmed"
+      },
+      "US": {
+        "provider": "Peacock",
+        "url": "https://www.peacocktv.com/sports/cycling",
+        "confidence": "unverified",
+        "source": "NBC/Peacock has carried the Tour de France in the US"
+      },
+      "CA": {
+        "provider": "FloBikes",
+        "url": "https://www.flobikes.com/",
+        "confidence": "unverified",
+        "source": "FloBikes has carried grand tours in Canada"
+      }
+    },
+    "athletics": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "unverified",
+        "source": "Not confirmed"
+      },
+      "US": {
+        "provider": "NBC / Peacock",
+        "url": "https://www.nbcsports.com/",
+        "confidence": "unverified",
+        "source": "NBC carries World Athletics events in the US"
+      },
+      "CA": {
+        "provider": "CBC",
+        "url": "https://www.cbc.ca/sports",
+        "confidence": "unverified",
+        "source": "CBC has carried athletics in Canada"
+      }
+    },
+    "motogp": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "unverified",
+        "source": "Not confirmed"
+      },
+      "US": {
+        "provider": "TNT Sports / MotoGP VideoPass",
+        "url": "https://www.motogp.com/en/videopass",
+        "confidence": "unverified",
+        "source": "US coverage has moved between partners; VideoPass is always available"
+      },
+      "CA": {
+        "provider": "MotoGP VideoPass",
+        "url": "https://www.motogp.com/en/videopass",
+        "confidence": "unverified",
+        "source": "Direct-to-consumer is the reliable Canadian option"
+      }
+    },
+    "motorsport": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "unverified",
+        "source": "Ukrainian NASCAR/IndyCar rights not confirmed"
+      },
+      "US": {
+        "provider": "Fox / NBC",
+        "url": "https://www.nascar.com/",
+        "confidence": "unverified",
+        "source": "NASCAR splits between Fox and NBC; the Indy 500 is on NBC"
+      },
+      "CA": {
+        "provider": "TSN",
+        "url": "https://www.tsn.ca/motorsports",
+        "confidence": "unverified",
+        "source": "TSN carries most North American motorsport in Canada"
+      }
+    },
+    "basketball": {
+      "UA": {
+        "provider": "Setanta Sports",
+        "url": "https://setantasports.com/",
+        "confidence": "unverified",
+        "source": "College basketball rights not confirmed for Ukraine"
+      },
+      "US": {
+        "provider": "CBS / TNT",
+        "url": "https://www.ncaa.com/march-madness-live",
+        "confidence": "unverified",
+        "source": "CBS and Turner share March Madness"
+      },
+      "CA": {
+        "provider": "TSN",
+        "url": "https://www.tsn.ca/ncaa",
+        "confidence": "unverified",
+        "source": "TSN has carried March Madness in Canada"
+      }
+    }
+  },
+  "event_overrides": {
+    "$comment": "One-off rights that differ from the sport's usual holder. Keyed by the event title exactly as it appears in calendar.json.",
+    "Super Bowl LXI": {
+      "US": {
+        "provider": "ESPN / ABC",
+        "url": "https://www.espn.com/nfl/",
+        "confidence": "verified",
+        "source": "First ESPN/ABC Super Bowl simulcast; Joe Buck and Troy Aikman calling"
+      }
+    },
+    "The Masters": {
+      "US": {
+        "provider": "CBS / ESPN",
+        "url": "https://www.masters.com/en_US/watch/",
+        "confidence": "unverified",
+        "source": "CBS has held weekend Masters coverage for decades, ESPN the opening rounds"
+      }
+    },
+    "PGA Championship": {
+      "US": {
+        "provider": "CBS / ESPN",
+        "url": "https://www.pgachampionship.com/",
+        "confidence": "unverified",
+        "source": "CBS and ESPN share the PGA Championship in the US"
+      }
+    },
+    "French Open": {
+      "US": {
+        "provider": "TNT Sports / HBO Max",
+        "url": "https://www.tntsports.com/",
+        "confidence": "unverified",
+        "source": "TNT took over US Roland-Garros rights from 2025"
+      }
+    },
+    "French Open — men's final": {
+      "US": {
+        "provider": "TNT Sports / HBO Max",
+        "url": "https://www.tntsports.com/",
+        "confidence": "unverified",
+        "source": "As above"
+      }
+    },
+    "The Open Championship": {
+      "US": {
+        "provider": "NBC / Peacock",
+        "url": "https://www.theopen.com/",
+        "confidence": "unverified",
+        "source": "NBC/Peacock carry The Open in the US"
+      }
+    },
+    "Kentucky Derby": {
+      "US": {
+        "provider": "NBC / Peacock",
+        "url": "https://www.nbcsports.com/horse-racing",
+        "confidence": "verified",
+        "source": "NBC has held Kentucky Derby rights for the current cycle"
+      }
+    }
+  }
+}

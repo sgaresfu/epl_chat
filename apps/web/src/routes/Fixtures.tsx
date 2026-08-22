@@ -35,31 +35,66 @@ function dayLabel(key: string): { day: string; date: string } {
   }
 }
 
-/** bet365 1X2, with a week's drift when there's history to show it. Nothing
- * renders when there's no price -- a missing key or an unlisted match reads
- * as an ordinary match row, not an error. */
+/** bet365 1X2, as implied probability rather than bare decimals.
+ *
+ * A price of 1.20 means little at a glance; "83%" means a great deal. The
+ * three prices are converted to probabilities and normalised to remove the
+ * bookmaker's overround, so the bar sums to 100 and the split is honest
+ * about what the market actually thinks.
+ *
+ * Only before kick-off. These are pre-match prices, so printing them beside a
+ * finished score says nothing about the match and reads as though the market
+ * is still open. Nothing renders when there is no price either — an unlisted
+ * match should look like an ordinary row, not an error.
+ */
 function OddsLine({ fixture }: { fixture: Fixture }) {
   const odds = fixture.odds
-  if (!odds || !odds.available) return null
+  if (fixture.started || fixture.finished) return null
+  if (!odds?.available || odds.home == null || odds.draw == null || odds.away == null) return null
 
-  const outcomes: [string, number | undefined, number | null][] = [
-    [fixture.home.short_name, odds.drift?.home, odds.home],
-    ['Draw', odds.drift?.draw, odds.draw],
-    [fixture.away.short_name, odds.drift?.away, odds.away],
+  const homeP = 1 / odds.home
+  const drawP = 1 / odds.draw
+  const awayP = 1 / odds.away
+  const overround = homeP + drawP + awayP
+
+  const legs = [
+    { key: 'home', label: fixture.home.short_name, price: odds.home, from: odds.drift?.home, pct: (homeP / overround) * 100 },
+    { key: 'draw', label: 'Draw', price: odds.draw, from: odds.drift?.draw, pct: (drawP / overround) * 100 },
+    { key: 'away', label: fixture.away.short_name, price: odds.away, from: odds.drift?.away, pct: (awayP / overround) * 100 },
   ]
 
   return (
-    <p className="match-odds">
-      <span className="match-odds__book">{odds.bookmaker}</span>
-      {outcomes.map(([label, from, to]) => (
-        <span className="match-odds__price" key={label}>
-          {label}{' '}
-          {from !== undefined && to !== null && from !== to
-            ? `${from.toFixed(2)} → ${to.toFixed(2)}`
-            : (to?.toFixed(2) ?? '—')}
-        </span>
-      ))}
-    </p>
+    <div className="match-odds">
+      <div
+        className="match-odds__bar"
+        role="img"
+        aria-label={legs.map((l) => `${l.label} ${Math.round(l.pct)}%`).join(', ')}
+      >
+        {legs.map((l) => (
+          <span key={l.key} data-leg={l.key} style={{ width: `${l.pct}%` }} />
+        ))}
+      </div>
+      <p className="match-odds__legend">
+        <span className="match-odds__book">{odds.bookmaker}</span>
+        {legs.map((l) => {
+          // A price that has shortened means money came for it.
+          const from = l.from
+          const moved = from != null && from !== l.price
+          const shorter = moved && l.price < from
+          return (
+            <span className="match-odds__leg" key={l.key}>
+              <b>{l.label}</b> {Math.round(l.pct)}%
+              <span className="match-odds__price">{l.price.toFixed(2)}</span>
+              {moved && (
+                <span className="match-odds__drift" data-dir={shorter ? 'in' : 'out'}>
+                  {shorter ? '▼' : '▲'} {from.toFixed(2)}
+                </span>
+              )}
+            </span>
+          )
+        })}
+      </p>
+    </div>
   )
 }
 
@@ -89,15 +124,21 @@ function LineupSideList({ label, side }: { label: string; side: LineupSide }) {
 function LineupsPanel({ fixture, open }: { fixture: Fixture; open: boolean }) {
   const { data, isLoading } = useLineups(fixture.id, open)
   if (!open) return null
-  if (isLoading) return <p className="tnote">Checking for confirmed line-ups…</p>
+  if (isLoading) return <p className="tnote">Checking line-ups…</p>
   if (!data?.available || !data.home || !data.away) {
     return <p className="tnote">{data?.reason ?? 'Line-ups are not available for this match.'}</p>
   }
   return (
-    <div className="lineups">
-      <LineupSideList label={fixture.home.name} side={data.home} />
-      <LineupSideList label={fixture.away.name} side={data.away} />
-    </div>
+    <>
+      <p className="lineups__basis" data-confirmed={data.confirmed}>
+        <span>{data.confirmed ? 'Confirmed' : 'Predicted'}</span>
+        {data.basis}
+      </p>
+      <div className="lineups">
+        <LineupSideList label={fixture.home.name} side={data.home} />
+        <LineupSideList label={fixture.away.name} side={data.away} />
+      </div>
+    </>
   )
 }
 
@@ -128,7 +169,7 @@ function Match({ fixture, me }: { fixture: Fixture; me: string | undefined }) {
   }
 
   return (
-    <>
+    <div className="match-block">
       <div className="match">
         <span className="match__time">
           <b>{fixture.postponed ? '—' : (slot?.time ?? '')}</b>
@@ -211,7 +252,7 @@ function Match({ fixture, me }: { fixture: Fixture; me: string | undefined }) {
           <LineupsPanel fixture={fixture} open={showLineups} />
         </div>
       )}
-    </>
+    </div>
   )
 }
 

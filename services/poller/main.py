@@ -34,10 +34,9 @@ MATCHDAY_INTERVAL = 300  # on a matchday, nothing in play
 IDLE_INTERVAL = 3600  # no football today
 BOOTSTRAP_INTERVAL = 600
 NEWS_INTERVAL = 900  # every 15 minutes, per BRIEF section 15
-# The Odds API allows 500 calls/month; polling every 30 minutes as the brief's
-# general cadence would need ~1,440. Every 4 hours is ~180/month -- comfortably
-# under budget with headroom, while still giving real week-over-week drift.
-ODDS_INTERVAL = 4 * 3600
+# The free CSV is regenerated a few times a day and costs nothing to read,
+# so this is paced for freshness rather than for a quota.
+ODDS_INTERVAL = 3600
 
 # How close to kickoff counts as "a matchday" for the faster cadence.
 MATCHDAY_WINDOW = timedelta(hours=6)
@@ -55,12 +54,14 @@ class Poller:
         self.fpl = fpl.client()
         self.sky = news.sky_client()
         self.odds = odds.odds_client()
+        self.odds_api = odds.odds_api_client()
         self._digests: dict[str, str] = {}
 
     async def close(self) -> None:
         await self.fpl.close()
         await self.sky.close()
         await self.odds.close()
+        await self.odds_api.close()
 
     async def write(self, name: str, payload: Any, source: str, channel: str | None = None) -> bool:
         """Cache a payload and publish only if it differs from the last one."""
@@ -120,23 +121,47 @@ class Poller:
         await self.write(keys.NEWS_SKY, payload, source="rss")
 
     async def poll_odds(self) -> None:
-        """bet365 prices for the round. No key ⇒ a no-op, the panel says so itself."""
-        if not self.settings.odds_api_key:
-            return
-        verdict = await quota.check(self.cache, "the-odds-api", "month", self.settings.odds_monthly_budget)
-        if not verdict.allowed:
-            log.info("poller.odds_quota_exhausted", reason=verdict.reason)
-            return
+        """bet365 prices for the round.
+
+        The free CSV needs no key and no quota, so this runs unconditionally.
+        If ``ODDS_API_KEY`` is set the paid feed takes over -- it is fresher
+        during a match -- but the panel never depends on it.
+        """
+        if self.settings.odds_api_key:
+            verdict = await quota.check(
+                self.cache, "the-odds-api", "month", self.settings.odds_monthly_budget
+            )
+            if verdict.allowed:
+                try:
+                    payload = await odds.fetch_odds(self.odds_api, self.settings.odds_api_key)
+                except UpstreamError as exc:
+                    log.warning("poller.odds_api_failed", error=str(exc))
+                else:
+                    await quota.spend(self.cache, "the-odds-api", "month")
+                    await self.write(
+                        keys.ODDS_ROUND,
+                        odds.to_cache_payload(odds.normalise(payload)),
+                        source="the-odds-api",
+                        channel=CHANNEL_ODDS,
+                    )
+                    return
+            else:
+                log.info("poller.odds_quota_exhausted", reason=verdict.reason)
+
         try:
-            payload = await odds.fetch_odds(self.odds, self.settings.odds_api_key)
+            matches = await odds.fetch_free_odds(self.odds)
         except UpstreamError as exc:
             log.warning("poller.odds_failed", error=str(exc))
             return
-        matches = odds.normalise(payload)
+        if not matches:
+            log.info("poller.odds_empty", note="no Premier League rows in the fixture file")
+            return
         await self.write(
-            keys.ODDS_ROUND, odds.to_cache_payload(matches), source="the-odds-api", channel=CHANNEL_ODDS
+            keys.ODDS_ROUND,
+            odds.to_cache_payload(matches),
+            source="football-data",
+            channel=CHANNEL_ODDS,
         )
-        await quota.spend(self.cache, "the-odds-api", "month")
 
     async def poll_bootstrap(self) -> None:
         try:

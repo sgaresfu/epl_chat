@@ -749,16 +749,48 @@ export interface components {
         CalendarEventOut: {
             /** Title */
             title: string;
-            /**
-             * Category
-             * @enum {string}
-             */
-            category: "f1" | "boxing" | "ufc" | "other";
+            /** Sport */
+            sport: string;
+            /** Sport Label */
+            sport_label: string;
             /**
              * Starts At
              * Format: date-time
              */
             starts_at: string;
+            /** Ends At */
+            ends_at: string | null;
+            /**
+             * Time Known
+             * @default false
+             */
+            time_known: boolean;
+            /**
+             * Multi Day
+             * @default false
+             */
+            multi_day: boolean;
+            /**
+             * In Progress
+             * @default false
+             */
+            in_progress: boolean;
+            /**
+             * Days Until
+             * @default 0
+             */
+            days_until: number;
+            /**
+             * Venue
+             * @default
+             */
+            venue: string;
+            /**
+             * Tier
+             * @default notable
+             * @enum {string}
+             */
+            tier: "major" | "notable";
             /**
              * Note
              * @default
@@ -766,11 +798,20 @@ export interface components {
             note: string;
             /** Local Times */
             local_times: components["schemas"]["LocalTimeOut"][];
+            /** Watch */
+            watch: components["schemas"]["WatchOn"][];
         };
         /** CalendarOut */
         CalendarOut: {
             /** Events */
             events: components["schemas"]["CalendarEventOut"][];
+            /** Sports */
+            sports: string[];
+            /**
+             * Checked On
+             * @default
+             */
+            checked_on: string;
             /** Empty Message */
             empty_message: string | null;
         };
@@ -1273,6 +1314,16 @@ export interface components {
         LineupsOut: {
             /** Available */
             available: boolean;
+            /**
+             * Confirmed
+             * @default false
+             */
+            confirmed: boolean;
+            /**
+             * Basis
+             * @default
+             */
+            basis: string;
             /** Reason */
             reason: string | null;
             home: components["schemas"]["LineupSideOut"] | null;
@@ -1408,6 +1459,10 @@ export interface components {
             captured_at: string | null;
             /** Drift */
             drift: {
+                [key: string]: number;
+            } | null;
+            /** Market Max */
+            market_max: {
                 [key: string]: number;
             } | null;
             /**
@@ -1935,6 +1990,37 @@ export interface components {
             poll_id: number;
             /** Choice */
             choice: string;
+        };
+        /**
+         * WatchOn
+         * @description Where one of the four cities can watch one event.
+         *
+         *     Carries both ``place`` (the stable key, e.g. "coyg") and ``person`` (the
+         *     display name, "COYG"), the same split ``LocalTimeOut`` uses -- the UI
+         *     compares against the key and renders the name, and conflating the two is
+         *     how "your time" ends up labelling somebody else's clock.
+         */
+        WatchOn: {
+            /** Place */
+            place: string;
+            /** Country */
+            country: string;
+            /** City */
+            city: string;
+            /** Person */
+            person: string;
+            /** Provider */
+            provider: string;
+            /**
+             * Url
+             * @default
+             */
+            url: string;
+            /**
+             * Confidence
+             * @default unverified
+             */
+            confidence: string;
         };
         /** WatchStatsOut */
         WatchStatsOut: {
@@ -2866,7 +2952,10 @@ export interface operations {
     };
     calendar_api_calendar_get: {
         parameters: {
-            query?: never;
+            query?: {
+                days?: number;
+                sport?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2880,6 +2969,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CalendarOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
