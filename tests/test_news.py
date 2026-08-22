@@ -229,3 +229,59 @@ class TestPayloadIsSerialisable:
 
         rows = [asdict(item) for item in parse_rss(FEED, source="Sky Sports")]
         assert json.loads(json.dumps(rows)) == rows
+
+
+class TestHtmlEntities:
+    """YouTube returns titles HTML-escaped; left alone they render literally."""
+
+    def test_entities_are_decoded_in_titles(self) -> None:
+        from services.poller.news import _text
+
+        assert _text("Arteta&#39;s FULL interview") == "Arteta's FULL interview"
+        assert _text("&quot;Arsenal have a chance&quot;") == '"Arsenal have a chance"'
+
+    def test_ampersands_survive(self) -> None:
+        from services.poller.news import _text
+
+        assert _text("Brighton &amp; Hove Albion") == "Brighton & Hove Albion"
+
+    def test_tags_are_still_stripped(self) -> None:
+        from services.poller.news import _text
+
+        assert _text("<p>Everything you need.</p>") == "Everything you need."
+
+
+class TestYouTubeChannels:
+    def test_all_six_channels_from_the_brief_are_resolved(self) -> None:
+        from services.poller.news import channels
+
+        names = {c["name"] for c in channels()}
+        assert names == {
+            "The Overlap",
+            "The Rest Is Football",
+            "Sky Sports Premier League",
+            "Premier League",
+            "Let's Talk FPL",
+            "Єврофутбол",
+        }
+
+    def test_every_id_looks_like_a_youtube_channel_id(self) -> None:
+        from services.poller.news import channels
+
+        for channel in channels():
+            assert channel["channel_id"].startswith("UC")
+            assert len(channel["channel_id"]) == 24
+
+    def test_the_ambiguous_ukrainian_channel_records_why_it_was_chosen(self) -> None:
+        """Several channels match the name; only one is Ukrainian-language."""
+        from services.poller.news import channels
+
+        euro = next(c for c in channels() if c["name"] == "Єврофутбол")
+        assert euro["language"] == "uk"
+        assert "note" in euro
+
+    def test_ids_are_unique(self) -> None:
+        from services.poller.news import channels
+
+        ids = [c["channel_id"] for c in channels()]
+        assert len(ids) == len(set(ids))

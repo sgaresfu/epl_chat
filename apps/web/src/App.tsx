@@ -20,9 +20,6 @@ const Fpl = lazy(() => import('@/routes/Fpl').then((m) => ({ default: m.Fpl })))
 const Watch = lazy(() => import('@/routes/Watch').then((m) => ({ default: m.Watch })))
 const News = lazy(() => import('@/routes/News').then((m) => ({ default: m.News })))
 const Chat = lazy(() => import('@/routes/Chat').then((m) => ({ default: m.Chat })))
-const Leaderboard = lazy(() =>
-  import('@/routes/Leaderboard').then((m) => ({ default: m.Leaderboard })),
-)
 const PredictionPicker = lazy(() =>
   import('@/routes/PredictionPicker').then((m) => ({ default: m.PredictionPicker })),
 )
@@ -65,7 +62,7 @@ export function App() {
             <Route path="/predictions" element={<Predictions />} />
             <Route path="/predictions/build" element={<PredictionPicker />} />
             <Route path="/admin" element={<Admin />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/leaderboard" element={<Navigate to="/predictions" replace />} />
             <Route path="/fpl" element={<Fpl />} />
             <Route path="/watch" element={<Watch />} />
             <Route path="/news" element={<News />} />

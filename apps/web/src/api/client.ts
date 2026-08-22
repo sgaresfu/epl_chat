@@ -26,6 +26,29 @@ function resolveBase(): string {
 
 export const API_BASE = resolveBase()
 
+/**
+ * Send the browser to the origin that actually owns the session.
+ *
+ * The api serves this app itself, so the two are same-origin and the cookie is
+ * first-party. A build deployed anywhere else — an older static site still
+ * sitting on its own hostname — talks to the api cross-origin, which makes the
+ * cookie third-party. Every browser on iOS is WebKit, so Safari drops it and
+ * login silently fails: the request succeeds, the cookie is discarded, and the
+ * next call is anonymous again.
+ *
+ * Rather than leave a stale bookmark to strand somebody, a build that finds
+ * itself on the wrong origin forwards to the right one, keeping the path.
+ */
+export function redirectToCanonicalOrigin(): boolean {
+  if (typeof window === 'undefined' || !API_BASE) return false
+  const here = window.location.origin.replace(/\/$/, '')
+  if (here === API_BASE) return false
+
+  const target = `${API_BASE}${window.location.pathname}${window.location.search}`
+  window.location.replace(target)
+  return true
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,

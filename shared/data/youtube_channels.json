@@ -1,0 +1,13 @@
+{
+  "$comment": "Channel ids resolved through the YouTube Data API and checked by hand, per BRIEF section 6 — never hardcoded unverified. Єврофутбол was the ambiguous one: several channels match the name, but only this one is Ukrainian-language (the others are Russian). Re-resolve with scripts/resolve_youtube.py if a channel moves.",
+  "resolved_on": "2026-08-22",
+  "channels": [
+    { "name": "The Overlap", "channel_id": "UCjXIw1GlwaY1IzpW_jN9iCQ", "language": "en" },
+    { "name": "The Rest Is Football", "channel_id": "UCkgsrOXWQNZRS_Cj8-_7sPw", "language": "en" },
+    { "name": "Sky Sports Premier League", "channel_id": "UCNAf1k0yIjyGu3k9BwAg3lg", "language": "en" },
+    { "name": "Premier League", "channel_id": "UCG5qGWdu8nIRZqJ_GgDwQ-w", "language": "en" },
+    { "name": "Let's Talk FPL", "channel_id": "UCxeOc7eFxq37yW_Nc-69deA", "language": "en" },
+    { "name": "Єврофутбол", "channel_id": "UCv8cAdooMtCxX5C6t2eef4g", "language": "uk",
+      "note": "Ukrainian-language football podcast. Distinct from the Russian-language ЕВРО-ФУТБОЛ and Еврофутбол channels, which also match the name." }
+  ]
+}

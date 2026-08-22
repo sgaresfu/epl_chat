@@ -106,7 +106,7 @@ class Poller:
     async def poll_news(self) -> None:
         """Sky's RSS needs no key, so this panel works with nothing configured."""
         try:
-            payload = await news.poll_news()
+            payload = await news.poll_news(self.settings.youtube_api_key)
         except Exception as exc:
             log.warning("poller.news_failed", error=str(exc))
             return

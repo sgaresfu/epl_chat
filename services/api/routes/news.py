@@ -39,7 +39,16 @@ async def news(_: CurrentSession, state: State, settings: Config) -> NewsOut:
 
     return NewsOut(
         sky=sky,
-        youtube=[],
+        youtube=[
+            NewsItemOut(
+                title=str(row.get("title", "")),
+                url=str(row.get("url", "")),
+                source=str(row.get("source", "YouTube")),
+                published=row.get("published"),
+                summary=str(row.get("summary", "")),
+            )
+            for row in payload.get("youtube", [])
+        ],
         athletic=[],
         freshness=views.freshness(entry, keys.NEWS_SKY),
         empty_message=(None if sky else "Headlines appear once the poller has read the Sky feed."),

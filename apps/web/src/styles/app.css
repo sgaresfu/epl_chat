@@ -1553,3 +1553,104 @@
   color: var(--ink-3);
   margin-top: 2px;
 }
+
+/* ---------- predictions: four tables side by side ---------- */
+/* Twenty rows times four people is eighty rows of scrolling if stacked. Laid
+   out as columns it is one screen, and the disagreements are the point. */
+.pred-grid {
+  display: grid;
+  grid-template-columns: 28px repeat(4, 1fr);
+  gap: 0 10px;
+  align-items: center;
+}
+@media (max-width: 720px) {
+  .pred-grid {
+    grid-template-columns: 22px repeat(4, 1fr);
+    gap: 0 4px;
+    font-size: 13px;
+  }
+}
+.pred-grid__head {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-2);
+  text-align: center;
+}
+.pred-grid__pos {
+  font-size: 13px;
+  color: var(--ink-3);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.pred-cell {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  border-top: 1px solid var(--line-2);
+  padding: 0 4px;
+  min-width: 0;
+}
+.pred-cell b {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Where everybody agrees, the row is quiet; disagreement is what you scan for. */
+.pred-row--agreed .pred-cell {
+  background: var(--bg-2);
+}
+.pred-grid__zone {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+  padding: 14px 0 4px;
+}
+
+.awards {
+  display: grid;
+  grid-template-columns: 160px repeat(4, 1fr);
+  gap: 0 10px;
+  align-items: center;
+  margin-top: 8px;
+}
+@media (max-width: 720px) {
+  .awards {
+    grid-template-columns: 96px repeat(4, 1fr);
+    gap: 0 4px;
+    font-size: 13px;
+  }
+}
+.awards__label {
+  font-size: 13px;
+  color: var(--ink-2);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--line-2);
+}
+.awards__pick {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--line-2);
+  padding: 0 4px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.awards__pick[data-empty='true'] {
+  color: var(--ink-3);
+}
+.awards__pick[data-placeholder='true'] {
+  color: var(--ink-3);
+  font-style: italic;
+}

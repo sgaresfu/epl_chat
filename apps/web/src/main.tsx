@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import { App } from './App'
+import { redirectToCanonicalOrigin } from './api/client'
 import './styles/tokens.css'
 import './styles/app.css'
 
@@ -22,6 +23,13 @@ const client = new QueryClient({
   },
 })
 
+// If this build is being served from an origin that is not the api's, hand
+// over before rendering. Anything rendered here would be unable to hold a
+// session on iOS anyway.
+if (redirectToCanonicalOrigin()) {
+  // The browser is already navigating; do not mount.
+} else {
+
 const root = document.getElementById('root')
 if (!root) throw new Error('#root is missing from index.html')
 
@@ -34,3 +42,5 @@ createRoot(root).render(
     </QueryClientProvider>
   </StrictMode>,
 )
+
+}

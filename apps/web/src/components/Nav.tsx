@@ -6,7 +6,6 @@ const LINKS = [
   ['/', 'Home'],
   ['/table', 'Table & matches'],
   ['/predictions', 'Predictions'],
-  ['/leaderboard', 'Leaderboard'],
   ['/fpl', 'Fantasy'],
   ['/watch', 'Watch log'],
   ['/news', 'News'],

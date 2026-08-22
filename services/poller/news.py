@@ -12,10 +12,13 @@ gap honestly until a licensed source exists.
 
 from __future__ import annotations
 
+import html
+import json
 import re
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
+from pathlib import Path
 from typing import Any
 
 import structlog
@@ -38,17 +41,17 @@ FEEDS: tuple[tuple[str, str, str], ...] = (
 
 YOUTUBE_API = "https://www.googleapis.com/youtube/v3"
 
-# BRIEF section 6. Channel ids are resolved via the API at setup and stored;
-# none are hardcoded here, because an unverified id silently returns somebody
-# else's uploads.
-CHANNELS: tuple[str, ...] = (
-    "The Overlap",
-    "The Rest Is Football",
-    "Sky Sports Premier League",
-    "Premier League",
-    "Let's Talk FPL",
-    "Єврофутбол",
-)
+# BRIEF section 6. Ids were resolved through the API and checked by hand, then
+# stored -- an unverified id silently returns somebody else's uploads, and for
+# Єврофутбол several channels match the name.
+CHANNELS_FILE = Path(__file__).parents[2] / "shared" / "data" / "youtube_channels.json"
+
+
+def channels() -> list[dict[str, str]]:
+    if not CHANNELS_FILE.exists():  # pragma: no cover
+        return []
+    data = json.loads(CHANNELS_FILE.read_text())
+    return list(data.get("channels", []))
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,9 +127,14 @@ def parse_date(raw: str) -> datetime | None:
 
 
 def _text(raw: str) -> str:
-    """Strip tags and CDATA from an RSS field."""
+    """Strip tags and CDATA from a feed field, and decode HTML entities.
+
+    YouTube returns titles HTML-escaped -- "Arteta&#39;s" and "&quot;Arsenal" --
+    and RSS descriptions often carry entities too. Left alone they render
+    literally, which looks like a broken encoding.
+    """
     cleaned = raw.replace("<![CDATA[", "").replace("]]>", "")
-    return _TAG.sub("", cleaned).strip()
+    return html.unescape(_TAG.sub("", cleaned)).strip()
 
 
 def parse_rss(xml: str, source: str, limit: int = 20) -> list[Item]:
@@ -226,7 +234,7 @@ async def fetch_uploads(up: Upstream, api_key: str, channel_id: str, limit: int 
         snippet = row["snippet"]
         items.append(
             Item(
-                title=snippet["title"],
+                title=html.unescape(str(snippet["title"])),
                 url=f"https://www.youtube.com/watch?v={video_id}",
                 source=snippet.get("channelTitle", "YouTube"),
                 published=snippet.get("publishedAt"),
@@ -235,7 +243,32 @@ async def fetch_uploads(up: Upstream, api_key: str, channel_id: str, limit: int 
     return items
 
 
-async def poll_news(_: Upstream | None = None) -> dict[str, Any]:
+async def fetch_all_uploads(api_key: str, per_channel: int = 4) -> tuple[list[Item], dict[str, str]]:
+    """Recent uploads across every stored channel.
+
+    One search call per channel, six channels, every 30 minutes -- about 300
+    calls a day against a 10,000-unit quota, so there is room to spare.
+    """
+    if not api_key:
+        return [], {}
+
+    collected: list[Item] = []
+    errors: dict[str, str] = {}
+    up = Upstream(name="youtube", base_url=YOUTUBE_API)
+    try:
+        for channel in channels():
+            try:
+                found = await fetch_uploads(up, api_key, channel["channel_id"], per_channel)
+                collected.extend(found)
+            except UpstreamError as exc:
+                errors[channel["name"]] = str(exc)
+                log.warning("news.youtube_failed", channel=channel["name"], error=str(exc))
+    finally:
+        await up.close()
+    return newest_first(collected), errors
+
+
+async def poll_news(api_key: str = "") -> dict[str, Any]:
     """Every feed, merged and sorted, degrading one outlet at a time.
 
     One outlet going down must cost only its own headlines, so each is fetched
@@ -269,10 +302,13 @@ async def poll_news(_: Upstream | None = None) -> dict[str, Any]:
         seen.add(item.url)
         unique.append(item)
 
+    uploads, upload_errors = await fetch_all_uploads(api_key)
+    errors.update(upload_errors)
+
     # asdict, not __dict__: Item is a slots dataclass and has no __dict__.
     return {
         "sky": [asdict(item) for item in unique[:40]],
-        "youtube": [],
+        "youtube": [asdict(item) for item in uploads[:12]],
         "athletic": [],
         "errors": errors,
         "sources": [name for name, _, _ in FEEDS],
