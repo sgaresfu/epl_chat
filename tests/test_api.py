@@ -59,11 +59,13 @@ class TestAuth:
         assert (await client.get("/api/me")).status_code == 401
 
     async def test_rate_limit_stops_repeated_guessing(self, client: AsyncClient) -> None:
-        # 10 attempts per IP per hour, per BRIEF section 3.
-        codes = [{"code": f"guess-{n}"} for n in range(12)]
+        # Only failures count; see tests/test_login_robustness.py for why.
+        from services.api.auth import LOGIN_ATTEMPT_LIMIT
+
+        codes = [{"code": f"guess-{n}"} for n in range(LOGIN_ATTEMPT_LIMIT + 5)]
         statuses = [(await client.post("/api/session", json=c)).status_code for c in codes]
         assert 429 in statuses
-        assert statuses.count(401) <= 10
+        assert statuses.count(401) <= LOGIN_ATTEMPT_LIMIT
 
 
 class TestIdentity:

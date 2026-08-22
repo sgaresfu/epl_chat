@@ -59,6 +59,9 @@ def league_payload() -> dict[str, Any]:
 @pytest.fixture
 def settings() -> Settings:
     return Settings(
+        # Never read the developer's .env: adding a real YOUTUBE_API_KEY to it
+        # silently changed what these tests asserted about missing keys.
+        _env_file=None,
         environment="local",
         session_secret="test-secret-long-enough-for-signing-abcdefghijk",
         code_coyg=CODES["coyg"],
