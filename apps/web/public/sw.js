@@ -41,7 +41,20 @@ const STATIC_URLS = ['/manifest.webmanifest', '/favicon.svg']
 const OFFLINE_DOC = '/'
 
 // Anything whose answer depends on who is asking, or that never ends.
-const NEVER_CACHE = [/\/api\/session/, /\/api\/stream/, /\/api\/presence/]
+//
+// `/api/me` belongs here for the same reason `/api/session` does: it *is* the
+// answer to "am I signed in, and as whom". Cached, its 401 gets replayed to
+// somebody who has just signed in and the app shows them the login screen
+// again -- which is exactly how this was found. `/api/picks` is a person's
+// own picks, deliberately private until kick-off, so it is not something to
+// keep a copy of either.
+const NEVER_CACHE = [
+  /\/api\/session/,
+  /\/api\/me/,
+  /\/api\/picks/,
+  /\/api\/stream/,
+  /\/api\/presence/,
+]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

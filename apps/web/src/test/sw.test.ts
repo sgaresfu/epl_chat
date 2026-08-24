@@ -95,3 +95,24 @@ describe('service worker registration', () => {
     expect(body.indexOf('return')).toBeLessThan(body.indexOf('location.reload'))
   })
 })
+
+/**
+ * Identity is never a thing to keep a copy of. A replayed 401 shows the login
+ * screen to somebody who has just signed in; a replayed 200 would be worse.
+ */
+describe('what the worker refuses to cache', () => {
+  // The list holds regex literals, so the slashes in it are escaped.
+  const never = sw
+    .slice(sw.indexOf('const NEVER_CACHE'), sw.indexOf(']', sw.indexOf('const NEVER_CACHE')))
+    .replace(/\\/g, '')
+
+  it.each(['session', 'me', 'picks', 'stream', 'presence'])('never caches /api/%s', (path) => {
+    expect(never).toContain(`/api/${path}`)
+  })
+
+  it('still caches the shared, impersonal endpoints', () => {
+    for (const shared of ['table', 'fixtures', 'leaderboard']) {
+      expect(never).not.toContain(`/api/${shared}`)
+    }
+  })
+})
