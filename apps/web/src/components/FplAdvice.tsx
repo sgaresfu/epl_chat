@@ -170,7 +170,11 @@ export function FplAdvicePanel() {
   return (
     <>
       <div className="shead" style={{ marginTop: 4 }}>
-        <h2 style={{ fontSize: 21 }}>Gameweek {data.gameweek}</h2>
+        {/* The page header carries the *current* gameweek; this is the one the
+            advice is for, which is the next one once the current is settled.
+            Both read "1" today, so they need labelling that stays right when
+            they diverge. */}
+        <h2 style={{ fontSize: 21 }}>For gameweek {data.gameweek}</h2>
         <span className="source-filter" style={{ marginLeft: 'auto' }}>
           <button
             type="button"
