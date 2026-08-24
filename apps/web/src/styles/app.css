@@ -2717,6 +2717,10 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  /* A badge and three chips do not fit beside a crest on a phone. Wrapping
+     costs a second line on the narrowest screens and nothing at all on a
+     desktop, where there was always room. */
+  flex-wrap: wrap;
 }
 /* Actions stay quiet until the row is approached, so a round reads as a list
    of matches rather than a wall of buttons. On touch there is no hover, so
@@ -2883,7 +2887,11 @@
 
 @media (max-width: 760px) {
   .match {
-    grid-template-columns: 48px 1fr;
+    /* `1fr` is `minmax(auto, 1fr)`, and that `auto` floor is min-content —
+       so the track refuses to go narrower than the widest unbreakable thing
+       in it, and the whole row pushes past the screen edge. `minmax(0, 1fr)`
+       is what actually lets a column be smaller than its contents. */
+    grid-template-columns: 48px minmax(0, 1fr);
     grid-template-areas: 'time tie' 'time actions';
     row-gap: 8px;
   }
