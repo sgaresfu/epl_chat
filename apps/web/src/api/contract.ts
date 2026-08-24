@@ -17,6 +17,14 @@ import type {
   Bets,
   Calendar,
   CalendarEvent,
+  FixturePicks,
+  FplAdvice,
+  PickRound,
+  PickStandings,
+  PickStats,
+  ManagerAdvice,
+  Forecast,
+  TransferIdea,
   WatchOn,
   Club,
   Fixture,
@@ -98,6 +106,14 @@ type _TStats = Assert<Exact<TeamStats, Schemas['TeamStatsOut']>>
 type _Calendar = Assert<Exact<Calendar, Schemas['CalendarOut']>>
 type _CalendarEvent = Assert<Exact<CalendarEvent, Schemas['CalendarEventOut']>>
 type _WatchOn = Assert<Exact<WatchOn, Schemas['WatchOn']>>
+type _FixturePicks = Assert<Exact<FixturePicks, Schemas['FixturePicksOut']>>
+type _PickRound = Assert<Exact<PickRound, Schemas['PickRoundOut']>>
+type _PickStats = Assert<Exact<PickStats, Schemas['PickStatsOut']>>
+type _PickStandings = Assert<Exact<PickStandings, Schemas['PickStandingsOut']>>
+type _Forecast = Assert<Exact<Forecast, Schemas['ForecastOut']>>
+type _TransferIdea = Assert<Exact<TransferIdea, Schemas['TransferIdeaOut']>>
+type _ManagerAdvice = Assert<Exact<ManagerAdvice, Schemas['ManagerAdviceOut']>>
+type _FplAdvice = Assert<Exact<FplAdvice, Schemas['FplAdviceOut']>>
 type _Odds = Assert<Exact<Odds, Schemas['OddsPrice']>>
 type _FixtureOdds = Assert<Exact<FixtureOdds, Schemas['FixtureOddsOut']>>
 type _OddsRound = Assert<Exact<OddsRound, Schemas['OddsRoundOut']>>
@@ -109,5 +125,5 @@ type _Lineups = Assert<Exact<Lineups, Schemas['LineupsOut']>>
 // construction; a drifted type makes its `Assert` fail to satisfy the constraint.
 export type ContractHolds = [
   _Person, _Me, _Club, _Freshness, _LocalTime, _TableRow, _LeagueTable,
-  _Projected, _Fixture, _FixtureList, _Season, _Home, _Predictions, _Admin, _Fpl, _Lb, _H2H, _Watch, _News, _Polls, _Bets, _Timeline, _Squads, _PStats, _TStats, _Calendar, _CalendarEvent, _WatchOn, _Odds, _FixtureOdds, _OddsRound, _LineupPlayer, _LineupSide, _Lineups,
+  _Projected, _Fixture, _FixtureList, _Season, _Home, _Predictions, _Admin, _Fpl, _Lb, _H2H, _Watch, _News, _Polls, _Bets, _Timeline, _Squads, _PStats, _TStats, _Calendar, _CalendarEvent, _WatchOn, _FixturePicks, _PickRound, _PickStats, _PickStandings, _Forecast, _TransferIdea, _ManagerAdvice, _FplAdvice, _Odds, _FixtureOdds, _OddsRound, _LineupPlayer, _LineupSide, _Lineups,
 ]

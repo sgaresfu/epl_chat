@@ -670,6 +670,28 @@
         }
       }
     },
+    "/api/fpl/advice": {
+      "get": {
+        "tags": [
+          "fpl"
+        ],
+        "summary": "Advice",
+        "description": "Projections, captaincy and transfers for all four squads.\n\nEverything is computed from the cache the poller already fills -- the\nbootstrap for player form and availability, the fixture list for\ndifficulty, the stored picks for who owns whom. No upstream call, so this\nstays on the same footing as every other read in the app.",
+        "operationId": "advice_api_fpl_advice_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FplAdviceOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/watch": {
       "get": {
         "tags": [
@@ -1159,6 +1181,118 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/picks": {
+      "get": {
+        "tags": [
+          "picks"
+        ],
+        "summary": "Picks Round",
+        "operationId": "picks_round_api_picks_get",
+        "parameters": [
+          {
+            "name": "gameweek",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 38,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Gameweek"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PickRoundOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "picks"
+        ],
+        "summary": "Save Pick",
+        "operationId": "save_pick_api_picks_put",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PickIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PickOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/picks/stats": {
+      "get": {
+        "tags": [
+          "picks"
+        ],
+        "summary": "Pick Stats",
+        "description": "All-time, recomputed on read.\n\nThere is no nightly job and no stored aggregate: the record is a fold over\npicks and results, both of which are already here, so it cannot drift out\nof date and there is no cache to invalidate when a match finishes.",
+        "operationId": "pick_stats_api_picks_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PickStandingsOut"
                 }
               }
             }
@@ -1665,6 +1799,28 @@
         ],
         "title": "CalendarOut"
       },
+      "CaptainPickOut": {
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "title": "Rank"
+          },
+          "doubled": {
+            "type": "number",
+            "title": "Doubled"
+          },
+          "player": {
+            "$ref": "#/components/schemas/ForecastOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rank",
+          "doubled",
+          "player"
+        ],
+        "title": "CaptainPickOut"
+      },
       "ChampionsLeaguePicks-Input": {
         "properties": {
           "winner": {
@@ -2019,6 +2175,272 @@
           "watch_open"
         ],
         "title": "FixtureOut"
+      },
+      "FixturePicksOut": {
+        "properties": {
+          "fixture_id": {
+            "type": "integer",
+            "title": "Fixture Id"
+          },
+          "gameweek": {
+            "type": "integer",
+            "title": "Gameweek"
+          },
+          "kickoff": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kickoff"
+          },
+          "home": {
+            "$ref": "#/components/schemas/ClubOut"
+          },
+          "away": {
+            "$ref": "#/components/schemas/ClubOut"
+          },
+          "home_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Score"
+          },
+          "away_score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Away Score"
+          },
+          "started": {
+            "type": "boolean",
+            "title": "Started",
+            "default": false
+          },
+          "finished": {
+            "type": "boolean",
+            "title": "Finished",
+            "default": false
+          },
+          "open_for_picks": {
+            "type": "boolean",
+            "title": "Open For Picks",
+            "default": false
+          },
+          "revealed": {
+            "type": "boolean",
+            "title": "Revealed",
+            "default": false
+          },
+          "my_pick": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PickOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "picks": {
+            "items": {
+              "$ref": "#/components/schemas/PickOut"
+            },
+            "type": "array",
+            "title": "Picks"
+          },
+          "odds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OddsPrice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "fixture_id",
+          "gameweek",
+          "kickoff",
+          "home",
+          "away",
+          "home_score",
+          "away_score",
+          "started",
+          "finished",
+          "open_for_picks",
+          "revealed",
+          "my_pick",
+          "picks",
+          "odds"
+        ],
+        "title": "FixturePicksOut",
+        "description": "One fixture, with everyone's call on it."
+      },
+      "ForecastOut": {
+        "properties": {
+          "element": {
+            "type": "integer",
+            "title": "Element"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "club": {
+            "type": "string",
+            "title": "Club"
+          },
+          "position": {
+            "type": "string",
+            "title": "Position"
+          },
+          "price": {
+            "type": "number",
+            "title": "Price"
+          },
+          "expected_points": {
+            "type": "number",
+            "title": "Expected Points"
+          },
+          "appearances": {
+            "type": "integer",
+            "title": "Appearances"
+          },
+          "confident": {
+            "type": "boolean",
+            "title": "Confident"
+          },
+          "availability": {
+            "type": "string",
+            "title": "Availability"
+          },
+          "difficulty": {
+            "type": "integer",
+            "title": "Difficulty"
+          },
+          "basis": {
+            "type": "string",
+            "title": "Basis",
+            "default": "observed"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "type": "object",
+        "required": [
+          "element",
+          "name",
+          "club",
+          "position",
+          "price",
+          "expected_points",
+          "appearances",
+          "confident",
+          "availability",
+          "difficulty",
+          "basis",
+          "reasons"
+        ],
+        "title": "ForecastOut",
+        "description": "One player's projection for the coming round."
+      },
+      "FplAdviceOut": {
+        "properties": {
+          "gameweek": {
+            "type": "integer",
+            "title": "Gameweek"
+          },
+          "managers": {
+            "items": {
+              "$ref": "#/components/schemas/ManagerAdviceOut"
+            },
+            "type": "array",
+            "title": "Managers"
+          },
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/ManagerReportOut"
+            },
+            "type": "array",
+            "title": "Reports"
+          },
+          "worst": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worst"
+          },
+          "worst_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worst Reason"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "gameweek",
+          "managers",
+          "reports",
+          "worst",
+          "worst_reason",
+          "freshness",
+          "empty_message",
+          "method"
+        ],
+        "title": "FplAdviceOut"
       },
       "FplChipOut": {
         "properties": {
@@ -3018,6 +3440,163 @@
         ],
         "title": "LoginIn"
       },
+      "ManagerAdviceOut": {
+        "properties": {
+          "person": {
+            "type": "string",
+            "title": "Person"
+          },
+          "entry_name": {
+            "type": "string",
+            "title": "Entry Name"
+          },
+          "bank": {
+            "type": "number",
+            "title": "Bank"
+          },
+          "captain_now": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captain Now"
+          },
+          "captains": {
+            "items": {
+              "$ref": "#/components/schemas/CaptainPickOut"
+            },
+            "type": "array",
+            "title": "Captains"
+          },
+          "transfers": {
+            "items": {
+              "$ref": "#/components/schemas/TransferIdeaOut"
+            },
+            "type": "array",
+            "title": "Transfers"
+          },
+          "projected_points": {
+            "type": "number",
+            "title": "Projected Points",
+            "default": 0.0
+          },
+          "projected_from": {
+            "type": "integer",
+            "title": "Projected From",
+            "default": 0
+          },
+          "squad_size": {
+            "type": "integer",
+            "title": "Squad Size",
+            "default": 0
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "entry_name",
+          "bank",
+          "captain_now",
+          "captains",
+          "transfers",
+          "projected_points",
+          "projected_from",
+          "squad_size",
+          "note"
+        ],
+        "title": "ManagerAdviceOut"
+      },
+      "ManagerReportOut": {
+        "properties": {
+          "person": {
+            "type": "string",
+            "title": "Person"
+          },
+          "live_points": {
+            "type": "integer",
+            "title": "Live Points"
+          },
+          "bench_points": {
+            "type": "integer",
+            "title": "Bench Points"
+          },
+          "bench_wasted": {
+            "type": "integer",
+            "title": "Bench Wasted"
+          },
+          "captain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captain"
+          },
+          "captain_points": {
+            "type": "integer",
+            "title": "Captain Points",
+            "default": 0
+          },
+          "best_captain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Captain"
+          },
+          "best_captain_points": {
+            "type": "integer",
+            "title": "Best Captain Points",
+            "default": 0
+          },
+          "captain_cost": {
+            "type": "integer",
+            "title": "Captain Cost",
+            "default": 0
+          },
+          "players_to_play": {
+            "type": "integer",
+            "title": "Players To Play",
+            "default": 0
+          },
+          "verdict": {
+            "type": "string",
+            "title": "Verdict",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "live_points",
+          "bench_points",
+          "bench_wasted",
+          "captain",
+          "captain_points",
+          "best_captain",
+          "best_captain_points",
+          "captain_cost",
+          "players_to_play",
+          "verdict"
+        ],
+        "title": "ManagerReportOut"
+      },
       "MeOut": {
         "properties": {
           "person": {
@@ -3430,6 +4009,291 @@
           "fpl_entry_id"
         ],
         "title": "PersonOut"
+      },
+      "PickIn": {
+        "properties": {
+          "fixture_id": {
+            "type": "integer",
+            "title": "Fixture Id"
+          },
+          "home_goals": {
+            "type": "integer",
+            "maximum": 15.0,
+            "minimum": 0.0,
+            "title": "Home Goals"
+          },
+          "away_goals": {
+            "type": "integer",
+            "maximum": 15.0,
+            "minimum": 0.0,
+            "title": "Away Goals"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fixture_id",
+          "home_goals",
+          "away_goals"
+        ],
+        "title": "PickIn"
+      },
+      "PickOut": {
+        "properties": {
+          "person": {
+            "type": "string",
+            "title": "Person"
+          },
+          "fixture_id": {
+            "type": "integer",
+            "title": "Fixture Id"
+          },
+          "home_goals": {
+            "type": "integer",
+            "title": "Home Goals"
+          },
+          "away_goals": {
+            "type": "integer",
+            "title": "Away Goals"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points"
+          },
+          "exact": {
+            "type": "boolean",
+            "title": "Exact",
+            "default": false
+          },
+          "outcome_hit": {
+            "type": "boolean",
+            "title": "Outcome Hit",
+            "default": false
+          },
+          "total_hit": {
+            "type": "boolean",
+            "title": "Total Hit",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "fixture_id",
+          "home_goals",
+          "away_goals",
+          "points",
+          "exact",
+          "outcome_hit",
+          "total_hit"
+        ],
+        "title": "PickOut"
+      },
+      "PickRoundOut": {
+        "properties": {
+          "gameweek": {
+            "type": "integer",
+            "title": "Gameweek"
+          },
+          "fixtures": {
+            "items": {
+              "$ref": "#/components/schemas/FixturePicksOut"
+            },
+            "type": "array",
+            "title": "Fixtures"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/Freshness"
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gameweek",
+          "fixtures",
+          "freshness",
+          "empty_message"
+        ],
+        "title": "PickRoundOut"
+      },
+      "PickStandingsOut": {
+        "properties": {
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/PickStatsOut"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "total_settled": {
+            "type": "integer",
+            "title": "Total Settled",
+            "default": 0
+          },
+          "empty_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Empty Message"
+          },
+          "scoring": {
+            "type": "string",
+            "title": "Scoring",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "rows",
+          "total_settled",
+          "empty_message",
+          "scoring"
+        ],
+        "title": "PickStandingsOut"
+      },
+      "PickStatsOut": {
+        "properties": {
+          "person": {
+            "$ref": "#/components/schemas/PersonOut"
+          },
+          "settled": {
+            "type": "integer",
+            "title": "Settled"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          },
+          "points_per_pick": {
+            "type": "number",
+            "title": "Points Per Pick"
+          },
+          "exact": {
+            "type": "integer",
+            "title": "Exact"
+          },
+          "exact_pct": {
+            "type": "number",
+            "title": "Exact Pct"
+          },
+          "outcomes": {
+            "type": "integer",
+            "title": "Outcomes"
+          },
+          "outcome_pct": {
+            "type": "number",
+            "title": "Outcome Pct"
+          },
+          "totals": {
+            "type": "integer",
+            "title": "Totals"
+          },
+          "total_pct": {
+            "type": "number",
+            "title": "Total Pct"
+          },
+          "current_streak": {
+            "type": "integer",
+            "title": "Current Streak"
+          },
+          "best_streak": {
+            "type": "integer",
+            "title": "Best Streak"
+          },
+          "predicted_goals": {
+            "type": "number",
+            "title": "Predicted Goals"
+          },
+          "actual_goals": {
+            "type": "number",
+            "title": "Actual Goals"
+          },
+          "goal_bias": {
+            "type": "number",
+            "title": "Goal Bias"
+          },
+          "home_pct": {
+            "type": "number",
+            "title": "Home Pct"
+          },
+          "with_market": {
+            "type": "integer",
+            "title": "With Market"
+          },
+          "followed_favourite": {
+            "type": "integer",
+            "title": "Followed Favourite"
+          },
+          "bold": {
+            "type": "integer",
+            "title": "Bold"
+          },
+          "bold_hits": {
+            "type": "integer",
+            "title": "Bold Hits"
+          },
+          "bold_pct": {
+            "type": "number",
+            "title": "Bold Pct"
+          },
+          "market_points": {
+            "type": "integer",
+            "title": "Market Points"
+          },
+          "edge": {
+            "type": "integer",
+            "title": "Edge"
+          }
+        },
+        "type": "object",
+        "required": [
+          "person",
+          "settled",
+          "points",
+          "points_per_pick",
+          "exact",
+          "exact_pct",
+          "outcomes",
+          "outcome_pct",
+          "totals",
+          "total_pct",
+          "current_streak",
+          "best_streak",
+          "predicted_goals",
+          "actual_goals",
+          "goal_bias",
+          "home_pct",
+          "with_market",
+          "followed_favourite",
+          "bold",
+          "bold_hits",
+          "bold_pct",
+          "market_points",
+          "edge"
+        ],
+        "title": "PickStatsOut",
+        "description": "One person's all-time record."
       },
       "PlayerStatOut": {
         "properties": {
@@ -4654,6 +5518,35 @@
           "empty_message"
         ],
         "title": "TimelineOut"
+      },
+      "TransferIdeaOut": {
+        "properties": {
+          "out_player": {
+            "$ref": "#/components/schemas/ForecastOut"
+          },
+          "in_player": {
+            "$ref": "#/components/schemas/ForecastOut"
+          },
+          "gain": {
+            "type": "number",
+            "title": "Gain"
+          },
+          "reasoning": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasoning"
+          }
+        },
+        "type": "object",
+        "required": [
+          "out_player",
+          "in_player",
+          "gain",
+          "reasoning"
+        ],
+        "title": "TransferIdeaOut"
       },
       "ValidationError": {
         "properties": {

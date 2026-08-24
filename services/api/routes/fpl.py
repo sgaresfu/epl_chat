@@ -17,15 +17,23 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter
+from shared import fpl_analytics as analytics
 from shared import keys
+from shared.clubs import by_fpl_id as club_of
 from shared.fpl_people import person_for
 from shared.models import (
+    CaptainPickOut,
+    ForecastOut,
+    FplAdviceOut,
     FplChipOut,
     FplPlayerOut,
     FplSquadOut,
     FplSquadsOut,
     FplStandingRow,
     FplStandingsOut,
+    ManagerAdviceOut,
+    ManagerReportOut,
+    TransferIdeaOut,
 )
 
 from services.api import views
@@ -33,6 +41,7 @@ from services.api.deps import Config, CurrentSession, State
 from services.poller.fpl import (
     chips_for,
     current_gameweek,
+    is_over,
     live_stats,
     parse_league,
     player_index,
@@ -271,3 +280,185 @@ async def squads(_: CurrentSession, state: State, settings: Config, gw: int | No
             "who has not kicked off yet reads zero rather than being hidden."
         ),
     )
+
+
+@router.get("/api/fpl/advice", response_model=FplAdviceOut)
+async def advice(_: CurrentSession, state: State) -> FplAdviceOut:
+    """Projections, captaincy and transfers for all four squads.
+
+    Everything is computed from the cache the poller already fills -- the
+    bootstrap for player form and availability, the fixture list for
+    difficulty, the stored picks for who owns whom. No upstream call, so this
+    stays on the same footing as every other read in the app.
+    """
+    boot_entry = await state.cache.get(keys.FPL_BOOTSTRAP)
+    league_entry = await state.cache.get(keys.FPL_LEAGUE)
+    fixtures_entry = await state.cache.get(keys.FPL_FIXTURES)
+
+    event = current_gameweek(boot_entry.value) if boot_entry else None
+    gameweek = int(event["id"]) if event else 1
+
+    if boot_entry is None or league_entry is None or fixtures_entry is None:
+        return FplAdviceOut(
+            gameweek=gameweek,
+            freshness=views.freshness(boot_entry, keys.FPL_BOOTSTRAP),
+            empty_message="Advice appears once the poller has fetched the squads and fixtures.",
+        )
+
+    boot = boot_entry.value
+    fixtures = fixtures_entry.value if isinstance(fixtures_entry.value, list) else []
+
+    # The round being advised on is the next one to be played.
+    next_gw = gameweek if not _round_complete(fixtures, gameweek) else gameweek + 1
+    difficulty = analytics.difficulty_by_club(fixtures, next_gw, horizon=1)
+
+    club_short: dict[int, str] = {}
+    for element in boot.get("elements", []):
+        team = int(element.get("team", 0))
+        if team not in club_short:
+            try:
+                club_short[team] = club_of(team).short_name
+            except Exception:  # pragma: no cover - unknown club id
+                club_short[team] = str(team)
+
+    # Forecast every player once; the squads then index into it.
+    market: dict[int, analytics.Forecast] = {}
+    for element in boot.get("elements", []):
+        team = int(element.get("team", 0))
+        market[int(element["id"])] = analytics.forecast(
+            element, difficulty.get(team, 3), club_short.get(team, "?")
+        )
+
+    members = parse_league(league_entry.value)
+    managers: list[ManagerAdviceOut] = []
+    reports: list[analytics.ManagerReport] = []
+
+    squads_payload = await squads(_, state, state.settings)
+    by_person = {s.person: s for s in squads_payload.squads if s.person}
+
+    for member in members:
+        person = person_for(member.entry_id)
+        if person is None:
+            continue
+        squad_out = by_person.get(person)
+        if squad_out is None:
+            continue
+
+        reports.append(analytics.manager_report(squad_out.model_dump()))
+
+        owned_ids = [p.element for p in squad_out.starting] + [p.element for p in squad_out.bench]
+        squad_forecasts = [market[e] for e in owned_ids if e in market]
+        xi_forecasts = [market[p.element] for p in squad_out.starting if p.element in market]
+
+        bank = await _bank_for(state, member.entry_id)
+        ideas = analytics.transfer_ideas(squad_forecasts, list(market.values()), bank=bank)
+        captains = analytics.captain_options(xi_forecasts)
+
+        # Every usable forecast counts toward the total; the shrinkage has
+        # already discounted the thin ones, so excluding them would understate
+        # the squad rather than qualify it.
+        usable = [f for f in xi_forecasts if f.basis != "thin"]
+        projected = round(sum(f.expected_points for f in usable), 1)
+        observed = sum(1 for f in xi_forecasts if f.basis == "observed")
+
+        managers.append(
+            ManagerAdviceOut(
+                person=person,
+                entry_name=squad_out.entry_name,
+                bank=bank,
+                captain_now=squad_out.captain.name if squad_out.captain else None,
+                captains=[
+                    CaptainPickOut(rank=c.rank, doubled=c.doubled, player=_forecast_out(c.forecast))
+                    for c in captains
+                ],
+                transfers=[
+                    TransferIdeaOut(
+                        out_player=_forecast_out(i.out_player),
+                        in_player=_forecast_out(i.in_player),
+                        gain=i.gain,
+                        reasoning=i.reasoning,
+                    )
+                    for i in ideas
+                ],
+                projected_points=projected,
+                projected_from=observed,
+                squad_size=len(xi_forecasts),
+                note=(
+                    ""
+                    if observed == len(xi_forecasts)
+                    else (
+                        f"{len(xi_forecasts) - observed} of the XI have played too little to judge on "
+                        "their own record, so those lean on the league's expectation."
+                    )
+                ),
+            )
+        )
+
+    worst = analytics.worst_managed(reports)
+
+    return FplAdviceOut(
+        gameweek=next_gw,
+        managers=managers,
+        reports=[
+            ManagerReportOut(
+                person=r.person,
+                live_points=r.live_points,
+                bench_points=r.bench_points,
+                bench_wasted=r.bench_wasted,
+                captain=r.captain,
+                captain_points=r.captain_points,
+                best_captain=r.best_captain,
+                best_captain_points=r.best_captain_points,
+                captain_cost=r.captain_cost,
+                players_to_play=r.players_to_play,
+                verdict=r.verdict,
+            )
+            for r in reports
+        ],
+        worst=worst.person if worst else None,
+        worst_reason=worst.verdict if worst else None,
+        freshness=views.freshness(boot_entry, keys.FPL_BOOTSTRAP),
+        empty_message=None if managers else "No squads to advise on yet.",
+        method=(
+            "Expected points are points-per-game and recent form, discounted for "
+            "availability and scaled by fixture difficulty. Nothing is projected "
+            f"from fewer than {analytics.MIN_APPEARANCES} full matches of minutes."
+        ),
+    )
+
+
+def _forecast_out(f: analytics.Forecast) -> ForecastOut:
+    return ForecastOut(
+        element=f.element,
+        name=f.name,
+        club=f.club,
+        position=f.position,
+        price=f.price,
+        expected_points=f.expected_points,
+        appearances=f.appearances,
+        confident=f.confident,
+        availability=f.availability,
+        difficulty=f.difficulty,
+        basis=f.basis,
+        reasons=f.reasons,
+    )
+
+
+def _round_complete(fixtures: list[dict[str, Any]], gameweek: int) -> bool:
+    rows = [r for r in fixtures if r.get("event") == gameweek]
+    return bool(rows) and all(is_over(r) for r in rows)
+
+
+async def _bank_for(state: State, entry_id: int) -> float:
+    """Money in hand, from the manager's own history.
+
+    Falls back to zero rather than guessing: recommending a transfer the
+    person cannot afford is worse than recommending a cheaper one.
+    """
+    entry = await state.cache.get(keys.fpl_history(entry_id))
+    if entry is None or not isinstance(entry.value, dict):
+        return 0.0
+    rounds = entry.value.get("current") or []
+    if not rounds:
+        return 0.0
+    return float(rounds[-1].get("bank", 0)) / 10

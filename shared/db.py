@@ -110,6 +110,33 @@ class WatchLog(Base):
     night_medal: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+class MatchPick(Base):
+    """One person's scoreline call on one fixture.
+
+    The odds columns are a snapshot taken when the pick was saved, not a
+    foreign key into ``odds_history``. That is deliberate: "did you beat the
+    bookmaker" has to be judged against the price the person actually saw,
+    and a price that moved after they picked is a different question.
+    """
+
+    __tablename__ = "match_picks"
+    __table_args__ = (
+        UniqueConstraint("person_id", "fixture_id", name="uq_pick_person_fixture"),
+        Index("ix_match_picks_fixture", "fixture_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    person_id: Mapped[int] = mapped_column(ForeignKey("people.id"))
+    fixture_id: Mapped[int] = mapped_column(Integer)
+    home_goals: Mapped[int] = mapped_column(Integer)
+    away_goals: Mapped[int] = mapped_column(Integer)
+    odds_home: Mapped[float | None] = mapped_column(nullable=True)
+    odds_draw: Mapped[float | None] = mapped_column(nullable=True)
+    odds_away: Mapped[float | None] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = _ts()
+    updated_at: Mapped[datetime] = _ts()
+
+
 class OddsHistory(Base):
     __tablename__ = "odds_history"
     __table_args__ = (Index("ix_odds_history_fixture_time", "fixture_id", "captured_at"),)

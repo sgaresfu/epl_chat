@@ -11,10 +11,12 @@
  * appeared to be missing.
  */
 
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useClubs, useLeaderboard, useMe, usePredictions } from '@/api/queries'
 import { Crest } from '@/components/Crest'
 import { Empty, TableSkeleton } from '@/components/states'
+import { PickRecord } from '@/components/PickRecord'
 import { countdownWords } from '@/lib/format'
 import type { AwardPicks, Club, Prediction } from '@/api/types'
 
@@ -213,7 +215,10 @@ export function Standings() {
   )
 }
 
+type Tab = 'season' | 'matches'
+
 export function Predictions() {
+  const [tab, setTab] = useState<Tab>('season')
   const { data, isLoading } = usePredictions()
   const { data: clubList } = useClubs()
   const { data: me } = useMe()
@@ -233,19 +238,58 @@ export function Predictions() {
       <div className="wrap">
         <div className="shead">
           <h2>Predictions</h2>
-          {!data.locked && (
+          {/* Two games live here: the season-long table filed before the
+              first ball, and the week-by-week scorelines. Same idea, very
+              different cadence, so they share a page rather than a nav slot. */}
+          <span className="seg" role="tablist" aria-label="Which predictions">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'season'}
+              onClick={() => setTab('season')}
+            >
+              Season table
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'matches'}
+              onClick={() => setTab('matches')}
+            >
+              Match picks
+            </button>
+          </span>
+          {tab === 'season' && !data.locked && (
             <Link className="btn" to="/predictions/build" style={{ marginLeft: 'auto' }}>
               {byPerson.get(me?.person.key ?? '')?.filed ? 'Edit yours' : 'File yours'}
             </Link>
           )}
-          <span
-            className="shead__link"
-            style={{ color: data.locked ? 'var(--ink-3)' : 'var(--blue)', marginLeft: data.locked ? 'auto' : 0 }}
-          >
-            {data.locked ? 'Locked' : `Locks in ${countdownWords(data.seconds_remaining)}`}
-          </span>
+          {tab === 'season' && (
+            <span
+              className="shead__link"
+              style={{
+                color: data.locked ? 'var(--ink-3)' : 'var(--blue)',
+                marginLeft: data.locked ? 'auto' : 0,
+              }}
+            >
+              {data.locked ? 'Locked' : `Locks in ${countdownWords(data.seconds_remaining)}`}
+            </span>
+          )}
         </div>
 
+        {tab === 'matches' ? (
+          <>
+            <PickRecord me={me?.person.key} />
+            <p className="tnote" style={{ marginTop: 18 }}>
+              Pick a scoreline on any match from{' '}
+              <Link className="shead__link" to="/table?view=matches">
+                Table &amp; matches
+              </Link>
+              . Picks close at kick-off and stay private until then.
+            </p>
+          </>
+        ) : (
+          <>
         <Standings />
 
         {sealed.length > 0 && (
@@ -279,6 +323,8 @@ export function Predictions() {
             <Awards filed={filed} />
 
             <ChampionsLeague filed={filed} />
+          </>
+        )}
           </>
         )}
       </div>

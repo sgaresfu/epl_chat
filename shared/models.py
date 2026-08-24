@@ -264,6 +264,94 @@ class PreviewOut(Model):
 
 
 # --------------------------------------------------------------------------
+# Match picks
+# --------------------------------------------------------------------------
+
+
+class PickIn(Model):
+    fixture_id: int
+    # Nobody has scored ten in this league since 1995, and a bound stops a
+    # typo becoming a permanent record.
+    home_goals: int = Field(ge=0, le=15)
+    away_goals: int = Field(ge=0, le=15)
+
+
+class PickOut(Model):
+    person: str
+    fixture_id: int
+    home_goals: int
+    away_goals: int
+    # Filled once the match is settled, null before.
+    points: int | None = None
+    exact: bool = False
+    outcome_hit: bool = False
+    total_hit: bool = False
+
+
+class FixturePicksOut(Model):
+    """One fixture, with everyone's call on it."""
+
+    fixture_id: int
+    gameweek: int
+    kickoff: datetime | None
+    home: ClubOut
+    away: ClubOut
+    home_score: int | None = None
+    away_score: int | None = None
+    started: bool = False
+    finished: bool = False
+    # Picks stay private until kick-off, then everyone's are shown.
+    open_for_picks: bool = False
+    revealed: bool = False
+    my_pick: PickOut | None = None
+    picks: list[PickOut] = Field(default_factory=list)
+    odds: OddsPrice | None = None
+
+
+class PickRoundOut(Model):
+    gameweek: int
+    fixtures: list[FixturePicksOut] = Field(default_factory=list)
+    freshness: Freshness
+    empty_message: str | None = None
+
+
+class PickStatsOut(Model):
+    """One person's all-time record."""
+
+    person: PersonOut
+    settled: int
+    points: int
+    points_per_pick: float
+    exact: int
+    exact_pct: float
+    outcomes: int
+    outcome_pct: float
+    totals: int
+    total_pct: float
+    current_streak: int
+    best_streak: int
+    predicted_goals: float
+    actual_goals: float
+    goal_bias: float
+    home_pct: float
+    # Against the bookmaker, over the picks that carried a price.
+    with_market: int
+    followed_favourite: int
+    bold: int
+    bold_hits: int
+    bold_pct: float
+    market_points: int
+    edge: int
+
+
+class PickStandingsOut(Model):
+    rows: list[PickStatsOut] = Field(default_factory=list)
+    total_settled: int = 0
+    empty_message: str | None = None
+    scoring: str = ""
+
+
+# --------------------------------------------------------------------------
 # Leaderboard
 # --------------------------------------------------------------------------
 
@@ -399,6 +487,81 @@ class FplStandingsOut(Model):
     freshness: Freshness
     empty_message: str | None = None
     unmapped: list[int] = Field(default_factory=list)
+
+
+class ForecastOut(Model):
+    """One player's projection for the coming round."""
+
+    element: int
+    name: str
+    club: str
+    position: str
+    price: float
+    expected_points: float
+    appearances: int
+    # False when the sample is too thin to project from. BRIEF section 6
+    # requires this to be visible rather than swallowed.
+    confident: bool
+    availability: str
+    difficulty: int
+    # "observed" | "blended" | "prior" | "thin" -- how much of this number is
+    # the player's own record and how much is the league's expectation.
+    basis: str = "observed"
+    reasons: list[str] = Field(default_factory=list)
+
+
+class CaptainPickOut(Model):
+    rank: int
+    doubled: float
+    player: ForecastOut
+
+
+class TransferIdeaOut(Model):
+    out_player: ForecastOut
+    in_player: ForecastOut
+    gain: float
+    reasoning: list[str] = Field(default_factory=list)
+
+
+class ManagerAdviceOut(Model):
+    person: str
+    entry_name: str
+    bank: float
+    captain_now: str | None = None
+    captains: list[CaptainPickOut] = Field(default_factory=list)
+    transfers: list[TransferIdeaOut] = Field(default_factory=list)
+    projected_points: float = 0.0
+    # How many of the XI the projection rests on the player's own record for,
+    # as opposed to the league's prior. A confident-looking total should not
+    # read as more certain than it is.
+    projected_from: int = 0
+    squad_size: int = 0
+    note: str = ""
+
+
+class ManagerReportOut(Model):
+    person: str
+    live_points: int
+    bench_points: int
+    bench_wasted: int
+    captain: str | None = None
+    captain_points: int = 0
+    best_captain: str | None = None
+    best_captain_points: int = 0
+    captain_cost: int = 0
+    players_to_play: int = 0
+    verdict: str = ""
+
+
+class FplAdviceOut(Model):
+    gameweek: int
+    managers: list[ManagerAdviceOut] = Field(default_factory=list)
+    reports: list[ManagerReportOut] = Field(default_factory=list)
+    worst: str | None = None
+    worst_reason: str | None = None
+    freshness: Freshness
+    empty_message: str | None = None
+    method: str = ""
 
 
 class PlayerStatOut(Model):

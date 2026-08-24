@@ -11,11 +11,12 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '@/api/client'
-import { keys, useFixtures, useLineups, useMe } from '@/api/queries'
+import { keys, useFixtures, useLineups, useMe, usePicks } from '@/api/queries'
+import { ScorePicker } from '@/components/ScorePicker'
 import { Crest } from '@/components/Crest'
 import { FourCities } from '@/components/FourCities'
 import { Empty, StaleNote, TableSkeleton } from '@/components/states'
-import type { Fixture, LineupSide } from '@/api/types'
+import type { Fixture, FixturePicks, LineupSide } from '@/api/types'
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -142,7 +143,64 @@ function LineupsPanel({ fixture, open }: { fixture: Fixture; open: boolean }) {
   )
 }
 
-function Match({ fixture, me }: { fixture: Fixture; me: string | undefined }) {
+/**
+ * Everyone's call on this match.
+ *
+ * Before kick-off only your own is shown, and only to you -- the server
+ * withholds the rest, so there is nothing here to leak. Afterwards all four
+ * appear with what each of them scored.
+ */
+function PicksRow({ fixture, picks }: { fixture: Fixture; picks: FixturePicks | undefined }) {
+  if (!picks) return null
+
+  if (picks.open_for_picks) {
+    return (
+      <ScorePicker
+        fixtureId={fixture.id}
+        home={fixture.home}
+        away={fixture.away}
+        homeGoals={picks.my_pick?.home_goals ?? null}
+        awayGoals={picks.my_pick?.away_goals ?? null}
+      />
+    )
+  }
+
+  if (picks.picks.length === 0) return null
+
+  return (
+    <p className="calls">
+      <span className="calls__label">Called</span>
+      {picks.picks.map((p) => (
+        <span
+          className="calls__one"
+          key={p.person}
+          data-hit={p.exact ? 'exact' : p.outcome_hit ? 'outcome' : p.total_hit ? 'total' : 'miss'}
+          title={
+            p.points === null
+              ? 'Not settled yet'
+              : `${p.points} point${p.points === 1 ? '' : 's'}` +
+                (p.exact ? ' — exact score' : p.outcome_hit ? ' — right result' : '') +
+                (p.total_hit && !p.exact ? ', right number of goals' : '')
+          }
+        >
+          <em>{p.person.toUpperCase()}</em>
+          {p.home_goals}–{p.away_goals}
+          {p.points !== null && <b>{p.points}</b>}
+        </span>
+      ))}
+    </p>
+  )
+}
+
+function Match({
+  fixture,
+  me,
+  picks,
+}: {
+  fixture: Fixture
+  me: string | undefined
+  picks: FixturePicks | undefined
+}) {
   const [showTimes, setShowTimes] = useState(false)
   const [showLineups, setShowLineups] = useState(false)
   const client = useQueryClient()
@@ -237,6 +295,8 @@ function Match({ fixture, me }: { fixture: Fixture; me: string | undefined }) {
 
       <OddsLine fixture={fixture} />
 
+      <PicksRow fixture={fixture} picks={picks} />
+
       {toggle.isError && (
         <p className="picker__error" role="alert">
           {toggle.error instanceof ApiError ? toggle.error.message : 'Could not save that.'}
@@ -260,6 +320,8 @@ export function Fixtures({ embedded = false }: { embedded?: boolean } = {}) {
   const [gameweek, setGameweek] = useState(1)
   const { data, isLoading } = useFixtures(gameweek)
   const { data: me } = useMe()
+  const { data: picks } = usePicks(gameweek)
+  const picksByFixture = new Map((picks?.fixtures ?? []).map((f) => [f.fixture_id, f]))
 
   const groups = new Map<string, Fixture[]>()
   for (const fixture of data?.fixtures ?? []) {
@@ -314,7 +376,12 @@ export function Fixtures({ embedded = false }: { embedded?: boolean } = {}) {
                   </span>
                 </div>
                 {matches.map((fixture) => (
-                  <Match key={fixture.id} fixture={fixture} me={me?.person.key} />
+                  <Match
+                    key={fixture.id}
+                    fixture={fixture}
+                    me={me?.person.key}
+                    picks={picksByFixture.get(fixture.id)}
+                  />
                 ))}
               </div>
             )

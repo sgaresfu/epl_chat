@@ -233,6 +233,50 @@ async function sweep(engineName, engine, viewportName, viewport, round, scheme) 
         check(cities >= 4, `${tag} where: expected four cities, got ${cities}`)
       }
 
+      // Match picks: the record tab, and the picker on the fixtures list.
+      await page.goto(`${APP}/predictions`, { waitUntil: 'networkidle', timeout: 60000 })
+      await page.waitForTimeout(400)
+      const picksTab = page.locator('.seg button', { hasText: 'Match picks' }).first()
+      if (await picksTab.count()) {
+        await picksTab.click()
+        await page.waitForTimeout(900)
+        const cards = await page.locator('.record').count()
+        const empty = await page.locator('.empty').count()
+        check(
+          cards > 0 || empty > 0,
+          `${tag} picks: the record tab rendered neither a card nor an empty state`,
+        )
+        if (cards > 0) {
+          check(cards === 4, `${tag} picks: expected four records, got ${cards}`)
+        }
+      }
+
+      // Fantasy advice: every recommendation must carry its reasoning.
+      await page.goto(`${APP}/fpl`, { waitUntil: 'networkidle', timeout: 60000 })
+      await page.waitForTimeout(400)
+      const adviceTab = page.locator('.seg button', { hasText: 'Advice' }).first()
+      if (await adviceTab.count()) {
+        await adviceTab.click()
+        await page.waitForTimeout(1200)
+        const panels = await page.locator('.advice').count()
+        const empty = await page.locator('.empty').count()
+        check(
+          panels > 0 || empty > 0,
+          `${tag} advice: rendered neither a manager panel nor an empty state`,
+        )
+        if (panels > 0) {
+          const swaps = await page.locator('.swap').count()
+          if (swaps > 0) {
+            const unexplained = await page.evaluate(
+              () => [...document.querySelectorAll('.swap')].filter(
+                (el) => !el.querySelector('.swap__why')?.textContent?.trim(),
+              ).length,
+            )
+            check(unexplained === 0, `${tag} advice: ${unexplained} transfer(s) with no reasoning`)
+          }
+        }
+      }
+
       await page.goto(`${APP}/calendar`, { waitUntil: 'networkidle', timeout: 60000 })
       await page.waitForTimeout(500)
       const rows = await page.locator('.cal-row').count()

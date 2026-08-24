@@ -6,8 +6,11 @@ import type {
   AdminStatus,
   Calendar,
   Club,
+  FplAdvice,
   Lineups,
   OddsRound,
+  PickRound,
+  PickStandings,
   FixtureList,
   Home,
   LeagueTable,
@@ -54,6 +57,9 @@ export const keys = {
   calendar: ['calendar'] as const,
   odds: ['odds'] as const,
   lineups: (fixtureId: number) => ['lineups', fixtureId] as const,
+  picks: (gw?: number) => ['picks', gw ?? 'current'] as const,
+  pickStats: ['picks', 'stats'] as const,
+  fplAdvice: ['fpl', 'advice'] as const,
 }
 
 export function useMe(): UseQueryResult<Me> {
@@ -102,6 +108,22 @@ export function useFixtures(gameweek?: number): UseQueryResult<FixtureList> {
         gameweek == null ? '/api/fixtures' : `/api/fixtures?gameweek=${gameweek}`,
       ),
   })
+}
+
+export function usePicks(gameweek?: number): UseQueryResult<PickRound> {
+  return useQuery({
+    queryKey: keys.picks(gameweek),
+    queryFn: () =>
+      api.get<PickRound>(gameweek == null ? '/api/picks' : `/api/picks?gameweek=${gameweek}`),
+  })
+}
+
+export function usePickStats(): UseQueryResult<PickStandings> {
+  return useQuery({ queryKey: keys.pickStats, queryFn: () => api.get<PickStandings>('/api/picks/stats') })
+}
+
+export function useFplAdvice(): UseQueryResult<FplAdvice> {
+  return useQuery({ queryKey: keys.fplAdvice, queryFn: () => api.get<FplAdvice>('/api/fpl/advice') })
 }
 
 export function useOdds(): UseQueryResult<OddsRound> {

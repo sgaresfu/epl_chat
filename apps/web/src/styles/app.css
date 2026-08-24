@@ -3348,3 +3348,408 @@
   font-size: 15px;
   letter-spacing: -0.015em;
 }
+
+/* ---------- match picks ---------- */
+/*
+ * Two steppers and a state word. Deliberately quiet: on a round of ten
+ * fixtures this repeats ten times, so anything with a border or a fill turns
+ * the page into a form. It reads as part of the row until you reach for it.
+ */
+.picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 8px 12px;
+  margin-top: -4px;
+  flex-wrap: wrap;
+}
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-2);
+  border-radius: var(--r-pill);
+  padding: 2px;
+}
+.stepper button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+.stepper button:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--ink);
+}
+.stepper button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.stepper__value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 46px;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+.stepper__value b {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.stepper__value em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--ink-3);
+}
+.picker__dash {
+  color: var(--ink-3);
+}
+.picker__state {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-3);
+}
+.picker__error {
+  color: var(--red-text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Everyone's calls, once the whistle has gone. The colour carries how close
+   each of them got, and the tooltip carries why. */
+.calls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 0 8px 12px;
+  margin-top: -4px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.calls__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-3);
+}
+.calls__one {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-2);
+  color: var(--ink-2);
+  cursor: help;
+}
+.calls__one em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--ink-3);
+}
+.calls__one b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.calls__one[data-hit='exact'] {
+  border-color: var(--green-line);
+  background: var(--green-tint);
+  color: var(--green-ink);
+}
+.calls__one[data-hit='exact'] em,
+.calls__one[data-hit='exact'] b {
+  color: var(--green-ink);
+}
+.calls__one[data-hit='outcome'] {
+  border-color: var(--line);
+  color: var(--ink);
+}
+.calls__one[data-hit='miss'] {
+  opacity: 0.6;
+}
+
+/* ---------- pick record ---------- */
+.records {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  margin-top: 4px;
+}
+@media (max-width: 760px) {
+  .records {
+    grid-template-columns: 1fr;
+  }
+}
+.record {
+  padding: 20px 22px;
+  background: var(--bg-2);
+  border-radius: var(--r-tile);
+}
+/* Your own card carries the accent, so four near-identical panels still have
+   somewhere for the eye to land. */
+.record[data-mine='true'] {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+.record__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.record__who {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.record__points {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.026em;
+  line-height: 1;
+}
+.record__points small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-left: 5px;
+}
+.record__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  margin-top: 16px;
+  background: var(--line-2);
+  border-radius: var(--r-inset);
+  overflow: hidden;
+}
+.metric {
+  background: var(--bg-2);
+  padding: 11px 13px;
+}
+.metric__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+.metric__value {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+}
+.record__market {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.record__edge {
+  font-weight: 600;
+  cursor: help;
+}
+.record__edge[data-dir='up'] {
+  color: var(--green-text);
+}
+.record__edge[data-dir='down'] {
+  color: var(--red-text);
+}
+.record__habit {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+/* ---------- fantasy advice ---------- */
+.advices {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+@media (max-width: 860px) {
+  .advices {
+    grid-template-columns: 1fr;
+  }
+}
+.advice {
+  padding: 20px 22px;
+  background: var(--bg-2);
+  border-radius: var(--r-tile);
+}
+.advice[data-worst='true'] {
+  outline: 2px solid var(--amber-text);
+  outline-offset: -2px;
+}
+.advice__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.advice__who {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.tag--warn {
+  color: var(--amber-text);
+  border-color: var(--amber-text);
+}
+.advice__proj {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.advice__proj small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-left: 4px;
+}
+.advice__regret {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.5px;
+  color: var(--amber-text);
+}
+.advice__block {
+  margin-top: 18px;
+}
+.advice__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.advice__bank {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+}
+.advice__lead {
+  margin-top: 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.advice__num {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.advice__why,
+.advice__alts,
+.advice__note {
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+.advice__note {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-2);
+}
+
+/* A projection resting on the league's prior rather than a real record. */
+.basis {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--amber-text);
+  border: 1px solid var(--amber-text);
+  border-radius: 4px;
+  padding: 1px 4px;
+  cursor: help;
+  align-self: center;
+}
+
+.swaps {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.swap__line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+}
+.swap__out {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.swap__in {
+  font-weight: 600;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.swap__out em,
+.swap__in em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-left: 5px;
+}
+.swap__arrow {
+  color: var(--ink-3);
+}
+.swap__gain {
+  margin-left: auto;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--green-text);
+  font-variant-numeric: tabular-nums;
+}
+.swap__why {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}

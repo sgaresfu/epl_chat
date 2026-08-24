@@ -31,6 +31,7 @@ from services.api.routes import (
     fpl,
     leaderboard,
     news,
+    picks,
     predictions,
     session,
     stats,
@@ -181,6 +182,7 @@ def create_app() -> FastAPI:
         stream,
         admin,
         calendar,
+        picks,
     ):
         app.include_router(module.router)
 

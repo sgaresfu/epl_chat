@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useClubs, useFplSquads, useFplStandings, useMe } from '@/api/queries'
 import { Crest } from '@/components/Crest'
 import { Empty, StaleNote, TableSkeleton } from '@/components/states'
+import { FplAdvicePanel } from '@/components/FplAdvice'
 import type { FplPlayer, FplSquad } from '@/api/types'
 
 /** FPL's chip codes are not words anybody says out loud. */
@@ -240,7 +241,7 @@ function Standings() {
 }
 
 export function Fpl() {
-  const [tab, setTab] = useState<'squads' | 'standings'>('squads')
+  const [tab, setTab] = useState<'squads' | 'standings' | 'advice'>('squads')
   const { data, isLoading } = useFplSquads()
   const { data: me } = useMe()
 
@@ -261,6 +262,14 @@ export function Fpl() {
             >
               Standings
             </button>
+            <button
+              role="tab"
+              type="button"
+              aria-selected={tab === 'advice'}
+              onClick={() => setTab('advice')}
+            >
+              Advice
+            </button>
           </span>
           {data && (
             <span className="shead__link" style={{ color: 'var(--ink-3)' }}>
@@ -269,7 +278,9 @@ export function Fpl() {
           )}
         </div>
 
-        {tab === 'standings' ? (
+        {tab === 'advice' ? (
+          <FplAdvicePanel />
+        ) : tab === 'standings' ? (
           <Standings />
         ) : isLoading ? (
           <TableSkeleton rows={8} />

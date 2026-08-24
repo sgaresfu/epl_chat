@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-from shared.db import OddsHistory, Person, Prediction
+from shared.db import MatchPick, OddsHistory, Person, Prediction
 from shared.timezones import PLACES
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -174,3 +174,70 @@ async def odds_drift_bulk(db: AsyncSession, fixture_ids: Iterable[int]) -> dict[
     for row in rows.all():
         out.setdefault(row.fixture_id, []).append(row)
     return out
+
+
+# --------------------------------------------------------------------------
+# Match picks
+# --------------------------------------------------------------------------
+
+
+async def load_picks(
+    db: AsyncSession, fixture_ids: Iterable[int] | None = None
+) -> list[tuple[MatchPick, str]]:
+    """Every pick with its owner's key, or only those for the fixtures named.
+
+    Returns pairs rather than decorating the ORM object with an extra
+    attribute: the person key is not part of the row, and pretending it is
+    would be a lie the type checker cannot see through.
+    """
+    stmt = select(MatchPick, Person.key).join(Person, Person.id == MatchPick.person_id)
+    if fixture_ids is not None:
+        ids = list(fixture_ids)
+        if not ids:
+            return []
+        stmt = stmt.where(MatchPick.fixture_id.in_(ids))
+    rows = (await db.execute(stmt.order_by(MatchPick.fixture_id))).all()
+    return [(pick, str(key)) for pick, key in rows]
+
+
+async def save_pick(
+    db: AsyncSession,
+    person_key: str,
+    fixture_id: int,
+    home_goals: int,
+    away_goals: int,
+    odds: tuple[float | None, float | None, float | None] = (None, None, None),
+) -> MatchPick:
+    """Insert or update one pick. The caller has already checked the deadline.
+
+    The odds snapshot is written only on insert. Changing a pick later should
+    not silently re-baseline the market comparison against a price the person
+    never saw when they first committed.
+    """
+    people = await ensure_people(db)
+    person_id = people[person_key]
+    now = datetime.now(UTC)
+
+    existing = await db.scalar(
+        select(MatchPick).where(MatchPick.person_id == person_id, MatchPick.fixture_id == fixture_id)
+    )
+    if existing is None:
+        existing = MatchPick(
+            person_id=person_id,
+            fixture_id=fixture_id,
+            home_goals=home_goals,
+            away_goals=away_goals,
+            odds_home=odds[0],
+            odds_draw=odds[1],
+            odds_away=odds[2],
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(existing)
+    else:
+        existing.home_goals = home_goals
+        existing.away_goals = away_goals
+        existing.updated_at = now
+
+    log.info("repository.pick_saved", person=person_key, fixture=fixture_id)
+    return existing

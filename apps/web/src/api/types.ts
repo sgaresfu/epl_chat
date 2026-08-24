@@ -544,6 +544,140 @@ export interface Lineups {
   away: LineupSide | null
 }
 
+export interface Pick {
+  person: string
+  fixture_id: number
+  home_goals: number
+  away_goals: number
+  points: number | null
+  exact: boolean
+  outcome_hit: boolean
+  total_hit: boolean
+}
+
+export interface FixturePicks {
+  fixture_id: number
+  gameweek: number
+  kickoff: string | null
+  home: Club
+  away: Club
+  home_score: number | null
+  away_score: number | null
+  started: boolean
+  finished: boolean
+  open_for_picks: boolean
+  revealed: boolean
+  my_pick: Pick | null
+  picks: Pick[]
+  odds: Odds | null
+}
+
+export interface PickRound {
+  gameweek: number
+  fixtures: FixturePicks[]
+  freshness: Freshness
+  empty_message: string | null
+}
+
+export interface PickStats {
+  person: Person
+  settled: number
+  points: number
+  points_per_pick: number
+  exact: number
+  exact_pct: number
+  outcomes: number
+  outcome_pct: number
+  totals: number
+  total_pct: number
+  current_streak: number
+  best_streak: number
+  predicted_goals: number
+  actual_goals: number
+  goal_bias: number
+  home_pct: number
+  with_market: number
+  followed_favourite: number
+  bold: number
+  bold_hits: number
+  bold_pct: number
+  market_points: number
+  edge: number
+}
+
+export interface PickStandings {
+  rows: PickStats[]
+  total_settled: number
+  empty_message: string | null
+  scoring: string
+}
+
+export interface Forecast {
+  element: number
+  name: string
+  club: string
+  position: string
+  price: number
+  expected_points: number
+  appearances: number
+  confident: boolean
+  availability: string
+  difficulty: number
+  basis: string
+  reasons: string[]
+}
+
+export interface CaptainPick {
+  rank: number
+  doubled: number
+  player: Forecast
+}
+
+export interface TransferIdea {
+  out_player: Forecast
+  in_player: Forecast
+  gain: number
+  reasoning: string[]
+}
+
+export interface ManagerAdvice {
+  person: string
+  entry_name: string
+  bank: number
+  captain_now: string | null
+  captains: CaptainPick[]
+  transfers: TransferIdea[]
+  projected_points: number
+  projected_from: number
+  squad_size: number
+  note: string
+}
+
+export interface ManagerReport {
+  person: string
+  live_points: number
+  bench_points: number
+  bench_wasted: number
+  captain: string | null
+  captain_points: number
+  best_captain: string | null
+  best_captain_points: number
+  captain_cost: number
+  players_to_play: number
+  verdict: string
+}
+
+export interface FplAdvice {
+  gameweek: number
+  managers: ManagerAdvice[]
+  reports: ManagerReport[]
+  worst: string | null
+  worst_reason: string | null
+  freshness: Freshness
+  empty_message: string | null
+  method: string
+}
+
 export interface WatchOn {
   place: string
   country: string

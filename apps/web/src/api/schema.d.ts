@@ -336,6 +336,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fpl/advice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Advice
+         * @description Projections, captaincy and transfers for all four squads.
+         *
+         *     Everything is computed from the cache the poller already fills -- the
+         *     bootstrap for player form and availability, the fixture list for
+         *     difficulty, the stored picks for who owns whom. No upstream call, so this
+         *     stays on the same footing as every other read in the app.
+         */
+        get: operations["advice_api_fpl_advice_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/watch": {
         parameters: {
             query?: never;
@@ -546,6 +571,48 @@ export interface paths {
         };
         /** Calendar */
         get: operations["calendar_api_calendar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/picks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Picks Round */
+        get: operations["picks_round_api_picks_get"];
+        /** Save Pick */
+        put: operations["save_pick_api_picks_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/picks/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pick Stats
+         * @description All-time, recomputed on read.
+         *
+         *     There is no nightly job and no stored aggregate: the record is a fold over
+         *     picks and results, both of which are already here, so it cannot drift out
+         *     of date and there is no cache to invalidate when a match finishes.
+         */
+        get: operations["pick_stats_api_picks_stats_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -815,6 +882,14 @@ export interface components {
             /** Empty Message */
             empty_message: string | null;
         };
+        /** CaptainPickOut */
+        CaptainPickOut: {
+            /** Rank */
+            rank: number;
+            /** Doubled */
+            doubled: number;
+            player: components["schemas"]["ForecastOut"];
+        };
         /** ChampionsLeaguePicks */
         "ChampionsLeaguePicks-Input": {
             /**
@@ -981,6 +1056,102 @@ export interface components {
              * @default false
              */
             watch_open: boolean;
+        };
+        /**
+         * FixturePicksOut
+         * @description One fixture, with everyone's call on it.
+         */
+        FixturePicksOut: {
+            /** Fixture Id */
+            fixture_id: number;
+            /** Gameweek */
+            gameweek: number;
+            /** Kickoff */
+            kickoff: string | null;
+            home: components["schemas"]["ClubOut"];
+            away: components["schemas"]["ClubOut"];
+            /** Home Score */
+            home_score: number | null;
+            /** Away Score */
+            away_score: number | null;
+            /**
+             * Started
+             * @default false
+             */
+            started: boolean;
+            /**
+             * Finished
+             * @default false
+             */
+            finished: boolean;
+            /**
+             * Open For Picks
+             * @default false
+             */
+            open_for_picks: boolean;
+            /**
+             * Revealed
+             * @default false
+             */
+            revealed: boolean;
+            my_pick: components["schemas"]["PickOut"] | null;
+            /** Picks */
+            picks: components["schemas"]["PickOut"][];
+            odds: components["schemas"]["OddsPrice"] | null;
+        };
+        /**
+         * ForecastOut
+         * @description One player's projection for the coming round.
+         */
+        ForecastOut: {
+            /** Element */
+            element: number;
+            /** Name */
+            name: string;
+            /** Club */
+            club: string;
+            /** Position */
+            position: string;
+            /** Price */
+            price: number;
+            /** Expected Points */
+            expected_points: number;
+            /** Appearances */
+            appearances: number;
+            /** Confident */
+            confident: boolean;
+            /** Availability */
+            availability: string;
+            /** Difficulty */
+            difficulty: number;
+            /**
+             * Basis
+             * @default observed
+             */
+            basis: string;
+            /** Reasons */
+            reasons: string[];
+        };
+        /** FplAdviceOut */
+        FplAdviceOut: {
+            /** Gameweek */
+            gameweek: number;
+            /** Managers */
+            managers: components["schemas"]["ManagerAdviceOut"][];
+            /** Reports */
+            reports: components["schemas"]["ManagerReportOut"][];
+            /** Worst */
+            worst: string | null;
+            /** Worst Reason */
+            worst_reason: string | null;
+            freshness: components["schemas"]["Freshness"];
+            /** Empty Message */
+            empty_message: string | null;
+            /**
+             * Method
+             * @default
+             */
+            method: string;
         };
         /** FplChipOut */
         FplChipOut: {
@@ -1373,6 +1544,81 @@ export interface components {
             /** Code */
             code: string;
         };
+        /** ManagerAdviceOut */
+        ManagerAdviceOut: {
+            /** Person */
+            person: string;
+            /** Entry Name */
+            entry_name: string;
+            /** Bank */
+            bank: number;
+            /** Captain Now */
+            captain_now: string | null;
+            /** Captains */
+            captains: components["schemas"]["CaptainPickOut"][];
+            /** Transfers */
+            transfers: components["schemas"]["TransferIdeaOut"][];
+            /**
+             * Projected Points
+             * @default 0
+             */
+            projected_points: number;
+            /**
+             * Projected From
+             * @default 0
+             */
+            projected_from: number;
+            /**
+             * Squad Size
+             * @default 0
+             */
+            squad_size: number;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** ManagerReportOut */
+        ManagerReportOut: {
+            /** Person */
+            person: string;
+            /** Live Points */
+            live_points: number;
+            /** Bench Points */
+            bench_points: number;
+            /** Bench Wasted */
+            bench_wasted: number;
+            /** Captain */
+            captain: string | null;
+            /**
+             * Captain Points
+             * @default 0
+             */
+            captain_points: number;
+            /** Best Captain */
+            best_captain: string | null;
+            /**
+             * Best Captain Points
+             * @default 0
+             */
+            best_captain_points: number;
+            /**
+             * Captain Cost
+             * @default 0
+             */
+            captain_cost: number;
+            /**
+             * Players To Play
+             * @default 0
+             */
+            players_to_play: number;
+            /**
+             * Verdict
+             * @default
+             */
+            verdict: string;
+        };
         /** MeOut */
         MeOut: {
             person: components["schemas"]["PersonOut"];
@@ -1495,6 +1741,121 @@ export interface components {
             country: string;
             /** Fpl Entry Id */
             fpl_entry_id: number | null;
+        };
+        /** PickIn */
+        PickIn: {
+            /** Fixture Id */
+            fixture_id: number;
+            /** Home Goals */
+            home_goals: number;
+            /** Away Goals */
+            away_goals: number;
+        };
+        /** PickOut */
+        PickOut: {
+            /** Person */
+            person: string;
+            /** Fixture Id */
+            fixture_id: number;
+            /** Home Goals */
+            home_goals: number;
+            /** Away Goals */
+            away_goals: number;
+            /** Points */
+            points: number | null;
+            /**
+             * Exact
+             * @default false
+             */
+            exact: boolean;
+            /**
+             * Outcome Hit
+             * @default false
+             */
+            outcome_hit: boolean;
+            /**
+             * Total Hit
+             * @default false
+             */
+            total_hit: boolean;
+        };
+        /** PickRoundOut */
+        PickRoundOut: {
+            /** Gameweek */
+            gameweek: number;
+            /** Fixtures */
+            fixtures: components["schemas"]["FixturePicksOut"][];
+            freshness: components["schemas"]["Freshness"];
+            /** Empty Message */
+            empty_message: string | null;
+        };
+        /** PickStandingsOut */
+        PickStandingsOut: {
+            /** Rows */
+            rows: components["schemas"]["PickStatsOut"][];
+            /**
+             * Total Settled
+             * @default 0
+             */
+            total_settled: number;
+            /** Empty Message */
+            empty_message: string | null;
+            /**
+             * Scoring
+             * @default
+             */
+            scoring: string;
+        };
+        /**
+         * PickStatsOut
+         * @description One person's all-time record.
+         */
+        PickStatsOut: {
+            person: components["schemas"]["PersonOut"];
+            /** Settled */
+            settled: number;
+            /** Points */
+            points: number;
+            /** Points Per Pick */
+            points_per_pick: number;
+            /** Exact */
+            exact: number;
+            /** Exact Pct */
+            exact_pct: number;
+            /** Outcomes */
+            outcomes: number;
+            /** Outcome Pct */
+            outcome_pct: number;
+            /** Totals */
+            totals: number;
+            /** Total Pct */
+            total_pct: number;
+            /** Current Streak */
+            current_streak: number;
+            /** Best Streak */
+            best_streak: number;
+            /** Predicted Goals */
+            predicted_goals: number;
+            /** Actual Goals */
+            actual_goals: number;
+            /** Goal Bias */
+            goal_bias: number;
+            /** Home Pct */
+            home_pct: number;
+            /** With Market */
+            with_market: number;
+            /** Followed Favourite */
+            followed_favourite: number;
+            /** Bold */
+            bold: number;
+            /** Bold Hits */
+            bold_hits: number;
+            /** Bold Pct */
+            bold_pct: number;
+            /** Market Points */
+            market_points: number;
+            /** Edge */
+            edge: number;
         };
         /**
          * PlayerStatOut
@@ -1970,6 +2331,15 @@ export interface components {
             entries: components["schemas"]["TimelineEntryOut"][];
             /** Empty Message */
             empty_message: string | null;
+        };
+        /** TransferIdeaOut */
+        TransferIdeaOut: {
+            out_player: components["schemas"]["ForecastOut"];
+            in_player: components["schemas"]["ForecastOut"];
+            /** Gain */
+            gain: number;
+            /** Reasoning */
+            reasoning: string[];
         };
         /** ValidationError */
         ValidationError: {
@@ -2565,6 +2935,26 @@ export interface operations {
             };
         };
     };
+    advice_api_fpl_advice_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FplAdviceOut"];
+                };
+            };
+        };
+    };
     stats_api_watch_get: {
         parameters: {
             query?: never;
@@ -2978,6 +3368,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    picks_round_api_picks_get: {
+        parameters: {
+            query?: {
+                gameweek?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PickRoundOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_pick_api_picks_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PickIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PickOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pick_stats_api_picks_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PickStandingsOut"];
                 };
             };
         };
