@@ -1,10 +1,18 @@
 /**
- * Register the service worker, and notice when a new version is waiting.
+ * Register the service worker, and get a new build in front of the user.
  *
- * A cache-first shell is what makes the app open instantly rather than waiting
- * for a free-tier server to wake. The cost is that a deployed change can sit
- * unseen behind the cached copy, so an update is detected and applied on the
- * next navigation rather than left to chance.
+ * The worker serves the document network-first, so an ordinary deploy lands on
+ * the very next load with nothing special happening here. The one case that
+ * needs help is a deploy that changes *the worker itself*: the load that
+ * discovers the new worker has already been answered by the old one, so the
+ * page on screen is the old build. Left alone that resolves on the following
+ * load — which, for anybody who opens the app and closes it again, may be
+ * days away, or never.
+ *
+ * So when a new worker takes over a page that was already controlled, reload
+ * once. `wasControlled` is the guard that matters: on a first-ever visit the
+ * worker also claims the page, and reloading there would be a pointless flash
+ * on somebody's first impression of the app.
  */
 
 export function registerServiceWorker(): void {
@@ -15,6 +23,16 @@ export function registerServiceWorker(): void {
   // no error to explain why.
   if (!window.isSecureContext) return
 
+  // Read before anything is registered: afterwards it tells us nothing.
+  const wasControlled = Boolean(navigator.serviceWorker.controller)
+  let reloading = false
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!wasControlled || reloading) return
+    reloading = true
+    window.location.reload()
+  })
+
   window.addEventListener('load', () => {
     void navigator.serviceWorker
       .register('/sw.js')
@@ -23,10 +41,11 @@ export function registerServiceWorker(): void {
           const installing = registration.installing
           if (!installing) return
           installing.addEventListener('statechange', () => {
-            // A new worker has taken over an existing page: the next load is
-            // the new build. Nothing is forced on the user mid-session.
+            // Installed while a worker is already running means an update, not
+            // a first visit. Hand over immediately; `controllerchange` above
+            // then puts the new build on screen.
             if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-              registration.waiting?.postMessage({ type: 'SKIP_WAITING' })
+              installing.postMessage({ type: 'SKIP_WAITING' })
             }
           })
         })

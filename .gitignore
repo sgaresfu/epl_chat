@@ -16,3 +16,6 @@ dist/
 
 # Built frontend, copied into the image at build time by the Dockerfile.
 /static/
+
+# TypeScript incremental build state: a build artifact, not source.
+*.tsbuildinfo
