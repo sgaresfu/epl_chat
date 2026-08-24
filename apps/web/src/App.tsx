@@ -1,29 +1,31 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useMe } from '@/api/queries'
 import { useStaleSessionRecovery } from '@/api/useStaleSessionRecovery'
 import { useLiveStream } from '@/api/useLiveStream'
 import { Nav } from '@/components/Nav'
+import { lazyRoute } from '@/lib/lazyRoute'
 import { TableSkeleton } from '@/components/states'
 import { Home } from '@/routes/Home'
 import { Login } from '@/routes/Login'
 import { Placeholder } from '@/routes/Placeholder'
 
 // Route-level code splitting: the picker's logic and the chart library stay off
-// the home page's critical path.
-const Stats = lazy(() => import('@/routes/Stats').then((m) => ({ default: m.Stats })))
-const League = lazy(() => import('@/routes/League').then((m) => ({ default: m.League })))
-const Predictions = lazy(() =>
+// the home page's critical path. `lazyRoute` rather than `lazy` so a deploy
+// that lands mid-session does not leave somebody on a dead route.
+const Stats = lazyRoute(() => import('@/routes/Stats').then((m) => ({ default: m.Stats })))
+const League = lazyRoute(() => import('@/routes/League').then((m) => ({ default: m.League })))
+const Predictions = lazyRoute(() =>
   import('@/routes/Predictions').then((m) => ({ default: m.Predictions })),
 )
-const Admin = lazy(() => import('@/routes/Admin').then((m) => ({ default: m.Admin })))
-const Fpl = lazy(() => import('@/routes/Fpl').then((m) => ({ default: m.Fpl })))
-const Watch = lazy(() => import('@/routes/Watch').then((m) => ({ default: m.Watch })))
-const News = lazy(() => import('@/routes/News').then((m) => ({ default: m.News })))
-const Calendar = lazy(() => import('@/routes/Calendar').then((m) => ({ default: m.Calendar })))
-const Archive = lazy(() => import('@/routes/Archive').then((m) => ({ default: m.Archive })))
-const Chat = lazy(() => import('@/routes/Chat').then((m) => ({ default: m.Chat })))
-const PredictionPicker = lazy(() =>
+const Admin = lazyRoute(() => import('@/routes/Admin').then((m) => ({ default: m.Admin })))
+const Fpl = lazyRoute(() => import('@/routes/Fpl').then((m) => ({ default: m.Fpl })))
+const Watch = lazyRoute(() => import('@/routes/Watch').then((m) => ({ default: m.Watch })))
+const News = lazyRoute(() => import('@/routes/News').then((m) => ({ default: m.News })))
+const Calendar = lazyRoute(() => import('@/routes/Calendar').then((m) => ({ default: m.Calendar })))
+const Archive = lazyRoute(() => import('@/routes/Archive').then((m) => ({ default: m.Archive })))
+const Chat = lazyRoute(() => import('@/routes/Chat').then((m) => ({ default: m.Chat })))
+const PredictionPicker = lazyRoute(() =>
   import('@/routes/PredictionPicker').then((m) => ({ default: m.PredictionPicker })),
 )
 
