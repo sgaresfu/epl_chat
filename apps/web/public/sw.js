@@ -28,7 +28,7 @@
 
 // Bumped to purge the poisoned v3 shell, which may be holding an index.html
 // from an old build on any device that visited before this fix.
-const VERSION = 'v4'
+const VERSION = 'v5'
 const SHELL = `shell-${VERSION}`
 const DATA = `data-${VERSION}`
 
@@ -63,14 +63,49 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((k) => !k.endsWith(VERSION)).map((k) => caches.delete(k))),
-      )
-      .then(() => self.clients.claim()),
+    (async () => {
+      const keys = await caches.keys()
+      const stale = keys.filter((k) => !k.endsWith(VERSION))
+      await Promise.all(stale.map((k) => caches.delete(k)))
+      await self.clients.claim()
+
+      // A cache from an older VERSION is the durable proof that this worker is
+      // *replacing* one rather than being the first ever installed. It has to
+      // be durable: a worker can be shut down between install and activate, so
+      // anything remembered in a variable may not survive the trip.
+      if (stale.length === 0) return
+
+      // Any page open right now is running the previous build's JavaScript,
+      // which knows nothing about a handover and will not reload itself. The
+      // page cannot fix this; only the new worker can. Without this, somebody
+      // whose worker is being replaced sees the old build for the whole of
+      // this visit, and the new one only on their next one -- which, for an
+      // app you open and close again, may be days away.
+      //
+      // Deliberately not awaited. Navigating a client issues a request that
+      // this very worker has to answer, and it cannot answer anything until
+      // activation finishes -- so awaiting it here deadlocks the worker
+      // against itself and the page hangs with nothing rendered.
+      void refreshOpenPages()
+    })(),
   )
 })
+
+/**
+ * Reload pages that are still showing the previous build.
+ *
+ * Only ever called when this worker replaced an earlier one, so a first-time
+ * visitor is never navigated out from under themselves.
+ */
+async function refreshOpenPages() {
+  const windows = await self.clients.matchAll({ type: 'window' })
+  for (const client of windows) {
+    if (typeof client.navigate !== 'function') continue
+    client.navigate(client.url).catch(() => {
+      /* not navigable (mid-unload, or not a top-level page): next load gets it */
+    })
+  }
+}
 
 /** Content-hashed, so a cached copy can never be the wrong copy. */
 function isImmutableAsset(url) {
